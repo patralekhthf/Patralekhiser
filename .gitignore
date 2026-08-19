@@ -6,3 +6,6 @@ _to_delete/
 # local scratch, not part of the project
 Awaiting your selection.zip
 repo.bundle
+
+# private notes, never published
+NOTES.local.md

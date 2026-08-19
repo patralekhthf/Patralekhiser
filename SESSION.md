@@ -255,11 +255,10 @@ for a non-technical person who just wants to use the tool.
   -language English docs are the G-1 gate.
 - Team style calibration: sample Myridius articles promised, never arrived.
 - pdf.js still loads from cdnjs. Vendoring it locally is still open.
-- URGENT: revoke the GitHub token exposed in an earlier chat. The repo is public and
-  the previous commit 74c3b03 publicly contains a SESSION.md line announcing that a
-  token may still be live. The token itself is NOT in the repo (all objects across
-  all commits scanned for ghp_/github_pat_/gho_/AKIA/private-key patterns: clean),
-  but the sentence points people at it. Revoke first, then decide whether to reword.
+- THIS FILE IS PUBLISHED. The repo is public, so SESSION.md is a public web page.
+  Never record credentials, credential states, incident details, customer names, or
+  anything that would be awkward to publish. Operational reminders of that kind go in
+  `NOTES.local.md`, which is gitignored.
 - Known gaps carried from the design docs: auto-swaps run before flagging so the
   score describes post-rewrite text; density bands saturate above roughly nine
   flags per thousand words; `replaceNth` can in principle target the wrong
