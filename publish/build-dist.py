@@ -55,8 +55,10 @@ BANNER = """
 
   <p><span class="tb-strong">New in {ver}:</span> every word the rules changed is shaded green in
   the right pane, and hovering one tells you what it was before. A thin orange bar marks where
-  something was deleted. Click any paragraph on the right to edit it by hand; your text is what
-  Download and Copy produce.</p>
+  something was deleted. Click any paragraph on the right to edit it by hand, in the Result tab or
+  the Resemblance tab; your text is what Download and Copy produce. Where the rules can work out
+  a safe rewrite they now offer it as a button you can tap, and where they cannot they say so
+  instead of leaving you an empty box.</p>
 
   <details>
     <summary>What would be most useful to test</summary>
@@ -92,6 +94,8 @@ BANNER = """
       purpose. A rule engine that guessed here would quietly change your meaning.</li>
       <li><span class="tb-strong">Editing a paragraph clears its highlights</span> and discards
       any accept or revert history for that paragraph. Your text becomes the new baseline.</li>
+      <li><span class="tb-strong">In the Resemblance tab, click the plain text to edit</span> and
+      click a highlight to review it. Clicking a highlight never opens the editor.</li>
       <li><span class="tb-strong">Blank lines inside a paragraph are collapsed</span> when you
       edit. The two panes stay paired paragraph for paragraph, so one block in cannot become two
       blocks out.</li>

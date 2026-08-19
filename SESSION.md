@@ -261,6 +261,22 @@ bounded set, no in general, same reasoning as the sentence-splitting spec.
 - Honest coverage on the credit union article: 1 of 6 semicolons, 0 of 7 long sentences,
   1 of 1 word choice. Every refusal checked and correct.
 
+## Editing extended to the Resemblance tab (2026-08-19)
+- `beginParaEdit` now accepts `activeTab === "flags"` as well as `"result"`, and on the
+  audit tab clears `review.sel`/`review.opt` and hides the drawer first, since the drawer
+  is docked over the bottom of that pane.
+- Click disambiguation needs no mode switch: marks, paragraph chips and Revert already
+  call `stopPropagation`, so any click reaching the `.para` handler is plain text.
+  Verified both ways: highlight click opens the drawer and no editor; plain-text click
+  opens the editor and closes the drawer.
+- Changes tab stays non-editable. It renders `.item` cards, a log of engine actions, not
+  document text.
+- Verified: edit in the audit tab propagates to `lastResult.output` and the exports, marks
+  are re-derived (22 -> 18), the "edited by you" count appears in both panes' meta, and the
+  Result tab shows the same text. Zero console errors.
+- Note: the score did not move (9.0 -> 9.0) on that edit. Expected, and it is the density
+  saturation `design/README.md` documents as honest rather than a bug.
+
 ## Open bug: passive-voice detector over-fires
 Found while analysing a real article. `are open` ("my messages are open"), `was down`
 ("search access was down") and `is unmanaged` are adjectival complements after a copula,

@@ -177,6 +177,14 @@ Blur or Cmd/Ctrl+Enter commits; Escape discards. There is no contenteditable any
 paragraph is the unit of editing, so text extraction stays exact and no browser-inserted markup
 has to be parsed back out.
 
+Editing is available in **both** the Result tab and the Resemblance tab. In the audit pane the
+click is disambiguated by target rather than by a mode switch: marks, paragraph chips and Revert
+buttons all call `stopPropagation`, so any click that reaches the `.para` handler is a click on
+ordinary text and means "edit me". Entering the editor there clears `review.sel` and hides the
+drawer first, because the drawer is docked over the bottom of that pane and would otherwise sit
+on top of the box. The Changes tab has no editable paragraphs: it renders `.item` cards, a log
+of what the engine did, not the document text.
+
 `commitParaEdit` is where the invariants live:
 
 - Writes `lastResult.paragraphs[i].output`, which is what Download and Copy read, so the export

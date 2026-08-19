@@ -283,8 +283,10 @@
 
   <p><span class="tb-strong">New in v1.2.0-preview.4:</span> every word the rules changed is shaded green in
   the right pane, and hovering one tells you what it was before. A thin orange bar marks where
-  something was deleted. Click any paragraph on the right to edit it by hand; your text is what
-  Download and Copy produce.</p>
+  something was deleted. Click any paragraph on the right to edit it by hand, in the Result tab or
+  the Resemblance tab; your text is what Download and Copy produce. Where the rules can work out
+  a safe rewrite they now offer it as a button you can tap, and where they cannot they say so
+  instead of leaving you an empty box.</p>
 
   <details>
     <summary>What would be most useful to test</summary>
@@ -320,6 +322,8 @@
       purpose. A rule engine that guessed here would quietly change your meaning.</li>
       <li><span class="tb-strong">Editing a paragraph clears its highlights</span> and discards
       any accept or revert history for that paragraph. Your text becomes the new baseline.</li>
+      <li><span class="tb-strong">In the Resemblance tab, click the plain text to edit</span> and
+      click a highlight to review it. Clicking a highlight never opens the editor.</li>
       <li><span class="tb-strong">Blank lines inside a paragraph are collapsed</span> when you
       edit. The two panes stay paired paragraph for paragraph, so one block in cannot become two
       blocks out.</li>
@@ -2417,8 +2421,12 @@ function autoGrow(ta) {
 }
 
 function beginParaEdit(el) {
-  if (!lastResult || activeTab !== "result") return;
+  if (!lastResult || (activeTab !== "result" && activeTab !== "flags")) return;
   var i = parseInt(el.dataset.i, 10);
+  /* The drawer is docked over the bottom of this pane, so it has to go before
+     the box opens, or it covers the text being edited. Dropping the selection
+     also avoids re-opening it against offsets the edit is about to move. */
+  if (activeTab === "flags") { review.sel = null; review.opt = null; hideDrawer(); }
   var ta = document.createElement("textarea");
   ta.className = "para-edit";
   ta.id = "paraEdit";
@@ -2621,7 +2629,10 @@ function renderResemblance(pane) {
     var spanNotes = lastResult.flags.filter(function (f) {
       return f.paragraph === i && f.kind === "advice-span" && visibleFlag(f);
     });
-    html += '<div class="para r' + headingClass(p.output) + '" data-i="' + i + '">' + annotate(p.output, inline, dm) + "</div>";
+    html += '<div class="para r' + headingClass(p.output) + ' editable'
+          + (manualEdited[i] ? " edited" : "") + '" data-i="' + i + '"'
+          + ' title="Click the text to edit this paragraph. Click a highlight to review it.">'
+          + annotate(p.output, inline, dm) + "</div>";
     if (spanNotes.length) {
       html += '<div style="margin:-4px 0 12px;display:flex;gap:6px;flex-wrap:wrap;">';
       spanNotes.forEach(function (f) {
@@ -2639,9 +2650,16 @@ function renderResemblance(pane) {
   }
 
   pane.innerHTML = html;
-  document.getElementById("outputMeta").textContent = lastResult.stats.after.words + " words";
+  var meta = lastResult.stats.after.words + " words";
+  if (manualEditCount()) meta += ' <span class="meta-sub">&middot; ' + manualEditCount() + " edited by you</span>";
+  document.getElementById("outputMeta").innerHTML = meta;
   attachParaEvents(pane);
   bindResemblanceEvents(pane);
+  /* Marks, paragraph chips and Revert all stopPropagation, so a click that
+     reaches the paragraph is a click on ordinary text and means "edit me". */
+  pane.querySelectorAll(".para.r.editable").forEach(function (el) {
+    el.addEventListener("click", function () { beginParaEdit(el); });
+  });
   renderDrawer();
 }
 
