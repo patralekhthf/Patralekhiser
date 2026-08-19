@@ -17,6 +17,17 @@ it. That is the whole setup. It works offline, with one exception noted below.
 Do not use the "raw" link from the file listing. GitHub serves raw HTML as plain text, so
 you would see source code instead of the app.
 
+## Seeing and changing what it did
+
+Every word the rules changed is shaded green in the right pane. Hover a highlight to see what
+it was before. A thin orange bar marks where something was deleted, and hovering it tells you
+what was removed. The `Highlight changes` switch turns the shading off.
+
+Click any paragraph on the right to edit it by hand. Your text is what Download and Copy
+produce, so what you see is what you get. Press Esc to discard an edit, or click away to keep
+it. Editing a paragraph makes your version the new baseline for that paragraph, which clears
+its highlights and any accept or revert history it had.
+
 ## What it does automatically
 
 Complex words become plain ones (utilize becomes use). Marketing hype and model-sounding
@@ -58,6 +69,9 @@ using it wrong.
 - **Reading an uploaded PDF needs internet** the first time, because it loads a PDF parsing
   library. Everything else, including writing PDFs and Word files, works fully offline.
 - **Desktop only.** It is a two-pane tool and mobile was never adapted.
+- **Pressing Patralekhise again discards manual edits**, because it re-runs from the original.
+- **Blank lines inside a paragraph are collapsed** when you edit it. The two panes stay paired
+  paragraph for paragraph, so one block in cannot become two blocks out.
 - **Nothing is saved.** Reloading loses your text and any configuration changes.
 
 ## Feedback

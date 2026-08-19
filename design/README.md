@@ -142,6 +142,66 @@ beyond tidiness: flag noise inflates the d3 score directly.
   both panes start with a paragraph — false once the panel has a score card above its text.
   **If you add chrome above any pane's paragraphs, this is the function that breaks.**
 
+## Result pane: change highlighting and inline editing
+
+Added after the audit module. Both live in script 3 only; the engine is untouched.
+
+### Change highlighting
+
+`annotateChanges(original, output)` returns `{ html, count }`. Highlights are derived by
+**diffing each paragraph's original against its output**, not from the change log. The log
+records what each rule did but not where, and the rules run in sequence, so any position
+captured during a pass is stale by the end of it. Diffing the finished text is independent of
+the pipeline and it also catches deletions, dash fixes and emoji removal, which have no
+`after` string to search for.
+
+- `diffTokenize` splits on `/\s+|[^\s]+/` so whitespace is preserved as tokens.
+- `diffOps(a, b)` is a plain LCS returning `{op: "keep"|"add"|"del", text}` in output order.
+  `DIFF_CAP` is 800 tokens per paragraph; above that the diff is skipped and the paragraph
+  renders plain, because the LCS table is O(n*m).
+- Adjacent add/del runs are grouped so one swap reads as one highlight rather than one per
+  token. Whitespace-only groups are folded into the surrounding text.
+- An add group renders `<mark class="chg" title="was: ...">`. A del-only group renders
+  `<span class="del" title="removed: ...">`, a zero-width 2px bar, because a deletion has no
+  text to shade.
+- The `Highlight changes` switch (`#showHighlights`, `toggleHighlights()`) turns shading off.
+  Count appears in `#outputMeta`.
+- Colors reuse existing tokens: `--fix-bg` for marks, `--warn` for the deletion bar. `mark.chg`
+  uses a background plus an inset underline, chosen not to collide with `.para.hl` pairing or
+  with `mark.rz` in the audit tab, which the two tabs never show together anyway.
+
+### Inline paragraph editing
+
+Click any `.para.r.editable` in the Result tab to replace it with a `<textarea id="paraEdit">`.
+Blur or Cmd/Ctrl+Enter commits; Escape discards. There is no contenteditable anywhere: the
+paragraph is the unit of editing, so text extraction stays exact and no browser-inserted markup
+has to be parsed back out.
+
+`commitParaEdit` is where the invariants live:
+
+- Writes `lastResult.paragraphs[i].output`, which is what Download and Copy read, so the export
+  always matches the pane.
+- **Collapses blank lines inside the edit** (`/\n[ \t]*\n+/g` to `\n`). Paragraph parity
+  between the panes is load-bearing: scroll pairing, flag offsets and `review.base` are all
+  indexed by paragraph, so one block in must not become two blocks out.
+- Refuses to empty a paragraph.
+- **A manual edit supersedes the review history for that paragraph.** `review.base[i]` becomes
+  the new text, `review.edits` entries for that paragraph are dropped, and `review.reviewed`
+  keys prefixed `i|` are deleted. Those edits are recorded as from/to strings that may no longer
+  exist in the text, so keeping them would let Revert corrupt the paragraph.
+- Sets `manualEdited[i]`, which suppresses highlighting for that paragraph (there is no longer a
+  meaningful engine-vs-output diff) and marks it with a left accent bar.
+- Calls `recompute()`.
+
+`recompute()` re-runs `reviewParas` and refreshes flags, output, resemblance, stats and the
+badge. `rebuild()` now delegates to it, so the review loop and manual editing cannot disagree
+about derived state. `resetReview()` clears `manualEdited`. `run()` reports how many manual
+edits it discarded.
+
+`showTab` now calls `hideDrawer()` when leaving the audit tab. The drawer is docked inside the
+right pane, so leaving it open over the Result tab blocked the paragraphs underneath from being
+clicked.
+
 ## Configuration
 
 New `config.dimensions`: `[{ key, name, note, color, weight }]`, editable in the
@@ -208,6 +268,10 @@ No images, icons, fonts or network requests. Everything is CSS and inline SVG-fr
   reference only.
 - `INTEGRATION.md` — exact list of what was added or changed against the original file,
   for review or for re-applying onto a newer copy.
+- `../publish/build-dist.py` — builds the tester distributable from this folder's
+  `index.html` by adding a version marker and a caveat banner. Those two additions are
+  distribution-only and must never be back-ported here or into `src/`. The script refuses
+  to run if its input already contains the banner.
 
 ## Known gaps
 

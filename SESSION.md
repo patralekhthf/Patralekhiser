@@ -141,6 +141,65 @@ back-port the design implementation into the `src/` build pipeline.
   "pull key items into a short list". The tool recommends a construct its own
   formatter cannot render.
 
+## DEFECT found 2026-08-19 by running the tool on real text
+Noun/verb confusion in single-word swaps. `hypeSwaps` has `harness -> use` and
+`simpleSwaps` has `leverage -> use`, both intended for the verb sense, applied
+unconditionally. Reproduced:
+- "an eval harness that regression-tests..." -> "an eval use that..."   BROKEN
+- "a test harness runs the suite"            -> "a test use runs..."     BROKEN
+- "we had no leverage in that negotiation"   -> "no use in that..."      BROKEN
+- "financial leverage increased the risk"    -> "financial use..."       BROKEN
+- "the team will leverage the new API"        -> "will use the new API"   correct
+- "you should harness the wind"              -> "should use the wind"    correct
+14 of 109 single-word swaps replace with a bare verb, but only `harness` and
+`leverage` are genuinely ambiguous. `utilization`, `assistance`, `modification`
+are nouns swapped for noun senses and are safe.
+
+Proposed fix, consistent with the project's refuse-when-unsure posture: add a
+`verbOnly` guard to swap rules, extending the pipe-delimited config format the
+same way `docs/req-sentence-splitting.md` extends `flagWords`. Apply the swap
+only when preceded by a modal, auxiliary, infinitive `to`, or a pronoun subject.
+When preceded by a determiner or adjective, skip the swap and raise a flag.
+
+Also worth recording as a positive signal: on the user's own 1434-word article the
+tool made 5 fixes and scored 8.5/20 light, against 61 fixes and 15.5/20 heavy on
+the marketing sample. The gap between the two is the best calibration evidence so
+far, and it arrived before any corpus was built.
+
+## Shipped 2026-08-19: change highlighting + inline editing (v1.2.0-preview.3)
+View-layer only, `design/index.html` script 3. Engine untouched. Documented in
+`design/README.md` under "Result pane: change highlighting and inline editing".
+- `annotateChanges(original, output)` diffs each paragraph's original against its
+  output rather than reading the change log. The log has no offsets and rules run
+  in sequence, so recorded positions go stale; a diff of the finished text is
+  pipeline-independent and also catches deletions, dash fixes and emoji removal.
+- `diffTokenize` + `diffOps` (LCS), `DIFF_CAP` 800 tokens per paragraph.
+  Adjacent add/del runs grouped so one swap is one highlight.
+- `mark.chg` uses `--fix-bg` with a `was: ...` tooltip. Deletions render as a
+  zero-width 2px `--warn` bar with a `removed: ...` tooltip. No new tokens.
+- `#showHighlights` toggle, count shown in `#outputMeta`.
+- Click any Result-tab paragraph to edit. Textarea, not contenteditable, so text
+  extraction stays exact. Blur or Cmd+Enter commits, Esc discards.
+- `commitParaEdit` invariants: writes `paragraphs[i].output` so exports match the
+  pane; collapses internal blank lines to keep paragraph parity (scroll pairing,
+  flag offsets and `review.base` are all indexed by paragraph); refuses to empty
+  a paragraph; a manual edit supersedes that paragraph's review history because
+  `review.edits` are from/to strings that may no longer exist.
+- `recompute()` extracted; `rebuild()` now delegates to it so the review loop and
+  manual editing cannot disagree about derived state.
+- Also fixed: `showTab` now hides the drawer when leaving the audit tab. It is
+  docked inside the right pane and was covering the editable paragraphs.
+- `publish/build-dist.py` added so the distributable build is reproducible. It
+  refuses to run if its input already contains the banner.
+- src/template.html deliberately does NOT have these UI features, only the
+  verbOnly config plumbing. Adding the toggle without its handler would have
+  shipped a dead control. They arrive in src/ with the back-port.
+- Verified headless: 65 change marks + 7 deletion bars on the sample, tooltips
+  correct, toggle works, edit reaches md/txt/docx/pdf exports, score recomputes
+  (15.5 heavy to 13.5 moderate after a manual paragraph gained a date and a
+  figure, which is the d5 presence signal working), Esc discards, resemblance
+  tab and scroll sync unaffected, zero console errors.
+
 ## Open threads / blockers
 - Back-port gap: `design/index.html` is a BUILT artifact. The additions must be
   split back into `src/engine.js` (engine functions, DEFAULT_CONFIG.dimensions)

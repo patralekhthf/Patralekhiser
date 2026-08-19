@@ -113,7 +113,24 @@
   .para.h2 { font-size: 17px; font-weight: 700; }
   .para.h3 { font-size: 15.5px; font-weight: 700; }
   .para.hl { background: var(--accent-soft); }
-  .placeholder { color: var(--ink-soft); padding: 30px 10px; text-align: center; font-size: 14px; }
+/* ---- change highlighting and inline paragraph editing ---- */
+  mark.chg { background: var(--fix-bg); border-radius: 3px; padding: 0 1px;
+             box-shadow: inset 0 -0.28em 0 #cbe7d6; }
+  .para .del { display: inline-block; width: 0; height: 0.95em; margin: 0 2px;
+               border-left: 2px solid var(--warn); vertical-align: -0.15em; cursor: help; }
+  .para.r.editable { cursor: text; }
+  .para.r.editable:hover { box-shadow: inset 0 0 0 1px var(--line); }
+  .para.r.edited { box-shadow: inset 2px 0 0 var(--accent); }
+  .para-edit { display: block; width: 100%; box-sizing: border-box; font: inherit;
+               line-height: 1.65; color: var(--ink); background: var(--card);
+               border: 1px solid var(--accent); border-radius: 6px;
+               padding: 6px 10px; margin: 0 -10px 10px; resize: vertical;
+               min-height: 2.8em; overflow: hidden; }
+  .para-edit:focus { outline: none; box-shadow: 0 0 0 3px var(--accent-soft); }
+  .switch + .switch { margin-left: 14px; }
+  .meta-sub { color: var(--ink-soft); }
+
+    .placeholder { color: var(--ink-soft); padding: 30px 10px; text-align: center; font-size: 14px; }
 
   .item { border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; font-size: 13.5px; }
   .item.fix { background: var(--fix-bg); border-color: #cbe7d6; }
@@ -235,6 +252,10 @@
   <label class="switch" title="Hide the original and show only the Patralekhised text">
     <input type="checkbox" id="showOriginal" checked onchange="toggleOriginal()">
     Show original
+  </label>
+  <label class="switch" title="Shade every word the rules changed. Hover a highlight to see what it was before.">
+    <input type="checkbox" id="showHighlights" checked onchange="toggleHighlights()">
+    Highlight changes
   </label>
   <span id="miniStats"></span>
 </div>
@@ -2007,6 +2028,10 @@ function showTab(t) {
   });
   document.getElementById("rightTitle").textContent =
     t === "result" ? "Patralekhised" : t === "changes" ? "Automatic changes" : "Resemblance audit";
+  /* The drawer is docked inside the right pane, so leaving the audit tab must
+     close it. Otherwise it sits on top of the Result pane and blocks the
+     paragraphs underneath from being clicked and edited. */
+  if (t !== "flags") { review.sel = null; hideDrawer(); }
   renderRight();
 }
 
@@ -2030,6 +2055,7 @@ function run() {
   if (ta) rawInput = ta.value;
   if (!rawInput.trim()) { status("Paste an article or upload a file first."); return; }
 
+  var hadManual = manualEditCount();
   lastResult = MyridiusEngine.processDoc(rawInput, config);
 
   renderOriginalParas();
@@ -2046,6 +2072,7 @@ function run() {
   document.getElementById("copyBtn").disabled = false;
   document.getElementById("editBtn").classList.remove("hidden");
   showTab("result");
+  if (hadManual) status("Re-ran from the original, so your " + hadManual + " manual paragraph edit(s) were replaced.");
 }
 
 function renderOriginalParas() {
@@ -2060,17 +2087,192 @@ function renderOriginalParas() {
   attachParaEvents(body);
 }
 
+/* ---------- change highlighting ----------------------------------------- *
+   Highlights are derived by diffing each paragraph's original against its
+   output rather than from the change log. The log records what each rule did
+   but not where, and the rules run in sequence so any position recorded during
+   a pass is stale by the end of it. Diffing the finished text is independent of
+   the pipeline, and it also catches deletions, dash fixes and emoji removal,
+   which have no "after" string to search for.                              */
+
+var highlightChanges = true;
+var DIFF_CAP = 800;
+
+function diffTokenize(s) {
+  return String(s).match(/\s+|[^\s]+/g) || [];
+}
+
+/* Longest common subsequence over tokens, returned as a list of
+   { op: "keep" | "add" | "del", text: "..." } in output order. */
+function diffOps(aTok, bTok) {
+  var n = aTok.length, m = bTok.length;
+  if (n > DIFF_CAP || m > DIFF_CAP) return null;
+
+  var rows = new Array(n + 1);
+  for (var i = 0; i <= n; i++) rows[i] = new Int32Array(m + 1);
+  for (i = n - 1; i >= 0; i--) {
+    for (var j = m - 1; j >= 0; j--) {
+      rows[i][j] = aTok[i] === bTok[j]
+        ? rows[i + 1][j + 1] + 1
+        : Math.max(rows[i + 1][j], rows[i][j + 1]);
+    }
+  }
+  var ops = [];
+  i = 0; j = 0;
+  while (i < n && j < m) {
+    if (aTok[i] === bTok[j]) { ops.push({ op: "keep", text: bTok[j] }); i++; j++; }
+    else if (rows[i + 1][j] >= rows[i][j + 1]) { ops.push({ op: "del", text: aTok[i] }); i++; }
+    else { ops.push({ op: "add", text: bTok[j] }); j++; }
+  }
+  while (i < n) { ops.push({ op: "del", text: aTok[i] }); i++; }
+  while (j < m) { ops.push({ op: "add", text: bTok[j] }); j++; }
+  return ops;
+}
+
+/* Groups runs of add/del that sit next to each other so one swap reads as one
+   highlight instead of one per token. Whitespace-only edits are folded into the
+   surrounding text: they are real but not worth a mark of their own. */
+function annotateChanges(original, output) {
+  var ops = diffOps(diffTokenize(original), diffTokenize(output));
+  if (!ops) return { html: esc(output), count: 0 };
+
+  var html = "", count = 0, k = 0;
+  while (k < ops.length) {
+    if (ops[k].op === "keep") { html += esc(ops[k].text); k++; continue; }
+
+    var added = "", removed = "";
+    while (k < ops.length && ops[k].op !== "keep") {
+      if (ops[k].op === "add") added += ops[k].text; else removed += ops[k].text;
+      k++;
+    }
+    if (!added.trim() && !removed.trim()) { html += esc(added); continue; }
+
+    count++;
+    var lead = added.match(/^\s*/)[0], tail = added.match(/\s*$/)[0];
+    var core = added.slice(lead.length, added.length - tail.length);
+    html += esc(lead);
+    if (core) {
+      var title = removed.trim()
+        ? "was: " + removed.trim()
+        : "added";
+      html += '<mark class="chg" title="' + esc(title) + '">' + esc(core) + "</mark>";
+    } else {
+      html += '<span class="del" title="' + esc("removed: " + removed.trim()) + '"></span>';
+    }
+    html += esc(tail);
+  }
+  return { html: html, count: count };
+}
+
+function toggleHighlights() {
+  highlightChanges = document.getElementById("showHighlights").checked;
+  renderRight();
+}
+
+/* ---------- inline paragraph editing ------------------------------------ *
+   Click any paragraph on the right to edit it. The edit is committed to
+   lastResult.paragraphs[i].output, which is what Download and Copy read, so
+   what you see is what you get. Paragraph parity between the two panes is
+   preserved deliberately: internal blank lines are collapsed on commit,
+   because the scroll pairing, the flag offsets and the review baseline are all
+   indexed by paragraph.                                                     */
+
+var manualEdited = {};
+
+function autoGrow(ta) {
+  ta.style.height = "auto";
+  ta.style.height = (ta.scrollHeight + 2) + "px";
+}
+
+function beginParaEdit(el) {
+  if (!lastResult || activeTab !== "result") return;
+  var i = parseInt(el.dataset.i, 10);
+  var ta = document.createElement("textarea");
+  ta.className = "para-edit";
+  ta.id = "paraEdit";
+  ta.value = lastResult.paragraphs[i].output;
+  ta.setAttribute("data-i", i);
+  el.parentNode.replaceChild(ta, el);
+  autoGrow(ta);
+  ta.focus();
+  ta.selectionStart = ta.selectionEnd = ta.value.length;
+  ta.addEventListener("input", function () { autoGrow(ta); });
+  ta.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") { e.preventDefault(); ta.value = lastResult.paragraphs[i].output; ta.blur(); }
+    else if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); ta.blur(); }
+  });
+  ta.addEventListener("blur", function () { commitParaEdit(ta); });
+  status("Editing paragraph " + (i + 1) + ". Click away or press Cmd+Enter to keep it, Esc to discard.");
+}
+
+function commitParaEdit(ta) {
+  var i = parseInt(ta.getAttribute("data-i"), 10);
+  var before = lastResult.paragraphs[i].output;
+  var next = ta.value.replace(/\r\n/g, "\n").replace(/\n[ \t]*\n+/g, "\n").replace(/[ \t]+$/gm, "");
+
+  if (!next.trim()) { status("A paragraph cannot be emptied, so that edit was discarded."); renderRight(); return; }
+  if (next === before) { renderRight(); return; }
+
+  lastResult.paragraphs[i].output = next;
+
+  /* A manual edit supersedes the accept/revert history for this paragraph:
+     those edits are recorded as from/to strings that may no longer exist. */
+  review.base[i] = next;
+  review.edits = review.edits.filter(function (e) { return e.paragraph !== i; });
+  Object.keys(review.reviewed).forEach(function (key) {
+    if (key.indexOf(i + "|") === 0) delete review.reviewed[key];
+  });
+  review.sel = null;
+  manualEdited[i] = true;
+
+  recompute();
+  status("Paragraph " + (i + 1) + " saved. Download and Copy now use your version.");
+}
+
+/* Re-derives everything downstream of the paragraph texts. Shared by the
+   review loop and by manual editing so the two can never disagree. */
+function recompute() {
+  var res = MyridiusEngine.reviewParas(lastResult.paragraphs, config);
+  lastResult.flags = res.flags;
+  lastResult.output = res.output;
+  lastResult.resemblance = res.resemblance;
+  lastResult.stats.after = res.after;
+  lastResult.stats.flagCount = res.flags.length;
+  lastResult.stats.wordsSaved = lastResult.stats.before.words - res.after.words;
+  document.getElementById("flagCount").textContent = res.resemblance.total.toFixed(1);
+  renderRight();
+  renderStats();
+}
+
+function manualEditCount() {
+  return Object.keys(manualEdited).length;
+}
+
 function renderRight() {
   var body = document.getElementById("rightBody");
   if (!lastResult) return;
   if (activeTab === "result") {
-    var html = "";
+    var html = "", marked = 0;
     lastResult.paragraphs.forEach(function (p, i) {
-      html += '<div class="para r' + headingClass(p.output) + '" data-i="' + i + '">' + esc(p.output) + "</div>";
+      var inner, cls = "para r" + headingClass(p.output) + " editable";
+      if (manualEdited[i]) cls += " edited";
+      if (highlightChanges && !manualEdited[i]) {
+        var ann = annotateChanges(p.original, p.output);
+        inner = ann.html; marked += ann.count;
+      } else {
+        inner = esc(p.output);
+      }
+      html += '<div class="' + cls + '" data-i="' + i + '" title="Click to edit this paragraph">' + inner + "</div>";
     });
     body.innerHTML = html || '<div class="empty">Nothing to show.</div>';
-    document.getElementById("outputMeta").textContent = lastResult.stats.after.words + " words";
+    var meta = lastResult.stats.after.words + " words";
+    if (highlightChanges && marked) meta += ' <span class="meta-sub">&middot; ' + marked + " highlighted</span>";
+    if (manualEditCount()) meta += ' <span class="meta-sub">&middot; ' + manualEditCount() + " edited by you</span>";
+    document.getElementById("outputMeta").innerHTML = meta;
     attachParaEvents(body);
+    body.querySelectorAll(".para.r.editable").forEach(function (el) {
+      el.addEventListener("click", function () { beginParaEdit(el); });
+    });
   } else if (activeTab === "changes") {
     renderChanges(body);
   } else {
@@ -2099,6 +2301,7 @@ function renderChanges(pane) {
 var review = { base: [], edits: [], reviewed: {}, sel: null, filter: {}, scope: "phrase" };
 
 function resetReview() {
+  manualEdited = {};
   review = {
     base: lastResult.paragraphs.map(function (p) { return p.output; }),
     edits: [], reviewed: {}, sel: null, filter: {}, scope: "phrase"
@@ -2427,16 +2630,7 @@ function rebuild() {
     var p = lastResult.paragraphs[e.paragraph];
     p.output = replaceNth(p.output, e.from, e.to, e.nth);
   });
-  var res = MyridiusEngine.reviewParas(lastResult.paragraphs, config);
-  lastResult.flags = res.flags;
-  lastResult.output = res.output;
-  lastResult.resemblance = res.resemblance;
-  lastResult.stats.after = res.after;
-  lastResult.stats.flagCount = res.flags.length;
-  lastResult.stats.wordsSaved = lastResult.stats.before.words - res.after.words;
-  document.getElementById("flagCount").textContent = res.resemblance.total.toFixed(1);
-  renderRight();
-  renderStats();
+  recompute();
   revealSelection();
 }
 
@@ -2447,7 +2641,8 @@ function renderStats() {
     "<b>" + s.before.words + " &rarr; " + s.after.words + "</b> words &middot; " +
     "ease <b>" + s.before.score + " &rarr; " + s.after.score + "</b> &middot; " +
     "<b>" + s.changeCount + "</b> fixes &middot; resemblance <b>" + r.total.toFixed(1) + "/20</b> " +
-    esc(r.verdict.toLowerCase());
+    esc(r.verdict.toLowerCase()) +
+    (manualEditCount() ? " &middot; <b>" + manualEditCount() + "</b> edited by you" : "");
 }
 
 /* ------- edit original ------- */
