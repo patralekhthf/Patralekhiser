@@ -237,12 +237,35 @@ for a non-technical person who just wants to use the tool.
   The `add_repo` tool the proxy suggests is not exposed in this session.
 - Bridge VM on the Mac: no network at all (403 from its proxy), no stored
   credentials, no SSH keys, no `gh`.
-- So every push must be run by the user from their own Mac Terminal. Prepare commits
-  locally, then hand over the exact command.
-- As of be91116 everything is pushed; remote main matches local main. Credential
-  hygiene resolved: the token was deleted at GitHub on 2026-08-19, and a full scan of
-  all 9 published commits for GitHub/AWS token formats, private keys and URL-embedded
-  credentials came back empty.
+- So every push must be run by the user from their own Mac Terminal. Commits are
+  prepared locally and left ready.
+- Unpushed as of this note: 8884909, 42332b3, 38e99a4 plus the current commit.
+  Remote HEAD is 74c3b03.
+
+## Shipped 2026-08-19: mechanical rewrite options (v1.2.0-preview.4)
+User asked whether the tool can offer selectable rewrite options. Answer: yes for a
+bounded set, no in general, same reasoning as the sentence-splitting spec.
+- `suggestOptions(flag, paraText)` -> `[{label, text, scope}]`. Drawer renders chips;
+  clicking loads into the editable box; Accept unchanged, so human approval holds.
+- Sources: word alternatives from config (30 of 31 entries now populated), semicolon
+  splits, long-sentence splits at an author-written joint.
+- flagWords field 5 now takes several values separated by `;`. Single value behaves
+  as before, so old config loads.
+- Guards added after the first cut split a LIST into two fragments: verb search stops
+  at the first subordinator/relative; any comma before the joint means list, refuse;
+  colon before the first semicolon means list, refuse; both halves >= 4 words.
+  9/9 split regression cases pass.
+- No options for passive voice (agentless passives have no agent in the text) or long
+  paragraphs (splitting one breaks paragraph parity, which scroll pairing, flag offsets
+  and review.base all depend on). Drawer says so instead of showing an empty box.
+- Honest coverage on the credit union article: 1 of 6 semicolons, 0 of 7 long sentences,
+  1 of 1 word choice. Every refusal checked and correct.
+
+## Open bug: passive-voice detector over-fires
+Found while analysing a real article. `are open` ("my messages are open"), `was down`
+("search access was down") and `is unmanaged` are adjectival complements after a copula,
+not passives. 3 of 11 passive flags on that document were false, inflating d3 by roughly
+a band. Needs an adjectival-complement guard, same shape as the verbOnly fix.
 
 ## Open threads / blockers
 - Back-port gap: `design/index.html` is a BUILT artifact. The additions must be

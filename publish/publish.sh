@@ -16,7 +16,7 @@ set -euo pipefail
 
 REPO="Patralekhiser-Public"
 OWNER="patralekhthf"
-TAG="v1.2.0-preview.3"
+TAG="v1.2.0-preview.4"
 ASSET="Patralekhiser-${TAG}.html"
 DEST="$HOME/Documents/Claude/Projects/$REPO"
 SRC="$(cd "$(dirname "$0")" && pwd)"
@@ -108,12 +108,12 @@ echo "Pages can take a minute or two to go live the very first time."
 # 2. In Terminal:
 #      mkdir -p ~/Documents/Claude/Projects/Patralekhiser-Public
 #      cd ~/Documents/Claude/Projects/Patralekhiser-Public
-#      cp ~/Documents/Claude/Projects/Patralekhiser/publish/Patralekhiser-v1.2.0-preview.3.html index.html
+#      cp ~/Documents/Claude/Projects/Patralekhiser/publish/Patralekhiser-v1.2.0-preview.4.html index.html
 #      cp ~/Documents/Claude/Projects/Patralekhiser/publish/README.md .
 #      touch .nojekyll
 #      git init -b main
 #      git add index.html README.md .nojekyll
-#      git commit -m "Patralekhiser v1.2.0-preview.3"
+#      git commit -m "Patralekhiser v1.2.0-preview.4"
 #      git remote add origin https://github.com/patralekhthf/Patralekhiser-Public.git
 #      git push -u origin main
 #
@@ -123,9 +123,9 @@ echo "Pages can take a minute or two to go live the very first time."
 #
 # 4. Create the download in a browser:
 #    https://github.com/patralekhthf/Patralekhiser-Public/releases/new
-#      Tag: v1.2.0-preview.3   (choose "Create new tag on publish")
-#      Title: Patralekhiser v1.2.0-preview.3
-#      Drag Patralekhiser-v1.2.0-preview.3.html into the binaries box.
+#      Tag: v1.2.0-preview.4   (choose "Create new tag on publish")
+#      Title: Patralekhiser v1.2.0-preview.4
+#      Drag Patralekhiser-v1.2.0-preview.4.html into the binaries box.
 #      Tick "Set as a pre-release", then Publish release.
 #
 # Why a release asset and not a link to the file in the repo: GitHub serves a raw

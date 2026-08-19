@@ -202,6 +202,46 @@ edits it discarded.
 right pane, so leaving it open over the Result tab blocked the paragraphs underneath from being
 clicked.
 
+### Mechanical rewrite options
+
+`MyridiusEngine.suggestOptions(flag, paraText)` returns `[{ label, text, scope }]`, where
+`scope` is `"phrase"` (replace the flagged span) or `"sentence"` (replace its container). The
+drawer renders them as `.res-opt` chips above the edit box; clicking one switches
+`review.scope` if needed and loads the text into the still-editable box. Nothing applies until
+Accept, so the human-approval rule is untouched.
+
+Every option is **derived, never invented**. Three sources:
+
+- **Word choice** — alternatives from `flagWords`, case-matched with `matchCase`. Field 5 of
+  the config line now takes several values separated by `;`, e.g.
+  `landscape | Often AI filler | ... | d1 | market; field;`. A trailing empty value renders as
+  *delete it*. One value behaves exactly as before, so older exported config still loads.
+  30 of the 31 default entries carry alternatives. `not only` deliberately carries none,
+  because `not only X but also Y` needs the pair rewritten together.
+- **Semicolon** — `A; B` gives two options: two sentences, or a comma with `and`.
+- **Long sentence** — split at a joint the author already wrote: a semicolon, or a comma plus
+  a coordinating conjunction.
+
+Guards, all of which exist because the first implementation produced fragments that read like
+finished sentences, which is the worst failure mode here because it looks plausible:
+
+- `looksIndependent(clause)` requires a subject-shaped head and a finite verb, and searches for
+  that verb **only before the first subordinator or relative pronoun**. Without that,
+  *a standing agenda item where staff can propose* passes on the `can` belonging to the
+  relative clause.
+- `looksLikeList(before)` refuses any comma before the joint, because `A, B, and C` is a list,
+  not two clauses.
+- A colon before the first semicolon means the semicolons separate list items, so refuse.
+- Both halves must be at least four words.
+
+Coverage is deliberately low. On a 1,427-word article it offered options for 1 of 6 semicolons
+and 0 of 7 long sentences, and every refusal was correct: the rest were fragments-by-design
+(`Not a fifteen-page policy; one memorable line`) or lists. Passive voice and long paragraphs
+get no options at all. An agentless passive has no agent in the text to promote, and splitting
+a paragraph would break the pane-to-pane paragraph parity that scroll pairing, flag offsets and
+`review.base` all depend on. Both stay advice, and the drawer says so rather than showing an
+empty box.
+
 ## Configuration
 
 New `config.dimensions`: `[{ key, name, note, color, weight }]`, editable in the

@@ -29,6 +29,11 @@ Press **Patralekhise**. Your rewritten article appears on the right.
 Words the tool changed are shaded green. Hover over one to see what it used to say. A small
 orange line shows where something was deleted, and hovering it tells you what was removed.
 
+Where the tool can work out a safe rewrite, it offers it. Click a flagged phrase and you get
+one or two suggested replacements as buttons; tap one to load it, edit it if you like, then
+accept. Where no safe rewrite can be worked out, it says so plainly and leaves the wording to
+you rather than guessing.
+
 Click any paragraph on the right to fix it yourself. Whatever you write is what comes out when
 you press **Download**, which gives you Word, PDF, Markdown or plain text.
 

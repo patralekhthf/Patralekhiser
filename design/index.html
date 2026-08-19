@@ -212,6 +212,17 @@
   .res-d-actions { display: flex; align-items: center; gap: 8px; margin-top: 9px; flex-wrap: wrap; }
   .res-d-actions .pos { font-size: 12px; color: var(--ink-soft); margin-left: auto; }
   .res-d-actions .step { border: 1px solid var(--line); background: var(--card); color: var(--accent); border-radius: 6px; padding: 4px 9px; font-size: 12px; cursor: pointer; }
+  /* ---- suggested rewrite options ---- */
+  .res-opts { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 2px 0 8px; }
+  .res-opts .lbl { font-size: 12px; color: var(--ink-soft); margin-right: 2px; }
+  .res-opt { font: inherit; font-size: 12.5px; line-height: 1.3; padding: 4px 10px;
+             border: 1px solid #cbe7d6; background: var(--fix-bg); color: var(--ink);
+             border-radius: 13px; cursor: pointer; max-width: 100%; text-align: left;
+             overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .res-opt:hover { border-color: var(--accent); }
+  .res-opt.on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); font-weight: 600; }
+  .res-opt .kind { color: var(--ink-soft); font-style: italic; }
+  .res-none { font-size: 12px; color: var(--ink-soft); margin: 2px 0 8px; }
   .res-applied { background: var(--fix-bg); border: 1px solid #cbe7d6; border-radius: 7px; padding: 7px 9px; font-size: 12.5px; }
   .res-doclevel { border: 1px solid #f0dcb4; background: var(--warn-bg); border-radius: 8px; padding: 9px 12px; margin-bottom: 8px; font-size: 12.5px; }
   .res-doclevel .head { font-weight: 600; margin-bottom: 2px; }
@@ -582,37 +593,37 @@ var MyridiusEngine = (function () {
 
     /* Flagged for a human, never auto changed. word/phrase + why + what to do. */
     flagWords: [
-      { find: "game-changing", reason: "Marketing hype", suggestion: "State the concrete benefit instead" },
-      { find: "game changer", reason: "Marketing hype", suggestion: "State the concrete benefit instead" },
-      { find: "ultimate", reason: "Marketing hype", suggestion: "Remove or replace with a specific claim you can defend" },
-      { find: "unparalleled", reason: "Marketing hype", suggestion: "Replace with a measurable claim" },
-      { find: "world-class", reason: "Marketing hype", suggestion: "Replace with a specific, verifiable strength" },
-      { find: "best-in-class", reason: "Marketing hype", suggestion: "Replace with a specific, verifiable strength" },
-      { find: "industry-leading", reason: "Marketing hype", suggestion: "Only keep if you can defend it with evidence" },
-      { find: "synergy", reason: "Corporate jargon", suggestion: "Say what actually works better together" },
-      { find: "synergies", reason: "Corporate jargon", suggestion: "Say what actually works better together" },
-      { find: "paradigm shift", reason: "Corporate jargon", suggestion: "Describe the actual change" },
-      { find: "transformative", reason: "Marketing hype", suggestion: "Describe what changes and by how much" },
-      { find: "innovative", reason: "Overused claim", suggestion: "Show the innovation instead of labelling it" },
-      { find: "unlock", reason: "AI sounding verb", suggestion: "Say what the reader can now do" },
-      { find: "unlocks", reason: "AI sounding verb", suggestion: "Say what the reader can now do" },
-      { find: "tapestry", reason: "AI sounding word", suggestion: "Rewrite in plain language" },
-      { find: "testament to", reason: "AI sounding phrase", suggestion: "State the fact directly" },
-      { find: "ever-evolving", reason: "AI sounding phrase", suggestion: "Rewrite the opening with a concrete point" },
-      { find: "ever-changing", reason: "AI sounding phrase", suggestion: "Rewrite the opening with a concrete point" },
-      { find: "navigate the complexities", reason: "AI sounding phrase", suggestion: "Name the specific problems" },
-      { find: "in the realm of", reason: "AI sounding phrase", suggestion: "Just name the field" },
-      { find: "landscape", reason: "Often AI filler (e.g. 'the AI landscape')", suggestion: "Name the market, industry or field directly" },
-      { find: "embark", reason: "AI sounding word", suggestion: "Use start or begin" },
-      { find: "journey", reason: "Often vague", suggestion: "Keep only if it is literally a journey; otherwise name the process" },
-      { find: "thereby", reason: "Formal connective, hard for non native readers", suggestion: "Split into two sentences with 'so' or 'this'" },
-      { find: "whereby", reason: "Formal connective, hard for non native readers", suggestion: "Rewrite with 'where' or split the sentence" },
-      { find: "wherein", reason: "Formal connective, hard for non native readers", suggestion: "Rewrite with 'where'" },
-      { find: "aforementioned", reason: "Legalese", suggestion: "Use 'this' or 'these', or repeat the noun" },
-      { find: "in terms of", reason: "Vague connective", suggestion: "Usually removable; restructure the sentence", dim: "d3", replace: "" },
-      { find: "solutions", reason: "Abstract when used alone", suggestion: "Name the product or capability if possible" },
+      { find: "game-changing", reason: "Marketing hype", suggestion: "State the concrete benefit instead", options: ["", "major"] },
+      { find: "game changer", reason: "Marketing hype", suggestion: "State the concrete benefit instead", options: ["a major change", ""] },
+      { find: "ultimate", reason: "Marketing hype", suggestion: "Remove or replace with a specific claim you can defend", options: ["", "best"] },
+      { find: "unparalleled", reason: "Marketing hype", suggestion: "Replace with a measurable claim", options: [""] },
+      { find: "world-class", reason: "Marketing hype", suggestion: "Replace with a specific, verifiable strength", options: ["", "strong"] },
+      { find: "best-in-class", reason: "Marketing hype", suggestion: "Replace with a specific, verifiable strength", options: ["", "strong"] },
+      { find: "industry-leading", reason: "Marketing hype", suggestion: "Only keep if you can defend it with evidence", options: [""] },
+      { find: "synergy", reason: "Corporate jargon", suggestion: "Say what actually works better together", options: ["shared benefit", "cooperation"] },
+      { find: "synergies", reason: "Corporate jargon", suggestion: "Say what actually works better together", options: ["shared benefits", "savings"] },
+      { find: "paradigm shift", reason: "Corporate jargon", suggestion: "Describe the actual change", options: ["big change", "shift"] },
+      { find: "transformative", reason: "Marketing hype", suggestion: "Describe what changes and by how much", options: ["major", ""] },
+      { find: "innovative", reason: "Overused claim", suggestion: "Show the innovation instead of labelling it", options: ["new", ""] },
+      { find: "unlock", reason: "AI sounding verb", suggestion: "Say what the reader can now do", options: ["get", "reach", "open up"] },
+      { find: "unlocks", reason: "AI sounding verb", suggestion: "Say what the reader can now do", options: ["gets", "reaches"] },
+      { find: "tapestry", reason: "AI sounding word", suggestion: "Rewrite in plain language", options: ["mix", "range"] },
+      { find: "testament to", reason: "AI sounding phrase", suggestion: "State the fact directly", options: ["proof of", "a sign of"] },
+      { find: "ever-evolving", reason: "AI sounding phrase", suggestion: "Rewrite the opening with a concrete point", options: ["changing", ""] },
+      { find: "ever-changing", reason: "AI sounding phrase", suggestion: "Rewrite the opening with a concrete point", options: ["changing", ""] },
+      { find: "navigate the complexities", reason: "AI sounding phrase", suggestion: "Name the specific problems", options: ["handle the details", "work through"] },
+      { find: "in the realm of", reason: "AI sounding phrase", suggestion: "Just name the field", options: ["in", "for"] },
+      { find: "landscape", reason: "Often AI filler (e.g. 'the AI landscape')", suggestion: "Name the market, industry or field directly", options: ["market", "field", ""] },
+      { find: "embark", reason: "AI sounding word", suggestion: "Use start or begin", options: ["start", "begin"] },
+      { find: "journey", reason: "Often vague", suggestion: "Keep only if it is literally a journey; otherwise name the process", options: ["process", "work", ""] },
+      { find: "thereby", reason: "Formal connective, hard for non native readers", suggestion: "Split into two sentences with 'so' or 'this'", options: ["so", "which"] },
+      { find: "whereby", reason: "Formal connective, hard for non native readers", suggestion: "Rewrite with 'where' or split the sentence", options: ["where", "in which"] },
+      { find: "wherein", reason: "Formal connective, hard for non native readers", suggestion: "Rewrite with 'where'", options: ["where", "in which"] },
+      { find: "aforementioned", reason: "Legalese", suggestion: "Use 'this' or 'these', or repeat the noun", options: ["this", "that", ""] },
+      { find: "in terms of", reason: "Vague connective", suggestion: "Usually removable; restructure the sentence", dim: "d3", options: ["for", "about", ""] },
+      { find: "solutions", reason: "Abstract when used alone", suggestion: "Name the product or capability if possible", options: ["tools", "products", "services"] },
       { find: "not only", reason: "Complex construction for non native readers", suggestion: "Consider splitting into two plain statements" },
-      { find: "in conclusion", reason: "AI sounding closer", suggestion: "End with the action or outcome instead", dim: "d1", replace: "" }
+      { find: "in conclusion", reason: "AI sounding closer", suggestion: "End with the action or outcome instead", dim: "d1", options: [""] }
     ],
 
     /* Contractions expanded in formal mode. */
@@ -1160,6 +1171,120 @@ var MyridiusEngine = (function () {
   }
 
   /* All flags inside one paragraph, with offsets into that paragraph. */
+  /* ---- mechanical rewrite options ---------------------------------------- *
+     Every option here is DERIVED from the text, never invented. Splitting a
+     sentence at a joint the author already wrote, or substituting a word from a
+     list a human curated, are both things a rule engine can do honestly. Writing
+     a new clause is not, so nothing here attempts it. Where no option can be
+     derived the flag stays advice and the drawer says so, which is the same
+     posture as the rest of the engine: refuse rather than guess.             */
+
+  var SUBORDINATORS = /^(?:because|since|although|though|while|whereas|unless|until|after|before|if|when|whenever|wherever|as|whether|which|whom|whose|that)\b/i;
+  var SUBJECT_START = /^(?:i|we|you|he|she|it|they|this|that|these|those|there|who|one|someone|everyone|nobody|nothing|the|a|an|its|our|their|his|her|my|your|each|every|both|all|most|some|any|no|another|either|neither)\b/i;
+  var FINITE_VERB = /\b(?:is|are|was|were|be|been|being|am|has|have|had|do|does|did|can|could|will|would|shall|should|may|might|must|'s|'re|'ve|'ll|'d)\b|\b\w+(?:ed|es|s)\b/i;
+
+  /* A clause can stand alone if it opens with a subject and carries a finite
+     verb soon after. Deliberately strict: a missed option costs nothing, a
+     fragment offered as a suggestion costs the user's trust in every option. */
+  function looksIndependent(clause) {
+    var c = String(clause).trim();
+    if (!c) return false;
+    if (SUBORDINATORS.test(c)) return false;
+    var toks = c.split(/\s+/);
+    if (toks.length < 4) return false;
+    var head = toks[0].replace(/[^\w'’-]/g, "");
+    var isSubject = SUBJECT_START.test(head) || /^[A-Z][a-z]/.test(toks[0]);
+    if (!isSubject) return false;
+    /* Only look for the verb before the first subordinator or relative. Without
+       this, "a standing agenda item where staff can propose" passes on the "can"
+       that belongs to the relative clause, and the fragment gets offered as a
+       finished sentence. */
+    var window = toks.slice(1, 9).join(" ");
+    var sub = /\b(?:where|when|which|that|who|whom|whose|because|since|while|if|after|before|until|although)\b/i.exec(window);
+    if (sub) window = window.slice(0, sub.index);
+    return FINITE_VERB.test(window);
+  }
+
+  /* "A, B, and C" is a list, not two clauses. Splitting one produces two
+     fragments that each read like a finished sentence, which is the worst kind
+     of wrong suggestion: it looks plausible. Any comma before the joint is
+     enough to refuse, and refusing costs only a missed option. */
+  function looksLikeList(before) {
+    return /,/.test(before);
+  }
+
+  function capFirst(s) {
+    return s.replace(/^([a-z])/, function (c) { return c.toUpperCase(); });
+  }
+  function wordCount(s) { return (String(s).match(/\S+/g) || []).length; }
+
+  /* Splits a sentence at a joint its author already wrote: a semicolon, or a
+     comma followed by a coordinating conjunction. Returns zero options when no
+     safe joint exists, which is the common case and is correct. */
+  function splitSentenceOptions(sent) {
+    var out = [], m, left, right;
+
+    m = /;\s+/.exec(sent);
+    if (m) {
+      left = sent.slice(0, m.index).replace(/\s+$/, "");
+      right = sent.slice(m.index + m[0].length);
+      /* A colon before the first semicolon means the semicolons are separating
+         list items, not joining clauses. */
+      var colonFirst = sent.indexOf(":") !== -1 && sent.indexOf(":") < m.index;
+      if (!colonFirst && wordCount(left) >= 4 && wordCount(right) >= 4 &&
+          looksIndependent(left) && looksIndependent(right)) {
+        out.push({ label: "Two sentences", text: left + ". " + capFirst(right) });
+        out.push({ label: "Comma and 'and'", text: left + ", and " + right });
+      }
+      return out;
+    }
+
+    m = /,\s+(but|so|yet|and|or)\s+/i.exec(sent);
+    if (m) {
+      left = sent.slice(0, m.index);
+      right = sent.slice(m.index + m[0].length);
+      var conj = m[1].toLowerCase();
+      if (!looksLikeList(left) && wordCount(left) >= 4 && wordCount(right) >= 4 &&
+          looksIndependent(left) && looksIndependent(right)) {
+        if (conj === "but" || conj === "so" || conj === "yet") {
+          out.push({ label: "Two sentences", text: left + ". " + capFirst(conj) + " " + right });
+        } else {
+          out.push({ label: "Two sentences", text: left + ". " + capFirst(right) });
+        }
+      }
+    }
+    return out;
+  }
+
+  /* flag -> [{ label, text, scope }]. scope tells the UI which range the option
+     replaces: "phrase" for the flagged span, "sentence" for its container. */
+  function suggestOptions(flag, paraText) {
+    var out = [];
+    if (!flag || typeof flag.start !== "number" || flag.paragraph === null) return out;
+
+    if (flag.type === "Word choice") {
+      var alts = flag.options || (typeof flag.replace === "string" ? [flag.replace] : []);
+      for (var i = 0; i < alts.length; i++) {
+        if (alts[i] === "") out.push({ label: "delete it", text: "", scope: "phrase" });
+        else out.push({ label: alts[i], text: matchCase(flag.found, alts[i]), scope: "phrase" });
+      }
+      return out;
+    }
+
+    if (flag.type !== "Semicolon" && flag.type !== "Long sentence") return out;
+
+    var sent = null, spans = sentenceSpans(paraText);
+    for (var j = 0; j < spans.length; j++) {
+      if (flag.start >= spans[j].start && flag.start < spans[j].end) { sent = spans[j]; break; }
+    }
+    if (!sent) return out;
+
+    var opts = splitSentenceOptions(sent.text);
+    for (var k = 0; k < opts.length; k++) {
+      out.push({ label: opts[k].label, text: opts[k].text, scope: "sentence" });
+    }
+    return out;
+  }
   function collectParaFlags(text, config, paraIndex) {
     var s = config.settings || {};
     var ranges = protectedRanges(text, config.protectedTerms);
@@ -1189,6 +1314,7 @@ var MyridiusEngine = (function () {
           found: m[0], reason: fw[i].reason, suggestion: fw[i].suggestion,
           kind: typeof fw[i].replace === "string" ? "swap" : "advice",
           replace: typeof fw[i].replace === "string" ? fw[i].replace : null,
+          options: fw[i].options || (typeof fw[i].replace === "string" ? [fw[i].replace] : null),
           excerpt: contextSnippet(text, m.index, m[0].length)
         });
       }
@@ -1491,6 +1617,7 @@ var MyridiusEngine = (function () {
     transform: transform,
     analyze: analyze,
     reviewParas: reviewParas,
+    suggestOptions: suggestOptions,
     authorialPresence: authorialPresence,
     defaultDimensions: DEFAULT_DIMENSIONS,
     defaultConfig: DEFAULT_CONFIG,
@@ -2308,7 +2435,7 @@ function resetReview() {
   manualEdited = {};
   review = {
     base: lastResult.paragraphs.map(function (p) { return p.output; }),
-    edits: [], reviewed: {}, sel: null, filter: {}, scope: "phrase"
+    edits: [], reviewed: {}, sel: null, filter: {}, scope: "phrase", opt: null
   };
   hideDrawer();
 }
@@ -2459,6 +2586,7 @@ function bindResemblanceEvents(pane) {
 
 function selectFlag(key) {
   review.sel = review.sel === key ? null : key;
+  review.opt = null;   /* a new flag starts with no option chosen */
   renderRight();
   revealSelection();
 }
@@ -2528,7 +2656,21 @@ function renderDrawer() {
       + '<button class="res-chip' + (review.scope === "phrase" ? " on" : "") + '" data-scope="phrase">Rewrite the phrase</button>'
       + '<button class="res-chip' + (review.scope === "sentence" ? " on" : "") + '" data-scope="sentence">Rewrite the whole sentence</button>'
       + '<span class="res-edit-label">' + (f.kind === "swap" && review.scope === "phrase"
-        ? "Suggested replacement, edit before accepting" : "Edit the text, then accept") + "</span></div>";
+        ? "Suggested replacement, edit before accepting" : "Pick an option or write your own, then accept") + "</span></div>";
+    var opts = MyridiusEngine.suggestOptions(f, lastResult.paragraphs[f.paragraph].output);
+    if (opts.length) {
+      html += '<div class="res-opts"><span class="lbl">Suggested:</span>';
+      for (var oi = 0; oi < opts.length; oi++) {
+        var shown = opts[oi].text === ""
+          ? '<span class="kind">delete it</span>'
+          : esc(opts[oi].label.length > 46 ? opts[oi].label.slice(0, 46) + "\u2026" : opts[oi].label);
+        html += '<button class="res-opt' + (review.opt === oi ? " on" : "") + '" data-opt="' + oi
+              + '" title="' + esc(opts[oi].text || "(removes the words)") + '">' + shown + "</button>";
+      }
+      html += "</div>";
+    } else if (f.kind !== "swap") {
+      html += '<p class="res-none">No option can be derived from the text here, so this one is yours to write.</p>';
+    }
     html += '<textarea class="res-edit" id="resEdit">' + esc(prefill) + "</textarea>";
   }
   html += '<div class="res-d-actions">';
@@ -2551,6 +2693,26 @@ function renderDrawer() {
     el.addEventListener("click", function () {
       review.scope = el.getAttribute("data-scope");
       renderDrawer();
+    });
+  });
+  d.querySelectorAll("[data-opt]").forEach(function (el) {
+    el.addEventListener("click", function () {
+      var oi = parseInt(el.getAttribute("data-opt"), 10);
+      var list = MyridiusEngine.suggestOptions(f, lastResult.paragraphs[f.paragraph].output);
+      var o = list[oi];
+      if (!o) return;
+      review.opt = oi;
+      /* A split rewrites the whole sentence, a word swap only the span. Switch
+         scope to match, then re-render so the edit box shows the right range.  */
+      if (o.scope !== review.scope && f.kind !== "advice-span") {
+        review.scope = o.scope;
+        renderDrawer();
+      }
+      var box = document.getElementById("resEdit");
+      if (box) { box.value = o.text; box.focus(); }
+      d.querySelectorAll("[data-opt]").forEach(function (b) {
+        b.classList.toggle("on", b === el);
+      });
     });
   });
   var acc = document.getElementById("resAccept");
@@ -2831,8 +2993,12 @@ function linesToPairs(text) {
 function flagsToLines(list) {
   return list.map(function (r) {
     var line = r.find + " | " + r.reason + " | " + r.suggestion;
-    if (r.dim || typeof r.replace === "string") line += " | " + (r.dim || "");
-    if (typeof r.replace === "string") line += " | " + r.replace;
+    var hasOpts = (r.options && r.options.length) || typeof r.replace === "string";
+    if (r.dim || hasOpts) line += " | " + (r.dim || "");
+    /* field 5 holds one or more replacements, separated by semicolons. One
+       value behaves exactly as before, so older config files still load. */
+    if (r.options && r.options.length) line += " | " + r.options.join("; ");
+    else if (typeof r.replace === "string") line += " | " + r.replace;
     return line;
   }).join("\n");
 }
@@ -2843,7 +3009,12 @@ function linesToFlags(text) {
     if (p[0] && p[0].trim()) {
       var rule = { find: p[0].trim(), reason: (p[1] || "Blocked word").trim(), suggestion: (p[2] || "Rewrite this").trim() };
       if (p[3] && p[3].trim()) rule.dim = p[3].trim();
-      if (p.length > 4) rule.replace = p.slice(4).join("|").trim();
+      if (p.length > 4) {
+        var raw = p.slice(4).join("|");
+        var opts = raw.split(";").map(function (x) { return x.trim(); });
+        if (opts.length > 1) { rule.options = opts; rule.replace = opts[0]; }
+        else rule.replace = raw.trim();
+      }
       out.push(rule);
     }
   });

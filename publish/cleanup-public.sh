@@ -16,7 +16,7 @@ set -euo pipefail
 
 REPO="Patralekhiser-Public"
 OWNER="patralekhthf"
-KEEP_TAG="v1.2.0-preview.3"
+KEEP_TAG="v1.2.0-preview.4"
 DROP_TAG="v1.2.0-preview.1"
 ASSET="Patralekhiser-${KEEP_TAG}.html"
 DEST="$HOME/Documents/Claude/Projects/$REPO"
