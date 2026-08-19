@@ -254,7 +254,7 @@
     <div class="card">
       <div class="cfg-section">
         <h3>Simpler word swaps</h3>
-        <p>Complex word to plain word. Format: <b>find =&gt; replace</b>, one per line.</p>
+        <p>Complex word to plain word. Format: <b>find =&gt; replace</b>, one per line. Add <b>| verbOnly</b> to a line when the word is also a noun with a different meaning, and the swap will only fire where the surrounding words make the verb sense certain. That is why <i>harness the power of X</i> becomes <i>use</i> while <i>an eval harness</i> is left alone.</p>
         <textarea id="cfgSimple" style="min-height:170px;"></textarea>
       </div>
       <div class="cfg-section">
@@ -573,14 +573,23 @@ function copyResult() {
 
 /* ------- config rendering ------- */
 function pairsToLines(list) {
-  return list.map(function (r) { return r.find + " => " + r.replace; }).join("\n");
+  return list.map(function (r) {
+    return r.find + " => " + r.replace + (r.verbOnly ? " | verbOnly" : "");
+  }).join("\n");
 }
 function linesToPairs(text) {
   var out = [];
   text.split("\n").forEach(function (line) {
     var m = line.split("=>");
     if (m.length === 2 && m[0].trim() && m[1].trim() !== undefined) {
-      out.push({ find: m[0].trim(), replace: m[1].trim() });
+      /* optional trailing flags: "find => replace | verbOnly".
+         Lines written before this field existed still parse. */
+      var right = m[1].split("|");
+      var rule = { find: m[0].trim(), replace: right[0].trim() };
+      for (var i = 1; i < right.length; i++) {
+        if (right[i].trim().toLowerCase() === "verbonly") rule.verbOnly = true;
+      }
+      out.push(rule);
     }
   });
   return out;

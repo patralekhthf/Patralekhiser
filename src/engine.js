@@ -35,7 +35,7 @@ var MyridiusEngine = (function () {
       { find: "utilise", replace: "use" },
       { find: "utilising", replace: "using" },
       { find: "utilization", replace: "use" },
-      { find: "leverage", replace: "use" },
+      { find: "leverage", replace: "use", verbOnly: true },
       { find: "leverages", replace: "uses" },
       { find: "leveraged", replace: "used" },
       { find: "leveraging", replace: "using" },
@@ -121,7 +121,7 @@ var MyridiusEngine = (function () {
       { find: "empowers", replace: "helps" },
       { find: "empowering", replace: "helping" },
       { find: "empowered", replace: "helped" },
-      { find: "harness", replace: "use" },
+      { find: "harness", replace: "use", verbOnly: true },
       { find: "harnessing", replace: "using" },
       { find: "harnessed", replace: "used" },
       { find: "supercharge", replace: "improve" },
@@ -405,6 +405,48 @@ var MyridiusEngine = (function () {
   /* Replacement passes                                                   */
   /* ------------------------------------------------------------------ */
 
+  /* ---- verb-only swap guard --------------------------------------------- *
+     A few words are both a verb and a noun with different plain equivalents.
+     "harness the power of X" is "use"; "an eval harness" is a thing and must be
+     left alone. A rule engine cannot parse, so this decides from the words
+     immediately around the match and refuses whenever the evidence points at a
+     noun. Deliberately biased to refuse: a missed swap costs nothing, a wrong
+     one ships "an eval use" in somebody's article.                          */
+
+  var VERB_BEFORE = /\b(?:to|will|would|shall|should|can|could|may|might|must|cannot|let|lets|help|helps|allow|allows|enable|enables|and|or|then|not|never|always|also|we|they|you|i|he|she|it|one|who|that|which)\s+$/i;
+  var AT_SENTENCE_START = /(?:^|[.!?;:]\s+|[\n\r]\s*|["'(\[]\s*)$/;
+  var DETERMINER = /^(?:a|an|the|this|that|these|those|no|any|some|our|its|their|his|her|my|your|each|every|another|both|all|more|less|much|many|few)$/i;
+  var ADJ_SUFFIX = /(?:al|ial|ic|ical|ive|ous|ful|less|able|ible|ary|ent|ant|ing|ed)$/i;
+  var ADJ_WORDS = /^(?:good|bad|new|old|great|small|large|high|low|strong|weak|robust|solid|light|heavy|fast|slow|full|real|main|key|core|test|unit|eval|build|release|smoke|load|stress|prod|staging|financial|market|competitive)$/i;
+
+  function isVerbPosition(text, index, matchLen) {
+    var before = text.slice(Math.max(0, index - 60), index);
+    var after = text.slice(index + matchLen, index + matchLen + 30);
+
+    /* an explicit verb trigger settles it */
+    if (VERB_BEFORE.test(before)) return true;
+
+    /* at a sentence start it is a verb only if it takes an object:
+       "Harness the wind" yes, "Leverage increased the risk" no */
+    if (AT_SENTENCE_START.test(before)) {
+      return /^\s+(?:a|an|the|this|that|these|those|its|our|their|his|her|my|your|all|both)\b/i.test(after);
+    }
+
+    var toks = before.replace(/[^\w\s'-]/g, " ").trim().split(/\s+/);
+    var prev = toks[toks.length - 1] || "";
+
+    /* a determiner or possessive close behind means a noun phrase */
+    for (var i = toks.length - 1; i >= 0 && i >= toks.length - 3; i--) {
+      if (DETERMINER.test(toks[i])) return false;
+    }
+
+    /* an adjective or noun modifier immediately behind means the same */
+    if (ADJ_WORDS.test(prev)) return false;
+    if (prev.length > 3 && ADJ_SUFFIX.test(prev)) return false;
+
+    return true;
+  }
+
   function applySwaps(text, rules, category, changes) {
     /* Longest finds first so phrases beat single words. */
     var sorted = rules.slice().sort(function (a, b) { return b.find.length - a.find.length; });
@@ -414,6 +456,7 @@ var MyridiusEngine = (function () {
       var re = new RegExp("\\b" + escapeRegex(rule.find).replace(/'/g, "['’]") + "\\b", "gi");
       text = text.replace(re, function (m) {
         var offsetIdx = arguments[arguments.length - 2];
+        if (rule.verbOnly && !isVerbPosition(text, offsetIdx, m.length)) return m;
         var rep = matchCase(m, rule.replace);
         changes.push({
           category: category,

@@ -14,8 +14,8 @@ set -euo pipefail
 
 REPO="Patralekhiser-Public"
 OWNER="patralekhthf"
-TAG="v1.2.0-preview.1"
-ASSET="Patralekhiser-v1.2.0-preview.1.html"
+TAG="v1.2.0-preview.2"
+ASSET="Patralekhiser-v1.2.0-preview.2.html"
 DEST="$HOME/Documents/Claude/Projects/$REPO"
 SRC="$(cd "$(dirname "$0")" && pwd)"
 
@@ -86,18 +86,18 @@ echo "  https://github.com/$OWNER/$REPO/releases/download/$TAG/$ASSET"
 # 2. In Terminal:
 #      mkdir -p ~/Documents/Claude/Projects/Patralekhiser-Public
 #      cd ~/Documents/Claude/Projects/Patralekhiser-Public
-#      cp <this folder>/Patralekhiser-v1.2.0-preview.1.html .
+#      cp <this folder>/Patralekhiser-v1.2.0-preview.2.html .
 #      cp <this folder>/README.md .
 #      git init -b main
 #      git add .
-#      git commit -m "Patralekhiser v1.2.0-preview.1: public test build"
+#      git commit -m "Patralekhiser v1.2.0-preview.2: public test build"
 #      git remote add origin https://github.com/patralekhthf/Patralekhiser-Public.git
 #      git push -u origin main
 #
 # 3. Create the release in a browser:
 #    https://github.com/patralekhthf/Patralekhiser-Public/releases/new
-#      Tag: v1.2.0-preview.1   (choose "Create new tag on publish")
-#      Title: Patralekhiser v1.2.0-preview.1
+#      Tag: v1.2.0-preview.2   (choose "Create new tag on publish")
+#      Title: Patralekhiser v1.2.0-preview.2
 #      Attach the .html file by dragging it into the binaries box.
 #      Tick "Set as a pre-release", then Publish release.
 #

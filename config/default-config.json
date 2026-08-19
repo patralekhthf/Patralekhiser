@@ -40,7 +40,8 @@
     },
     {
       "find": "leverage",
-      "replace": "use"
+      "replace": "use",
+      "verbOnly": true
     },
     {
       "find": "leverages",
@@ -370,7 +371,8 @@
     },
     {
       "find": "harness",
-      "replace": "use"
+      "replace": "use",
+      "verbOnly": true
     },
     {
       "find": "harnessing",
