@@ -29,10 +29,26 @@ src/fileio.js     File import/export: docx, pdf, txt, md (no libraries)
 src/template.html UI shell
 src/build.js      Inlines engine and fileio into app/index.html
 config/           Default style configuration (JSON)
+design/           Design and UI source of truth. Read before any UI work.
 docs/             The Myridius style profile in prose
 samples/          Test article and its Patralekhised output
 tests/test.js     Engine test suite
 ```
+
+## Design source of truth
+
+All design and UI decisions live in `design/`. Read them before writing or changing any interface code, styling, token, layout or interaction.
+
+```
+design/README.md        The design and behaviour specification
+design/INTEGRATION.md   Exact diff against the original index.html
+design/index.html       Working reference implementation, final arbiter
+design/reference/       Visual reference only. Not shipped.
+```
+
+`design/index.html` is a built, self-contained artifact, not a mock. It is the original app with the resemblance-audit module patched in. Because it is built output, changes belong in `src/engine.js` and `src/template.html` and then get inlined by `node src/build.js`. Do not hand-edit `app/index.html`.
+
+Nothing in the interface should introduce a colour, spacing value, radius or interaction pattern that is not already in `design/`. If something is missing there, ask rather than invent.
 
 ## Development
 

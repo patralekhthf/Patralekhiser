@@ -2,3 +2,7 @@ node_modules/
 .DS_Store
 *.log
 _to_delete/
+
+# local scratch, not part of the project
+Awaiting your selection.zip
+repo.bundle

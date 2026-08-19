@@ -1,0 +1,2690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Patralekhiser</title>
+<style>
+  :root {
+    --ink: #1a2433;
+    --ink-soft: #4a5568;
+    --line: #dde3ea;
+    --bg: #f5f7fa;
+    --card: #ffffff;
+    --accent: #1f4e79;
+    --accent-soft: #e8f0f8;
+    --warn: #9a5b00;
+    --warn-bg: #fdf4e3;
+    --fix-bg: #e9f6ee;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    display: flex; flex-direction: column;
+  }
+  header {
+    background: var(--card); border-bottom: 1px solid var(--line);
+    padding: 10px 22px; display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; flex: 0 0 auto;
+  }
+  header h1 { font-size: 19px; margin: 0; color: var(--accent); }
+  header p { margin: 0; color: var(--ink-soft); font-size: 12.5px; }
+  nav { margin-left: auto; display: flex; gap: 6px; }
+  nav > button {
+    border: 1px solid var(--line); background: var(--card); color: var(--ink-soft);
+    padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px;
+  }
+  nav > button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  .btn {
+    background: var(--accent); color: #fff; border: none; border-radius: 7px;
+    padding: 8px 18px; font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+  .btn:hover { background: #163a5c; }
+  .btn.secondary { background: var(--card); color: var(--accent); border: 1px solid var(--accent); font-weight: 500; padding: 7px 14px; font-size: 13px; }
+  .btn:disabled { opacity: 0.45; cursor: default; }
+
+  /* ---------- editor toolbar ---------- */
+  #toolbar {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 9px 22px; background: var(--card); border-bottom: 1px solid var(--line); flex: 0 0 auto;
+  }
+  .tabs { display: flex; gap: 2px; margin-left: 6px; }
+  .tabs button {
+    border: none; background: none; padding: 7px 12px; cursor: pointer; font-size: 13.5px;
+    color: var(--ink-soft); border-bottom: 2px solid transparent;
+  }
+  .tabs button.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+  .count-badge { background: var(--warn-bg); color: var(--warn); border-radius: 10px; padding: 0 7px; font-size: 11.5px; margin-left: 3px; }
+  .switch { display: flex; align-items: center; gap: 7px; font-size: 13.5px; color: var(--ink-soft); cursor: pointer; margin-left: auto; user-select: none; }
+  .switch input { width: 34px; height: 18px; appearance: none; background: #c7d0da; border-radius: 10px; position: relative; cursor: pointer; transition: background 0.15s; }
+  .switch input:checked { background: var(--accent); }
+  .switch input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; background: #fff; border-radius: 50%; transition: left 0.15s; }
+  .switch input:checked::after { left: 18px; }
+  #statusMsg { font-size: 12.5px; color: var(--ink-soft); }
+  #miniStats { font-size: 12.5px; color: var(--ink-soft); white-space: nowrap; }
+  #miniStats b { color: var(--accent); }
+
+  /* download menu */
+  .menu { position: relative; }
+  .menu-list {
+    position: absolute; top: calc(100% + 4px); left: 0; background: var(--card);
+    border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 6px 20px rgba(20,35,60,0.12);
+    min-width: 190px; z-index: 50; padding: 4px; display: none;
+  }
+  .menu.open .menu-list { display: block; }
+  .menu-list button {
+    display: block; width: 100%; text-align: left; border: none; background: none;
+    padding: 8px 12px; font-size: 13.5px; cursor: pointer; border-radius: 6px; color: var(--ink);
+  }
+  .menu-list button:hover { background: var(--accent-soft); }
+
+  /* ---------- split workspace ---------- */
+  #workspace {
+    flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 1fr 1fr;
+    gap: 14px; padding: 14px 22px 16px;
+  }
+  #workspace.solo { grid-template-columns: 1fr; }
+  #workspace.solo #leftPane { display: none; }
+  .pane {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    display: flex; flex-direction: column; min-height: 0; overflow: hidden; position: relative;
+  }
+  .pane-head {
+    padding: 8px 16px; border-bottom: 1px solid var(--line); font-size: 12px;
+    text-transform: uppercase; letter-spacing: 0.6px; color: var(--ink-soft);
+    display: flex; align-items: center; gap: 10px; flex: 0 0 auto;
+  }
+  .pane-head .spacer { flex: 1; }
+  .pane-head button { border: 1px solid var(--line); background: var(--card); color: var(--accent); border-radius: 6px; padding: 3px 10px; font-size: 12px; cursor: pointer; text-transform: none; letter-spacing: 0; }
+  .pane-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 16px 20px; }
+  .pane-body.editing { padding: 0; }
+  #inputText {
+    width: 100%; height: 100%; border: none; resize: none; padding: 16px 20px;
+    font: 14px/1.65 ui-monospace, "SF Mono", Consolas, Menlo, monospace; color: var(--ink);
+    background: #fcfdfe; outline: none;
+  }
+  .para {
+    padding: 6px 10px; margin: 0 -10px 10px; border-radius: 6px;
+    white-space: pre-wrap; overflow-wrap: break-word; line-height: 1.65;
+  }
+  .para.h1 { font-size: 21px; font-weight: 700; }
+  .para.h2 { font-size: 17px; font-weight: 700; }
+  .para.h3 { font-size: 15.5px; font-weight: 700; }
+  .para.hl { background: var(--accent-soft); }
+  .placeholder { color: var(--ink-soft); padding: 30px 10px; text-align: center; font-size: 14px; }
+
+  .item { border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; font-size: 13.5px; }
+  .item.fix { background: var(--fix-bg); border-color: #cbe7d6; }
+  .item.flag { background: var(--warn-bg); border-color: #f0dcb4; }
+  .item .head { font-weight: 600; margin-bottom: 3px; }
+  .item .ctx { color: var(--ink-soft); font-size: 12.5px; }
+  .item .sug { color: var(--warn); font-size: 12.5px; margin-top: 3px; }
+  .pill { display: inline-block; font-size: 11px; padding: 1px 8px; border-radius: 10px; background: var(--accent-soft); color: var(--accent); margin-right: 8px; }
+  .group-title { margin: 12px 0 6px; font-weight: 600; font-size: 13.5px; }
+
+  /* ---------- config view ---------- */
+  #viewConfig { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 20px 22px 60px; }
+  .cfg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 1240px; margin: 0 auto; }
+  @media (max-width: 900px) { .cfg-grid { grid-template-columns: 1fr; } }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; }
+  .card h2 { font-size: 14px; margin: 0 0 10px; text-transform: uppercase; letter-spacing: 0.6px; }
+  .cfg-section { margin-bottom: 22px; }
+  .cfg-section h3 { font-size: 14px; margin: 0 0 4px; }
+  .cfg-section p { margin: 0 0 8px; font-size: 12.5px; color: var(--ink-soft); }
+  .cfg-section textarea {
+    width: 100%; min-height: 110px; border: 1px solid var(--line); border-radius: 8px; padding: 12px;
+    font: 13.5px/1.6 ui-monospace, "SF Mono", Consolas, Menlo, monospace; color: var(--ink);
+    resize: vertical; background: #fcfdfe;
+  }
+  label.toggle { display: flex; align-items: center; gap: 8px; font-size: 14px; margin-bottom: 8px; }
+  input[type=number] { width: 70px; padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; }
+  .toolbar-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .note { font-size: 12.5px; color: var(--ink-soft); }
+  .hidden { display: none !important; }
+  .empty { color: var(--ink-soft); font-size: 13.5px; padding: 20px 0; text-align: center; }
+
+  /* ---------- resemblance panel ---------- */
+  .res-score { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; background: #fbfcfe; }
+  .res-top { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .res-num { font-size: 26px; font-weight: 700; color: var(--accent); line-height: 1; }
+  .res-num span { font-size: 13px; font-weight: 500; color: var(--ink-soft); }
+  .res-verdict { font-size: 14px; font-weight: 600; }
+  .res-sub { font-size: 12px; color: var(--ink-soft); margin-left: auto; }
+  .res-dims { display: grid; gap: 6px; margin-top: 11px; }
+  .res-dim { display: grid; grid-template-columns: 140px 1fr 40px; gap: 9px; align-items: center; font-size: 12px; color: var(--ink-soft); }
+  .res-bar { height: 6px; border-radius: 4px; background: #e9edf3; overflow: hidden; }
+  .res-bar i { display: block; height: 100%; border-radius: 4px; transition: width 0.2s; }
+  .res-dim b { color: var(--ink); font-variant-numeric: tabular-nums; text-align: right; font-weight: 600; }
+  .res-filters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; align-items: center; }
+  .res-chip { border: 1px solid var(--line); background: var(--card); border-radius: 14px; padding: 3px 10px; font-size: 11.5px; cursor: pointer; color: var(--ink-soft); display: inline-flex; gap: 6px; align-items: center; }
+  .res-chip:hover { border-color: var(--ink-soft); }
+  .res-chip i { opacity: 0.3; }
+  .res-chip.on { color: var(--accent); background: var(--accent-soft); border-color: var(--accent); font-weight: 600; }
+  .res-chip.on i { opacity: 1; }
+  .res-chip i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .res-note { font-size: 12px; color: var(--ink-soft); margin: 0 0 10px; }
+  .res-doc { padding-bottom: 30px; }
+  mark.rz { background: transparent; color: inherit; cursor: pointer; border-radius: 3px; padding: 0 1px;
+    box-shadow: inset 0 -0.3em 0 var(--rz); -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+  mark.rz.sel { box-shadow: inset 0 -0.3em 0 var(--rz), 0 0 0 2px var(--accent); }
+  mark.rz.done { box-shadow: inset 0 -0.16em 0 #58a578; }
+  mark.rz.rev { opacity: 0.5; box-shadow: inset 0 -0.16em 0 #c7d0da; }
+  .res-drawer { position: absolute; left: 0; right: 0; bottom: 0; background: var(--card);
+    border-top: 1px solid var(--line); box-shadow: 0 -8px 24px rgba(20,35,60,0.10); padding: 11px 16px 13px; z-index: 20;
+    max-height: 48%; overflow-y: auto; }
+  .res-drawer .res-why { max-height: 3.2em; overflow: hidden; }
+  .res-drawer .res-edit { min-height: 40px; }
+  .res-d-head { display: flex; align-items: center; gap: 8px; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--ink-soft); margin-bottom: 5px; }
+  .res-d-head i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .res-d-head .spacer { flex: 1; }
+  .res-d-head button { border: none; background: none; color: var(--ink-soft); cursor: pointer; font-size: 15px; line-height: 1; padding: 0 2px; }
+  .res-quote { font-size: 13.5px; font-weight: 600; margin: 0 0 3px; }
+  .res-why { font-size: 12.5px; color: var(--ink-soft); margin: 0 0 8px; }
+  .res-edit { width: 100%; min-height: 46px; border: 1px solid var(--line); border-radius: 7px; padding: 7px 9px;
+    font: 13px/1.5 inherit; color: var(--ink); background: #fcfdfe; resize: vertical; }
+  .res-edit:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+  .res-edit-label { font-size: 11.5px; color: var(--warn); margin: 0 0 3px; }
+  .res-scope { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 5px; }
+  .res-scope .res-edit-label { margin: 0 0 0 4px; }
+  .res-d-actions { display: flex; align-items: center; gap: 8px; margin-top: 9px; flex-wrap: wrap; }
+  .res-d-actions .pos { font-size: 12px; color: var(--ink-soft); margin-left: auto; }
+  .res-d-actions .step { border: 1px solid var(--line); background: var(--card); color: var(--accent); border-radius: 6px; padding: 4px 9px; font-size: 12px; cursor: pointer; }
+  .res-applied { background: var(--fix-bg); border: 1px solid #cbe7d6; border-radius: 7px; padding: 7px 9px; font-size: 12.5px; }
+  .res-doclevel { border: 1px solid #f0dcb4; background: var(--warn-bg); border-radius: 8px; padding: 9px 12px; margin-bottom: 8px; font-size: 12.5px; }
+  .res-doclevel .head { font-weight: 600; margin-bottom: 2px; }
+  .res-doclevel .sug { color: var(--warn); margin-top: 3px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Patralekhiser</h1>
+  <p>Clear enough for a customer, precise enough for a technologist, concise enough for an executive. No AI involved.</p>
+  <nav>
+    <button id="navEditor" class="active" onclick="showView('editor')">Editor</button>
+    <button id="navConfig" onclick="showView('config')">Configuration</button>
+  </nav>
+</header>
+
+<!-- ================= EDITOR VIEW ================= -->
+<div id="toolbar">
+  <button class="btn" id="runBtn" onclick="run()">Patralekhise</button>
+  <button class="btn secondary" onclick="document.getElementById('uploadFile').click()">Upload</button>
+  <input type="file" id="uploadFile" accept=".md,.markdown,.txt,.docx,.pdf" class="hidden" onchange="handleUpload(event)">
+  <div class="menu" id="dlMenu">
+    <button class="btn secondary" id="dlBtn" onclick="toggleMenu(event)" disabled>Download</button>
+    <div class="menu-list">
+      <button onclick="download('docx')">Word (.docx)</button>
+      <button onclick="download('pdf')">PDF (.pdf)</button>
+      <button onclick="download('md')">Markdown (.md)</button>
+      <button onclick="download('txt')">Plain text (.txt)</button>
+    </div>
+  </div>
+  <button class="btn secondary" id="copyBtn" onclick="copyResult()" disabled>Copy</button>
+
+  <div class="tabs">
+    <button id="tabResult" class="active" onclick="showTab('result')">Result</button>
+    <button id="tabChanges" onclick="showTab('changes')">Changes <span id="changeCount" class="count-badge hidden"></span></button>
+    <button id="tabFlags" onclick="showTab('flags')">Resemblance <span id="flagCount" class="count-badge hidden"></span></button>
+  </div>
+
+  <span id="statusMsg"></span>
+
+  <label class="switch" title="Hide the original and show only the Patralekhised text">
+    <input type="checkbox" id="showOriginal" checked onchange="toggleOriginal()">
+    Show original
+  </label>
+  <span id="miniStats"></span>
+</div>
+
+<div id="workspace">
+  <div class="pane" id="leftPane">
+    <div class="pane-head">
+      Original
+      <span class="spacer"></span>
+      <span id="inputMeta"></span>
+      <button id="editBtn" class="hidden" onclick="editOriginal()">Edit</button>
+    </div>
+    <div class="pane-body editing" id="leftBody">
+      <textarea id="inputText" placeholder="Paste your article here (plain text or Markdown), or use Upload for a Word, PDF or Markdown file."></textarea>
+    </div>
+  </div>
+
+  <div class="pane" id="rightPane">
+    <div class="pane-head">
+      <span id="rightTitle">Patralekhised</span>
+      <span class="spacer"></span>
+      <span id="outputMeta"></span>
+    </div>
+    <div class="pane-body" id="rightBody">
+      <div class="placeholder">The Patralekhised version appears here, paragraph by paragraph, in sync with the original.</div>
+    </div>
+    <div id="resDrawer" class="res-drawer hidden"></div>
+  </div>
+</div>
+
+<!-- ================= CONFIG VIEW ================= -->
+<div id="viewConfig" class="hidden">
+  <div class="card" style="max-width:1240px;margin:0 auto 20px;">
+    <h2>Style configuration</h2>
+    <p class="note" style="margin-top:0;">These rules define the Myridius voice. Edit them below, then press Apply. Use Export to save your configuration as a file and Import to load it back later. This page keeps nothing after you close it, so export after making changes.</p>
+    <div class="toolbar-row" style="margin-top:10px;">
+      <button class="btn" onclick="applyConfig()">Apply changes</button>
+      <button class="btn secondary" onclick="exportConfig()">Export config</button>
+      <button class="btn secondary" onclick="document.getElementById('importFile').click()">Import config</button>
+      <input type="file" id="importFile" accept=".json" class="hidden" onchange="importConfig(event)">
+      <button class="btn secondary" onclick="resetConfig()">Reset to defaults</button>
+      <span id="cfgMsg" class="note"></span>
+    </div>
+  </div>
+
+  <div class="card" style="max-width:1240px;margin:0 auto 20px;">
+    <h2>Resemblance scoring</h2>
+    <p class="note" style="margin-top:0;">Each dimension scores 0 to 4 from how many flags appear per thousand words. Weight sets how much it contributes to the score out of 20. "No personal voice" is judged by what is absent, so it never highlights anything in the text.</p>
+    <div id="cfgDims" class="toolbar-row" style="margin-top:12px;"></div>
+  </div>
+
+  <div class="cfg-grid">
+    <div class="card">
+      <div class="cfg-section">
+        <h3>Behaviour</h3>
+        <label class="toggle"><input type="checkbox" id="setContractions"> Expand contractions (formal writing)</label>
+        <label class="toggle"><input type="checkbox" id="setEmojis"> Remove emojis and decorative icons</label>
+        <label class="toggle"><input type="checkbox" id="setDashes"> Replace em and en dashes</label>
+        <label class="toggle"><input type="checkbox" id="setPassive"> Flag passive voice</label>
+        <label class="toggle"><input type="checkbox" id="setSemicolons"> Flag semicolons</label>
+        <label class="toggle">Flag sentences longer than <input type="number" id="setMaxWords" min="10" max="60"> words</label>
+      </div>
+      <div class="cfg-section">
+        <h3>Protected terms</h3>
+        <p>Never changed by any rule. One per line. Brand and product names belong here.</p>
+        <textarea id="cfgProtected"></textarea>
+      </div>
+      <div class="cfg-section">
+        <h3>Blocked words and phrases (flag only)</h3>
+        <p>Flagged for a human, never auto changed. Format: <b>word | reason | suggestion | dimension | replacement</b>. Dimension is d1 to d5; a replacement makes the flag acceptable in one click.</p>
+        <textarea id="cfgFlagWords" style="min-height:200px;"></textarea>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="cfg-section">
+        <h3>Simpler word swaps</h3>
+        <p>Complex word to plain word. Format: <b>find =&gt; replace</b>, one per line.</p>
+        <textarea id="cfgSimple" style="min-height:170px;"></textarea>
+      </div>
+      <div class="cfg-section">
+        <h3>Hype and AI wording swaps</h3>
+        <p>Marketing and AI sounding words with a safe plain replacement.</p>
+        <textarea id="cfgHype" style="min-height:140px;"></textarea>
+      </div>
+      <div class="cfg-section">
+        <h3>Wordy phrase cleanups</h3>
+        <p>Format: <b>find =&gt; replace</b></p>
+        <textarea id="cfgFiller" style="min-height:140px;"></textarea>
+      </div>
+      <div class="cfg-section">
+        <h3>Sentence openers to delete</h3>
+        <p>Removed when a sentence starts with them. One per line.</p>
+        <textarea id="cfgStartDeletes"></textarea>
+      </div>
+      <div class="cfg-section">
+        <h3>Filler to delete anywhere</h3>
+        <p>One per line.</p>
+        <textarea id="cfgMidDeletes"></textarea>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/*
+ * Patralekhiser rule engine
+ * Deterministic, dictionary and pattern based text transformation.
+ * No LLM, no network calls, no external dependencies.
+ * Runs in the browser and in Node (module.exports guarded at the bottom).
+ */
+
+var MyridiusEngine = (function () {
+  "use strict";
+
+  /* ------------------------------------------------------------------ */
+  /* Default configuration: the Myridius style profile encoded as rules  */
+  /* ------------------------------------------------------------------ */
+
+  var DEFAULT_CONFIG = {
+    meta: {
+      name: "Myridius house style",
+      version: "1.0",
+      description: "Direct, structured, practical, outcome oriented. Simple language for readers in India, USA and the Philippines. No corporate hype, no AI sounding copy."
+    },
+
+    /* Never touched by any rule. Brand names, product names, defined terms. */
+    protectedTerms: [
+      "Myridius",
+      "BusinessBook Plus",
+      "BusinessBook"
+    ],
+
+    /* Complex or formal words swapped for plain ones. find => replace.  */
+    simpleSwaps: [
+      { find: "utilize", replace: "use" },
+      { find: "utilizes", replace: "uses" },
+      { find: "utilized", replace: "used" },
+      { find: "utilizing", replace: "using" },
+      { find: "utilise", replace: "use" },
+      { find: "utilising", replace: "using" },
+      { find: "utilization", replace: "use" },
+      { find: "leverage", replace: "use" },
+      { find: "leverages", replace: "uses" },
+      { find: "leveraged", replace: "used" },
+      { find: "leveraging", replace: "using" },
+      { find: "commence", replace: "start" },
+      { find: "commences", replace: "starts" },
+      { find: "commenced", replace: "started" },
+      { find: "commencing", replace: "starting" },
+      { find: "initiate", replace: "start" },
+      { find: "initiates", replace: "starts" },
+      { find: "initiated", replace: "started" },
+      { find: "endeavor", replace: "try" },
+      { find: "endeavour", replace: "try" },
+      { find: "ascertain", replace: "find out" },
+      { find: "expedite", replace: "speed up" },
+      { find: "expedites", replace: "speeds up" },
+      { find: "subsequently", replace: "later" },
+      { find: "consequently", replace: "so" },
+      { find: "approximately", replace: "about" },
+      { find: "sufficient", replace: "enough" },
+      { find: "insufficient", replace: "not enough" },
+      { find: "demonstrate", replace: "show" },
+      { find: "demonstrates", replace: "shows" },
+      { find: "demonstrated", replace: "showed" },
+      { find: "demonstrating", replace: "showing" },
+      { find: "numerous", replace: "many" },
+      { find: "obtain", replace: "get" },
+      { find: "obtains", replace: "gets" },
+      { find: "obtained", replace: "got" },
+      { find: "assist", replace: "help" },
+      { find: "assists", replace: "helps" },
+      { find: "assistance", replace: "help" },
+      { find: "attempt", replace: "try" },
+      { find: "attempts", replace: "tries" },
+      { find: "attempted", replace: "tried" },
+      { find: "individuals", replace: "people" },
+      { find: "facilitate", replace: "help" },
+      { find: "facilitates", replace: "helps" },
+      { find: "facilitated", replace: "helped" },
+      { find: "optimal", replace: "best" },
+      { find: "optimum", replace: "best" },
+      { find: "regarding", replace: "about" },
+      { find: "concerning", replace: "about" },
+      { find: "currently", replace: "now" },
+      { find: "presently", replace: "now" },
+      { find: "accelerate", replace: "speed up" },
+      { find: "accelerates", replace: "speeds up" },
+      { find: "mitigate", replace: "reduce" },
+      { find: "mitigates", replace: "reduces" },
+      { find: "mitigated", replace: "reduced" },
+      { find: "methodology", replace: "method" },
+      { find: "methodologies", replace: "methods" },
+      { find: "necessitates", replace: "requires" },
+      { find: "modification", replace: "change" },
+      { find: "modifications", replace: "changes" },
+      { find: "transmit", replace: "send" },
+      { find: "transmits", replace: "sends" },
+      { find: "endeavors", replace: "efforts" },
+      { find: "whilst", replace: "while" },
+      { find: "amongst", replace: "among" },
+      { find: "thus", replace: "so" },
+      { find: "hence", replace: "so" },
+      { find: "nevertheless", replace: "still" },
+      { find: "nonetheless", replace: "still" },
+      { find: "moreover", replace: "also" },
+      { find: "furthermore", replace: "also" },
+      { find: "additionally", replace: "also" },
+      { find: "notwithstanding", replace: "despite" }
+    ],
+
+    /* Marketing hype and AI sounding words with a safe plain swap. */
+    hypeSwaps: [
+      { find: "revolutionary", replace: "new" },
+      { find: "groundbreaking", replace: "new" },
+      { find: "cutting-edge", replace: "modern" },
+      { find: "cutting edge", replace: "modern" },
+      { find: "state-of-the-art", replace: "modern" },
+      { find: "bleeding-edge", replace: "modern" },
+      { find: "next-generation", replace: "new" },
+      { find: "seamless", replace: "smooth" },
+      { find: "seamlessly", replace: "smoothly" },
+      { find: "frictionless", replace: "smooth" },
+      { find: "empower", replace: "help" },
+      { find: "empowers", replace: "helps" },
+      { find: "empowering", replace: "helping" },
+      { find: "empowered", replace: "helped" },
+      { find: "harness", replace: "use" },
+      { find: "harnessing", replace: "using" },
+      { find: "harnessed", replace: "used" },
+      { find: "supercharge", replace: "improve" },
+      { find: "supercharges", replace: "improves" },
+      { find: "turbocharge", replace: "improve" },
+      { find: "elevate", replace: "improve" },
+      { find: "elevates", replace: "improves" },
+      { find: "holistic", replace: "complete" },
+      { find: "robust", replace: "strong" },
+      { find: "streamline", replace: "simplify" },
+      { find: "streamlines", replace: "simplifies" },
+      { find: "streamlined", replace: "simplified" },
+      { find: "streamlining", replace: "simplifying" },
+      { find: "delve into", replace: "look at" },
+      { find: "delves into", replace: "looks at" },
+      { find: "delving into", replace: "looking at" },
+      { find: "delve", replace: "dig" },
+      { find: "deep dive into", replace: "close look at" },
+      { find: "dive deep into", replace: "look closely at" }
+    ],
+
+    /* Wordy phrases replaced with short ones. */
+    fillerPhrases: [
+      { find: "in order to", replace: "to" },
+      { find: "in order for", replace: "for" },
+      { find: "due to the fact that", replace: "because" },
+      { find: "owing to the fact that", replace: "because" },
+      { find: "despite the fact that", replace: "although" },
+      { find: "in spite of the fact that", replace: "although" },
+      { find: "in the event that", replace: "if" },
+      { find: "at this point in time", replace: "now" },
+      { find: "at the present time", replace: "now" },
+      { find: "for the purpose of", replace: "to" },
+      { find: "with regard to", replace: "about" },
+      { find: "with regards to", replace: "about" },
+      { find: "in regards to", replace: "about" },
+      { find: "the vast majority of", replace: "most" },
+      { find: "a large number of", replace: "many" },
+      { find: "a majority of", replace: "most" },
+      { find: "a wide range of", replace: "many" },
+      { find: "each and every", replace: "every" },
+      { find: "first and foremost", replace: "first" },
+      { find: "in the near future", replace: "soon" },
+      { find: "on a daily basis", replace: "daily" },
+      { find: "on a regular basis", replace: "regularly" },
+      { find: "take into consideration", replace: "consider" },
+      { find: "come to the conclusion", replace: "conclude" },
+      { find: "prior to", replace: "before" },
+      { find: "subsequent to", replace: "after" },
+      { find: "in excess of", replace: "more than" },
+      { find: "with the exception of", replace: "except for" },
+      { find: "in conjunction with", replace: "with" },
+      { find: "whether or not", replace: "whether" },
+      { find: "in close proximity to", replace: "near" },
+      { find: "has the ability to", replace: "can" },
+      { find: "have the ability to", replace: "can" },
+      { find: "is able to", replace: "can" },
+      { find: "are able to", replace: "can" },
+      { find: "in a timely manner", replace: "on time" },
+      { find: "gain insights into", replace: "understand" },
+      { find: "gain visibility into", replace: "see" }
+    ],
+
+    /* Throat clearing that gets deleted when it opens a sentence. */
+    sentenceStartDeletes: [
+      "It is worth noting that",
+      "It's worth noting that",
+      "It is important to note that",
+      "It should be noted that",
+      "Needless to say,",
+      "As a matter of fact,",
+      "At the end of the day,",
+      "In today's fast-paced world,",
+      "In today's fast-paced business environment,",
+      "In today's digital age,",
+      "In this day and age,",
+      "Please be advised that",
+      "Interestingly,",
+      "Basically,"
+    ],
+
+    /* Filler that can be deleted anywhere in a sentence. */
+    midSentenceDeletes: [
+      "at the end of the day",
+      "needless to say",
+      "as a matter of fact",
+      "it goes without saying that",
+      "when all is said and done",
+      "for all intents and purposes"
+    ],
+
+    /* Flagged for a human, never auto changed. word/phrase + why + what to do. */
+    flagWords: [
+      { find: "game-changing", reason: "Marketing hype", suggestion: "State the concrete benefit instead" },
+      { find: "game changer", reason: "Marketing hype", suggestion: "State the concrete benefit instead" },
+      { find: "ultimate", reason: "Marketing hype", suggestion: "Remove or replace with a specific claim you can defend" },
+      { find: "unparalleled", reason: "Marketing hype", suggestion: "Replace with a measurable claim" },
+      { find: "world-class", reason: "Marketing hype", suggestion: "Replace with a specific, verifiable strength" },
+      { find: "best-in-class", reason: "Marketing hype", suggestion: "Replace with a specific, verifiable strength" },
+      { find: "industry-leading", reason: "Marketing hype", suggestion: "Only keep if you can defend it with evidence" },
+      { find: "synergy", reason: "Corporate jargon", suggestion: "Say what actually works better together" },
+      { find: "synergies", reason: "Corporate jargon", suggestion: "Say what actually works better together" },
+      { find: "paradigm shift", reason: "Corporate jargon", suggestion: "Describe the actual change" },
+      { find: "transformative", reason: "Marketing hype", suggestion: "Describe what changes and by how much" },
+      { find: "innovative", reason: "Overused claim", suggestion: "Show the innovation instead of labelling it" },
+      { find: "unlock", reason: "AI sounding verb", suggestion: "Say what the reader can now do" },
+      { find: "unlocks", reason: "AI sounding verb", suggestion: "Say what the reader can now do" },
+      { find: "tapestry", reason: "AI sounding word", suggestion: "Rewrite in plain language" },
+      { find: "testament to", reason: "AI sounding phrase", suggestion: "State the fact directly" },
+      { find: "ever-evolving", reason: "AI sounding phrase", suggestion: "Rewrite the opening with a concrete point" },
+      { find: "ever-changing", reason: "AI sounding phrase", suggestion: "Rewrite the opening with a concrete point" },
+      { find: "navigate the complexities", reason: "AI sounding phrase", suggestion: "Name the specific problems" },
+      { find: "in the realm of", reason: "AI sounding phrase", suggestion: "Just name the field" },
+      { find: "landscape", reason: "Often AI filler (e.g. 'the AI landscape')", suggestion: "Name the market, industry or field directly" },
+      { find: "embark", reason: "AI sounding word", suggestion: "Use start or begin" },
+      { find: "journey", reason: "Often vague", suggestion: "Keep only if it is literally a journey; otherwise name the process" },
+      { find: "thereby", reason: "Formal connective, hard for non native readers", suggestion: "Split into two sentences with 'so' or 'this'" },
+      { find: "whereby", reason: "Formal connective, hard for non native readers", suggestion: "Rewrite with 'where' or split the sentence" },
+      { find: "wherein", reason: "Formal connective, hard for non native readers", suggestion: "Rewrite with 'where'" },
+      { find: "aforementioned", reason: "Legalese", suggestion: "Use 'this' or 'these', or repeat the noun" },
+      { find: "in terms of", reason: "Vague connective", suggestion: "Usually removable; restructure the sentence", dim: "d3", replace: "" },
+      { find: "solutions", reason: "Abstract when used alone", suggestion: "Name the product or capability if possible" },
+      { find: "not only", reason: "Complex construction for non native readers", suggestion: "Consider splitting into two plain statements" },
+      { find: "in conclusion", reason: "AI sounding closer", suggestion: "End with the action or outcome instead", dim: "d1", replace: "" }
+    ],
+
+    /* Contractions expanded in formal mode. */
+    contractions: [
+      { find: "don't", replace: "do not" },
+      { find: "doesn't", replace: "does not" },
+      { find: "didn't", replace: "did not" },
+      { find: "can't", replace: "cannot" },
+      { find: "won't", replace: "will not" },
+      { find: "isn't", replace: "is not" },
+      { find: "aren't", replace: "are not" },
+      { find: "wasn't", replace: "was not" },
+      { find: "weren't", replace: "were not" },
+      { find: "hasn't", replace: "has not" },
+      { find: "haven't", replace: "have not" },
+      { find: "hadn't", replace: "had not" },
+      { find: "shouldn't", replace: "should not" },
+      { find: "wouldn't", replace: "would not" },
+      { find: "couldn't", replace: "could not" },
+      { find: "it's", replace: "it is" },
+      { find: "that's", replace: "that is" },
+      { find: "there's", replace: "there is" },
+      { find: "here's", replace: "here is" },
+      { find: "what's", replace: "what is" },
+      { find: "we're", replace: "we are" },
+      { find: "you're", replace: "you are" },
+      { find: "they're", replace: "they are" },
+      { find: "we've", replace: "we have" },
+      { find: "you've", replace: "you have" },
+      { find: "they've", replace: "they have" },
+      { find: "we'll", replace: "we will" },
+      { find: "you'll", replace: "you will" },
+      { find: "they'll", replace: "they will" },
+      { find: "I'm", replace: "I am" },
+      { find: "I've", replace: "I have" },
+      { find: "I'll", replace: "I will" },
+      { find: "let's", replace: "let us" }
+    ],
+
+    /* Resemblance dimensions. Weight scales each dimension's share of the score. */
+    dimensions: [
+      { key: "d1", name: "Stock wording", note: "lexical fingerprint", color: "#b45309", weight: 1 },
+      { key: "d2", name: "Sentence rhythm", note: "syntactic rhythm", color: "#1f7a8c", weight: 1 },
+      { key: "d3", name: "Fence-sitting", note: "rhetorical posture", color: "#64748b", weight: 1 },
+      { key: "d4", name: "Missing specifics", note: "informational density", color: "#6d4aa7", weight: 1 },
+      { key: "d5", name: "No personal voice", note: "authorial presence", color: "#2f7a52", weight: 1 }
+    ],
+
+    settings: {
+      expandContractions: true,
+      removeEmojis: true,
+      fixDashes: true,
+      maxSentenceWords: 28,
+      maxParagraphSentences: 6,
+      flagPassiveVoice: true,
+      flagSemicolons: true
+    }
+  };
+
+  /* ------------------------------------------------------------------ */
+  /* Helpers                                                              */
+  /* ------------------------------------------------------------------ */
+
+  function escapeRegex(s) {
+    return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
+
+  /* Preserve the casing of the matched text on the replacement. */
+  function matchCase(source, replacement) {
+    if (source.toUpperCase() === source && source.length > 2) {
+      return replacement.toUpperCase();
+    }
+    if (source.charAt(0) === source.charAt(0).toUpperCase()) {
+      return replacement.charAt(0).toUpperCase() + replacement.slice(1);
+    }
+    return replacement;
+  }
+
+  function contextSnippet(text, index, matchLen) {
+    var start = Math.max(0, index - 32);
+    var end = Math.min(text.length, index + matchLen + 32);
+    var prefix = start > 0 ? "…" : "";
+    var suffix = end < text.length ? "…" : "";
+    return prefix + text.slice(start, end).replace(/\s+/g, " ") + suffix;
+  }
+
+  /* Estimate syllables for Flesch scoring. Heuristic, good enough. */
+  function syllables(word) {
+    word = word.toLowerCase().replace(/[^a-z]/g, "");
+    if (!word) return 0;
+    if (word.length <= 3) return 1;
+    word = word.replace(/(?:[^laeiouy]es|ed|[^laeiouy]e)$/, "");
+    word = word.replace(/^y/, "");
+    var m = word.match(/[aeiouy]{1,2}/g);
+    return m ? m.length : 1;
+  }
+
+  function splitSentences(text) {
+    /* Rough sentence splitter that survives common abbreviations. */
+    var guarded = text
+      .replace(/\b(e\.g|i\.e|etc|vs|Mr|Mrs|Ms|Dr|Inc|Ltd|St|No|Fig)\./g, "$1\u0001")
+      .replace(/(\d)\.(\d)/g, "$1\u0001$2");
+    var parts = guarded.split(/(?<=[.!?])\s+/);
+    return parts.map(function (s) {
+      return s.replace(/\u0001/g, ".").trim();
+    }).filter(function (s) { return s.length > 0; });
+  }
+
+  function words(text) {
+    var m = text.match(/[A-Za-z0-9'’-]+/g);
+    return m || [];
+  }
+
+  function fleschScore(text) {
+    var sents = splitSentences(text.replace(/^#+\s.*$/gm, ""));
+    var ws = words(text);
+    if (!sents.length || !ws.length) return { score: 0, grade: 0, words: 0, sentences: 0, avgSentence: 0 };
+    var syl = 0;
+    for (var i = 0; i < ws.length; i++) syl += syllables(ws[i]);
+    var wps = ws.length / sents.length;
+    var spw = syl / ws.length;
+    var score = 206.835 - 1.015 * wps - 84.6 * spw;
+    var grade = 0.39 * wps + 11.8 * spw - 15.59;
+    return {
+      score: Math.round(score * 10) / 10,
+      grade: Math.round(grade * 10) / 10,
+      words: ws.length,
+      sentences: sents.length,
+      avgSentence: Math.round(wps * 10) / 10
+    };
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Protection of terms, URLs, emails and code spans                     */
+  /* ------------------------------------------------------------------ */
+
+  function protect(text, protectedTerms) {
+    var vault = [];
+    function stash(match) {
+      vault.push(match);
+      return "\u0000" + (vault.length - 1) + "\u0000";
+    }
+    /* code blocks and inline code */
+    text = text.replace(/```[\s\S]*?```/g, stash);
+    text = text.replace(/`[^`\n]+`/g, stash);
+    /* URLs and emails */
+    text = text.replace(/\bhttps?:\/\/[^\s)>\]]+/g, stash);
+    text = text.replace(/\b[\w.+-]+@[\w-]+\.[\w.]+\b/g, stash);
+    /* protected terms, longest first so multi word terms win */
+    var terms = (protectedTerms || []).slice().sort(function (a, b) { return b.length - a.length; });
+    for (var i = 0; i < terms.length; i++) {
+      if (!terms[i]) continue;
+      var re = new RegExp(escapeRegex(terms[i]), "g");
+      text = text.replace(re, stash);
+    }
+    return { text: text, vault: vault };
+  }
+
+  function restore(text, vault) {
+    return text.replace(/\u0000(\d+)\u0000/g, function (_, n) {
+      return vault[parseInt(n, 10)];
+    });
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Replacement passes                                                   */
+  /* ------------------------------------------------------------------ */
+
+  function applySwaps(text, rules, category, changes) {
+    /* Longest finds first so phrases beat single words. */
+    var sorted = rules.slice().sort(function (a, b) { return b.find.length - a.find.length; });
+    for (var i = 0; i < sorted.length; i++) {
+      var rule = sorted[i];
+      if (!rule.find) continue;
+      var re = new RegExp("\\b" + escapeRegex(rule.find).replace(/'/g, "['’]") + "\\b", "gi");
+      text = text.replace(re, function (m) {
+        var offsetIdx = arguments[arguments.length - 2];
+        var rep = matchCase(m, rule.replace);
+        changes.push({
+          category: category,
+          before: m,
+          after: rep,
+          context: contextSnippet(text, offsetIdx, m.length)
+        });
+        return rep;
+      });
+    }
+    return text;
+  }
+
+  function applySentenceStartDeletes(text, phrases, changes) {
+    for (var i = 0; i < phrases.length; i++) {
+      var p = phrases[i];
+      if (!p) continue;
+      var core = escapeRegex(p).replace(/'/g, "['’]");
+      var re = new RegExp("(^|[.!?:]\\s+|\\n\\s*)" + core + "\\s+([a-zA-Z\u0000])", "gm");
+      text = text.replace(re, function (m, lead, nextChar, offsetIdx) {
+        changes.push({
+          category: "Removed filler opener",
+          before: p + " …",
+          after: "(removed)",
+          context: contextSnippet(text, offsetIdx, m.length)
+        });
+        return lead + nextChar.toUpperCase();
+      });
+    }
+    return text;
+  }
+
+  function applyMidSentenceDeletes(text, phrases, changes) {
+    for (var i = 0; i < phrases.length; i++) {
+      var p = phrases[i];
+      if (!p) continue;
+      var core = escapeRegex(p).replace(/'/g, "['’]");
+      var re = new RegExp("(,\\s*)?\\b" + core + "\\b(\\s*,)?", "gi");
+      text = text.replace(re, function (m, lead, trail) {
+        var offsetIdx = arguments[arguments.length - 2];
+        changes.push({
+          category: "Removed filler",
+          before: m.trim(),
+          after: "(removed)",
+          context: contextSnippet(text, offsetIdx, m.length)
+        });
+        return lead && trail ? ", " : " ";
+      });
+    }
+    /* tidy artefacts */
+    text = text.replace(/ {2,}/g, " ").replace(/ ([.,;:!?])/g, "$1").replace(/,\s*,/g, ",");
+    return text;
+  }
+
+  function fixDashes(text, changes) {
+    /* Number ranges keep their meaning with 'to'. */
+    text = text.replace(/(\d)\s*[–—]\s*(\d)/g, function (m, a, b, idx) {
+      changes.push({ category: "Dash cleanup", before: m, after: a + " to " + b, context: contextSnippet(text, idx, m.length) });
+      return a + " to " + b;
+    });
+    /* Em and en dashes between words become commas. */
+    text = text.replace(/\s*[—–]\s*/g, function (m, idx) {
+      changes.push({ category: "Dash cleanup", before: m.trim() || "—", after: ",", context: contextSnippet(text, idx, m.length) });
+      return ", ";
+    });
+    /* Double hyphen used as a dash. */
+    text = text.replace(/(\S)\s*--\s*(\S)/g, function (m, a, b, idx) {
+      changes.push({ category: "Dash cleanup", before: "--", after: ",", context: contextSnippet(text, idx, m.length) });
+      return a + ", " + b;
+    });
+    /* No comma directly before closing punctuation. */
+    text = text.replace(/,\s*([.,;:!?])/g, "$1");
+    return text;
+  }
+
+  function removeEmojis(text, changes) {
+    var re = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{1F1E6}-\u{1F1FF}\u{FE0F}\u{200D}\u{2764}]/gu;
+    var count = 0;
+    text = text.replace(re, function () { count++; return ""; });
+    if (count > 0) {
+      changes.push({ category: "Emoji removal", before: count + " emoji(s)", after: "(removed)", context: "" });
+    }
+    /* tidy space left behind */
+    text = text.replace(/ {2,}/g, " ").replace(/ +([.,;:!?])/g, "$1");
+    return text;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Flagging (auto fix not safe, needs a human)                          */
+  /* ------------------------------------------------------------------ */
+
+  function collectFlags(text, config) {
+    var flags = [];
+    var s = config.settings || {};
+
+    /* flag words */
+    var fw = config.flagWords || [];
+    for (var i = 0; i < fw.length; i++) {
+      var re = new RegExp("\\b" + escapeRegex(fw[i].find).replace(/'/g, "['’]") + "\\b", "gi");
+      var m;
+      while ((m = re.exec(text)) !== null) {
+        flags.push({
+          type: "Word choice",
+          excerpt: contextSnippet(text, m.index, m[0].length),
+          found: m[0],
+          reason: fw[i].reason,
+          suggestion: fw[i].suggestion
+        });
+      }
+    }
+
+    var sentences = splitSentences(text);
+    var maxWords = s.maxSentenceWords || 28;
+
+    for (var j = 0; j < sentences.length; j++) {
+      var sent = sentences[j];
+      if (/^#{1,6}\s/.test(sent)) continue;
+      var wc = words(sent).length;
+
+      if (wc > maxWords) {
+        flags.push({
+          type: "Long sentence",
+          excerpt: sent.length > 160 ? sent.slice(0, 160) + "…" : sent,
+          found: wc + " words",
+          reason: "Hard to follow for non native readers",
+          suggestion: "Split into two or three short sentences, one idea each"
+        });
+      }
+
+      if (s.flagPassiveVoice) {
+        var pm = sent.match(/\b(am|is|are|was|were|been|being|be)\s+(\w+(?:ed|wn|en))\b(\s+by\b)?/i);
+        if (pm && !/\b(is|are|was|were)\s+(based|located|named|called|designed|used|expected|required|needed|allowed|limited)\b/i.test(pm[0]) || (pm && pm[3])) {
+          flags.push({
+            type: "Passive voice",
+            excerpt: sent.length > 160 ? sent.slice(0, 160) + "…" : sent,
+            found: pm[0],
+            reason: "Passive voice hides who does the action",
+            suggestion: "Rewrite with the actor first: who does what"
+          });
+        }
+      }
+
+      if (s.flagSemicolons && sent.indexOf(";") !== -1) {
+        flags.push({
+          type: "Semicolon",
+          excerpt: sent.length > 160 ? sent.slice(0, 160) + "…" : sent,
+          found: ";",
+          reason: "Semicolons make sentences feel complex",
+          suggestion: "Split into two sentences, or use a comma with 'and' or 'but'"
+        });
+      }
+    }
+
+    /* long paragraphs */
+    var maxParaSents = s.maxParagraphSentences || 6;
+    var paras = text.split(/\n\s*\n/);
+    for (var k = 0; k < paras.length; k++) {
+      if (/^\s*#/.test(paras[k])) continue;
+      var ps = splitSentences(paras[k]);
+      if (ps.length > maxParaSents) {
+        flags.push({
+          type: "Long paragraph",
+          excerpt: paras[k].slice(0, 120).replace(/\s+/g, " ") + "…",
+          found: ps.length + " sentences",
+          reason: "Dense blocks are hard to scan",
+          suggestion: "Break into two paragraphs, or pull key items into a short list"
+        });
+      }
+      /* repeated two word sentence openers inside one paragraph */
+      var starters = {};
+      for (var q = 0; q < ps.length; q++) {
+        var ww = words(ps[q]);
+        if (ww.length < 2) continue;
+        var first = (ww[0] + " " + ww[1]).toLowerCase();
+        starters[first] = (starters[first] || 0) + 1;
+      }
+      for (var key in starters) {
+        if (starters[key] >= 3) {
+          flags.push({
+            type: "Repetitive rhythm",
+            excerpt: paras[k].slice(0, 120).replace(/\s+/g, " ") + "…",
+            found: starters[key] + " sentences start with \"" + key + "\"",
+            reason: "Uniform sentence openings read as machine written",
+            suggestion: "Vary the sentence openings in this paragraph"
+          });
+        }
+      }
+    }
+
+    /* too many sentences starting with the same connective */
+    var alsoCount = (text.match(/(^|[.!?]\s+)(Also|However|So),?\s/g) || []).length;
+    if (alsoCount >= 3) {
+      flags.push({
+        type: "Repetitive rhythm",
+        excerpt: alsoCount + " sentences start with a connective (Also / However / So)",
+        found: alsoCount + " occurrences",
+        reason: "Stacked connectives read as machine written",
+        suggestion: "Remove most of them; short direct sentences rarely need a connective"
+      });
+    }
+
+    /* repetitive markdown headings */
+    var headings = text.match(/^#{1,6}\s+.*$/gm) || [];
+    var headFirst = {};
+    for (var h = 0; h < headings.length; h++) {
+      var hw = (words(headings[h].replace(/^#+\s+/, ""))[0] || "").toLowerCase();
+      if (hw) headFirst[hw] = (headFirst[hw] || 0) + 1;
+    }
+    for (var hk in headFirst) {
+      if (headFirst[hk] >= 3) {
+        flags.push({
+          type: "Repetitive headings",
+          excerpt: headFirst[hk] + " headings start with \"" + hk + "\"",
+          found: hk,
+          reason: "Repeated heading patterns look templated",
+          suggestion: "Rewrite headings so each one states its section's point"
+        });
+      }
+    }
+
+    return flags;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Resemblance analysis: offset aware, so a UI can highlight in place   */
+  /* ------------------------------------------------------------------ */
+
+  var DEFAULT_DIMENSIONS = [
+    { key: "d1", name: "Stock wording", note: "lexical fingerprint", color: "#b45309", weight: 1 },
+    { key: "d2", name: "Sentence rhythm", note: "syntactic rhythm", color: "#1f7a8c", weight: 1 },
+    { key: "d3", name: "Fence-sitting", note: "rhetorical posture", color: "#64748b", weight: 1 },
+    { key: "d4", name: "Missing specifics", note: "informational density", color: "#6d4aa7", weight: 1 },
+    { key: "d5", name: "No personal voice", note: "authorial presence", color: "#2f7a52", weight: 1 }
+  ];
+
+  /* Ranges no rule may touch: code, links, emails, protected terms. */
+  function protectedRanges(text, terms) {
+    var ranges = [];
+    function scan(re) {
+      var m;
+      while ((m = re.exec(text)) !== null) {
+        ranges.push([m.index, m.index + m[0].length]);
+        if (m[0].length === 0) re.lastIndex++;
+      }
+    }
+    scan(/```[\s\S]*?```/g);
+    scan(/`[^`\n]+`/g);
+    scan(/\bhttps?:\/\/[^\s)>\]]+/g);
+    scan(/\b[\w.+-]+@[\w-]+\.[\w.]+\b/g);
+    var list = (terms || []).slice().sort(function (a, b) { return b.length - a.length; });
+    for (var i = 0; i < list.length; i++) {
+      if (!list[i]) continue;
+      scan(new RegExp(escapeRegex(list[i]), "g"));
+    }
+    return ranges;
+  }
+
+  function inRanges(start, end, ranges) {
+    for (var i = 0; i < ranges.length; i++) {
+      if (start < ranges[i][1] && end > ranges[i][0]) return true;
+    }
+    return false;
+  }
+
+  /* Same abbreviation guard as splitSentences, but length preserving,
+     so indices in the guarded string are valid in the original. */
+  function guardText(text) {
+    return text
+      .replace(/\b(e\.g|i\.e|etc|vs|Mr|Mrs|Ms|Dr|Inc|Ltd|St|No|Fig)\./g, "$1\u0001")
+      .replace(/(\d)\.(\d)/g, "$1\u0001$2");
+  }
+
+  function sentenceSpans(text) {
+    var g = guardText(text), out = [], re = /(?<=[.!?])\s+/g, start = 0, m;
+    while ((m = re.exec(g)) !== null) {
+      out.push({ start: start, end: m.index, text: text.slice(start, m.index) });
+      start = m.index + m[0].length;
+    }
+    if (start < text.length) out.push({ start: start, end: text.length, text: text.slice(start) });
+    return out.filter(function (s) { return s.text.trim().length > 0; });
+  }
+
+  function dimForFlagWord(rule) {
+    if (rule.dim) return rule.dim;
+    var r = (rule.reason || "").toLowerCase();
+    if (/hype|overused|jargon|ai sounding|ai filler|closer/.test(r)) return "d1";
+    if (/construction|connective/.test(r)) return "d2";
+    if (/vague|legalese|abstract/.test(r)) return "d3";
+    return "d1";
+  }
+
+  /* Missing specifics: evidence shaped language with no evidence in it. */
+  var SPECIFIC_PATTERNS = [
+    { re: /\b(?:studies|study|research|surveys?|reports?|data)\s+(?:show|shows|showed|suggest|suggests|indicate|indicates|found|finds|reveal|reveals)\b/gi,
+      reason: "Research claim with no source", suggestion: "Name the study, its sample and its year, or cut the claim" },
+    { re: /\b(?:experts?|analysts?|researchers?|specialists?|leaders?)\s+(?:agree|say|believe|suggest|recommend|note|point out)\b/gi,
+      reason: "Appeal to an authority nobody can check", suggestion: "Name the person, or own the judgment in the first person" },
+    { re: /\bup to \d[\d.,]*\s*(?:%|percent|x|times)?/gi,
+      reason: "Unfalsifiable figure: \"up to\" includes zero", suggestion: "Give the measured number and how it was measured" },
+    { re: /\b(?:many|most|several|numerous|countless)\s+(?:organizations|organisations|companies|businesses|teams|enterprises|firms)\b/gi,
+      reason: "Unquantified population", suggestion: "Say how many, or name the ones you mean" },
+    { re: /\baccording to (?:industry|recent|various|multiple|some|several)\b[^.,;]*/gi,
+      reason: "Vague attribution", suggestion: "Cite the specific report and date" },
+    { re: /\b\d[\d.,]*\s*(?:%|percent)\s+(?:more|less|fewer|faster|better|higher|lower|improvement|increase|reduction|growth)\b/gi,
+      reason: "Statistic with no source", suggestion: "Add the source, the period and the measurement method" }
+  ];
+
+  /* Authorial presence: judged by what is absent, so it is document level. */
+  function authorialPresence(text) {
+    var wc = words(text).length || 1;
+    var per = 1000 / Math.max(200, wc);
+    var signals = {
+      firstPerson: (text.match(/\b(?:I|I'm|I've|I'd|we|we're|we've|our|ours|us|my|mine)\b/g) || []).length,
+      dates: (text.match(/\b(?:19|20)\d{2}\b|\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2}\b|\b(?:last|next|this)\s+(?:week|month|quarter|year|Monday|Tuesday|Wednesday|Thursday|Friday)\b|\bQ[1-4]\b/gi) || []).length,
+      figures: (text.match(/[$£€]\s?\d|\b\d[\d.,]*\s?(?:k|m|bn|hours?|days?|weeks?|months?|users?|tables?|people|engineers?|tickets?)\b/gi) || []).length,
+      named: (text.match(/\b[A-Z][a-z]+\s+[A-Z][a-z]+\b/g) || []).length,
+      opinion: (text.match(/\b(?:I think|I'd|I would|in my (?:view|experience)|we decided|we chose|we got it wrong|worth doing|not worth|a mistake|I still think|my guess)\b/gi) || []).length
+    };
+    var present = 0, missing = [];
+    if (signals.firstPerson * per >= 2) present++; else missing.push("no first person");
+    if (signals.dates * per >= 1) present++; else missing.push("no dates");
+    if (signals.figures * per >= 2) present++; else missing.push("no concrete figures");
+    if (signals.opinion * per >= 1 || signals.named * per >= 1) present++; else missing.push("no opinion or named person");
+    return { score: Math.max(0, 4 - present), signals: signals, missing: missing, words: wc };
+  }
+
+  /* All flags inside one paragraph, with offsets into that paragraph. */
+  function collectParaFlags(text, config, paraIndex) {
+    var s = config.settings || {};
+    var ranges = protectedRanges(text, config.protectedTerms);
+    var flags = [];
+    var claimed = [];
+    function free(a, b) {
+      if (inRanges(a, b, ranges)) return false;
+      for (var i = 0; i < claimed.length; i++) if (a < claimed[i][1] && b > claimed[i][0]) return false;
+      return true;
+    }
+    function push(f) {
+      f.paragraph = paraIndex;
+      flags.push(f);
+      if (f.kind !== "advice-span") claimed.push([f.start, f.end]);
+    }
+
+    var fw = config.flagWords || [];
+    for (var i = 0; i < fw.length; i++) {
+      if (!fw[i].find) continue;
+      var re = new RegExp("\\b" + escapeRegex(fw[i].find).replace(/'/g, "['\u2019]") + "\\b", "gi");
+      var m;
+      while ((m = re.exec(text)) !== null) {
+        if (!free(m.index, m.index + m[0].length)) continue;
+        push({
+          type: "Word choice", dim: dimForFlagWord(fw[i]),
+          start: m.index, end: m.index + m[0].length,
+          found: m[0], reason: fw[i].reason, suggestion: fw[i].suggestion,
+          kind: typeof fw[i].replace === "string" ? "swap" : "advice",
+          replace: typeof fw[i].replace === "string" ? fw[i].replace : null,
+          excerpt: contextSnippet(text, m.index, m[0].length)
+        });
+      }
+    }
+
+    for (var p = 0; p < SPECIFIC_PATTERNS.length; p++) {
+      var sp = SPECIFIC_PATTERNS[p];
+      sp.re.lastIndex = 0;
+      var sm;
+      while ((sm = sp.re.exec(text)) !== null) {
+        if (!sm[0].length) { sp.re.lastIndex++; continue; }
+        if (!free(sm.index, sm.index + sm[0].length)) continue;
+        push({
+          type: "Missing specifics", dim: "d4",
+          start: sm.index, end: sm.index + sm[0].length,
+          found: sm[0], reason: sp.reason, suggestion: sp.suggestion,
+          kind: "advice", replace: null,
+          excerpt: contextSnippet(text, sm.index, sm[0].length)
+        });
+      }
+    }
+
+    var sents = sentenceSpans(text);
+    var maxWords = s.maxSentenceWords || 28;
+    for (var j = 0; j < sents.length; j++) {
+      var sent = sents[j];
+      if (/^#{1,6}\s/.test(sent.text)) continue;
+      var wc = words(sent.text).length;
+
+      if (wc > maxWords) {
+        push({
+          type: "Long sentence", dim: "d2", start: sent.start, end: sent.end,
+          found: wc + " words", reason: "Hard to follow for non native readers",
+          suggestion: "Split into two or three short sentences, one idea each",
+          kind: "advice-span", replace: null, excerpt: sent.text
+        });
+      }
+
+      if (s.flagPassiveVoice) {
+        var pm = /\b(?:am|is|are|was|were|been|being|be)\s+\w+(?:ed|wn|en)\b(?:\s+by\b)?/i.exec(sent.text);
+        var benign = pm && /\b(?:is|are|was|were)\s+(?:based|located|named|called|designed|used|expected|required|needed|allowed|limited|checkpointed|logged)\b/i.test(pm[0]);
+        if (pm && (!benign || /\sby$/.test(pm[0]))) {
+          push({
+            type: "Passive voice", dim: "d3",
+            start: sent.start + pm.index, end: sent.start + pm.index + pm[0].length,
+            found: pm[0], reason: "Passive voice hides who does the action",
+            suggestion: "Rewrite with the actor first: who does what",
+            kind: "advice", replace: null, excerpt: sent.text
+          });
+        }
+      }
+
+      if (s.flagSemicolons) {
+        var semi = sent.text.indexOf(";");
+        if (semi !== -1) {
+          push({
+            type: "Semicolon", dim: "d2",
+            start: sent.start + semi, end: sent.start + semi + 1,
+            found: ";", reason: "Semicolons make sentences feel complex",
+            suggestion: "Split into two sentences, or use a comma with 'and' or 'but'",
+            kind: "advice", replace: null, excerpt: sent.text
+          });
+        }
+      }
+    }
+
+    if (!/^\s*#/.test(text)) {
+      var maxParaSents = s.maxParagraphSentences || 6;
+      if (sents.length > maxParaSents) {
+        push({
+          type: "Long paragraph", dim: "d2", start: 0, end: text.length,
+          found: sents.length + " sentences", reason: "Dense blocks are hard to scan",
+          suggestion: "Break into two paragraphs, or pull key items into a short list",
+          kind: "advice-span", replace: null, excerpt: text.slice(0, 120) + "\u2026"
+        });
+      }
+      var starters = {};
+      for (var q = 0; q < sents.length; q++) {
+        var ww = words(sents[q].text);
+        if (ww.length < 2) continue;
+        var first = (ww[0] + " " + ww[1]).toLowerCase();
+        starters[first] = (starters[first] || 0) + 1;
+      }
+      for (var key in starters) {
+        if (starters[key] >= 3) {
+          push({
+            type: "Repetitive rhythm", dim: "d2", start: 0, end: text.length,
+            found: starters[key] + " sentences start with \"" + key + "\"",
+            reason: "Uniform sentence openings read as machine written",
+            suggestion: "Vary the sentence openings in this paragraph",
+            kind: "advice-span", replace: null, excerpt: text.slice(0, 120) + "\u2026"
+          });
+        }
+      }
+    }
+
+    return flags;
+  }
+
+  /* Whole document checks that no single paragraph can see. */
+  function collectDocFlags(joined, config, presence) {
+    var flags = [];
+    var alsoCount = (joined.match(/(^|[.!?]\s+)(Also|However|So|Moreover|Furthermore|Additionally),?\s/g) || []).length;
+    if (alsoCount >= 3) {
+      flags.push({
+        type: "Repetitive rhythm", dim: "d2", kind: "document", paragraph: null,
+        found: alsoCount + " sentences open with a connective",
+        reason: "Stacked connectives read as machine written",
+        suggestion: "Remove most of them; short direct sentences rarely need one",
+        excerpt: "Also / However / So / Moreover / Furthermore"
+      });
+    }
+    var headings = joined.match(/^#{1,6}\s+.*$/gm) || [];
+    var headFirst = {};
+    for (var h = 0; h < headings.length; h++) {
+      var hw = (words(headings[h].replace(/^#+\s+/, ""))[0] || "").toLowerCase();
+      if (hw) headFirst[hw] = (headFirst[hw] || 0) + 1;
+    }
+    for (var hk in headFirst) {
+      if (headFirst[hk] >= 3) {
+        flags.push({
+          type: "Repetitive headings", dim: "d2", kind: "document", paragraph: null,
+          found: headFirst[hk] + " headings start with \"" + hk + "\"",
+          reason: "Repeated heading patterns look templated",
+          suggestion: "Rewrite headings so each one states its section's point",
+          excerpt: headFirst[hk] + " headings begin with the same word"
+        });
+      }
+    }
+    if (presence.score >= 1.5) {
+      flags.push({
+        type: "No personal voice", dim: "d5", kind: "document", paragraph: null,
+        dimScore: presence.score,
+        found: presence.missing.join(", "),
+        reason: "This dimension is judged by what is absent, so nothing is highlighted",
+        suggestion: "Add one thing only you could have written: a date, a number you measured, or an opinion a colleague could argue with",
+        excerpt: "Across " + presence.words + " words: " + presence.missing.join(", ")
+      });
+    }
+    return flags;
+  }
+
+  function bandScore(count, wordCount) {
+    if (!count) return 0;
+    var per1000 = count * 1000 / Math.max(120, wordCount || 1);
+    var raw = per1000 / 9 * 4;
+    if (raw > 4) raw = 4;
+    return Math.max(0.5, Math.round(raw * 2) / 2);
+  }
+
+  function scoreResemblance(flags, wordCount, config, presence) {
+    var dimDefs = (config && config.dimensions && config.dimensions.length) ? config.dimensions : DEFAULT_DIMENSIONS;
+    var counts = {};
+    for (var i = 0; i < flags.length; i++) {
+      var d = flags[i].dim;
+      if (!d) continue;
+      counts[d] = (counts[d] || 0) + 1;
+    }
+    var dims = dimDefs.map(function (def) {
+      var score = def.key === "d5" ? (presence ? presence.score : 0) : bandScore(counts[def.key] || 0, wordCount);
+      return {
+        key: def.key, name: def.name, note: def.note || "",
+        color: def.color || "#64748b",
+        weight: typeof def.weight === "number" ? def.weight : 1,
+        count: counts[def.key] || 0, score: score
+      };
+    });
+    var wsum = 0, ssum = 0;
+    dims.forEach(function (d) { wsum += d.weight; ssum += d.weight * d.score; });
+    var total = wsum ? 20 * ssum / (4 * wsum) : 0;
+    total = Math.round(total * 10) / 10;
+    var verdict = total >= 15 ? "Heavy resemblance"
+      : total >= 10 ? "Moderate resemblance"
+      : total >= 6 ? "Light resemblance"
+      : total > 0 ? "Low resemblance" : "No markers found";
+    return { dims: dims, total: total, verdict: verdict, words: wordCount, presence: presence };
+  }
+
+  /* Re-analyse a paragraph pair list. Called after every accepted rewrite,
+     so offsets, counts, ease and the score never drift from the text. */
+  function reviewParas(pairs, config) {
+    config = config || DEFAULT_CONFIG;
+    var flags = [], parts = [];
+    for (var i = 0; i < pairs.length; i++) {
+      parts.push(pairs[i].output);
+      flags = flags.concat(collectParaFlags(pairs[i].output, config, i));
+    }
+    var joined = parts.join("\n\n");
+    var after = fleschScore(joined);
+    var presence = authorialPresence(joined);
+    flags = flags.concat(collectDocFlags(joined, config, presence));
+    return {
+      flags: flags, output: joined, after: after,
+      resemblance: scoreResemblance(flags, after.words, config, presence)
+    };
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Main entry point                                                     */
+  /* ------------------------------------------------------------------ */
+
+  /* Apply all auto fixes to a piece of text. Paragraph boundaries survive. */
+  function transform(input, config) {
+    config = config || DEFAULT_CONFIG;
+    var settings = config.settings || {};
+    var changes = [];
+
+    var p = protect(input, config.protectedTerms);
+    var text = p.text;
+
+    if (settings.removeEmojis) text = removeEmojis(text, changes);
+    if (settings.fixDashes) text = fixDashes(text, changes);
+
+    text = applySentenceStartDeletes(text, config.sentenceStartDeletes || [], changes);
+    text = applyMidSentenceDeletes(text, config.midSentenceDeletes || [], changes);
+    text = applySwaps(text, config.fillerPhrases || [], "Filler phrase", changes);
+    text = applySwaps(text, config.hypeSwaps || [], "Hype and AI wording", changes);
+    text = applySwaps(text, config.simpleSwaps || [], "Simpler word", changes);
+    if (settings.expandContractions) {
+      text = applySwaps(text, config.contractions || [], "Contraction expanded", changes);
+    }
+
+    /* whitespace tidy inside the block, never across paragraph breaks */
+    text = text.replace(/ {2,}/g, " ").replace(/ +\n/g, "\n");
+
+    text = restore(text, p.vault);
+    for (var c = 0; c < changes.length; c++) {
+      changes[c].context = restore(changes[c].context || "", p.vault);
+    }
+    return { output: text, changes: changes };
+  }
+
+  /* Collect flags for human review on (usually already transformed) text. */
+  function analyze(text, config) {
+    config = config || DEFAULT_CONFIG;
+    var p = protect(text, config.protectedTerms);
+    var flags = collectFlags(p.text, config);
+    for (var i = 0; i < flags.length; i++) {
+      flags[i].excerpt = restore(flags[i].excerpt, p.vault);
+      flags[i].found = restore(String(flags[i].found), p.vault);
+    }
+    return flags;
+  }
+
+  function process(input, config) {
+    var before = fleschScore(input);
+    var t = transform(input, config);
+    var flags = analyze(t.output, config);
+    var after = fleschScore(t.output);
+    return {
+      output: t.output,
+      changes: t.changes,
+      flags: flags,
+      stats: {
+        before: before,
+        after: after,
+        changeCount: t.changes.length,
+        flagCount: flags.length,
+        wordsSaved: before.words - after.words
+      }
+    };
+  }
+
+  /* Paragraph aware processing: returns 1:1 mapped original/output pairs
+     so a UI can sync scroll positions at paragraph level. */
+  function processDoc(input, config) {
+    var normalized = input.replace(/\r\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+    var originals = normalized ? normalized.split(/\n\n/) : [];
+    var pairs = [];
+    var changes = [];
+    for (var i = 0; i < originals.length; i++) {
+      var t = transform(originals[i], config);
+      for (var c = 0; c < t.changes.length; c++) {
+        t.changes[c].paragraph = i;
+        changes.push(t.changes[c]);
+      }
+      pairs.push({ original: originals[i], output: t.output });
+    }
+    var review = reviewParas(pairs, config);
+    var before = fleschScore(normalized);
+    return {
+      paragraphs: pairs,
+      output: review.output,
+      changes: changes,
+      flags: review.flags,
+      resemblance: review.resemblance,
+      stats: {
+        before: before,
+        after: review.after,
+        changeCount: changes.length,
+        flagCount: review.flags.length,
+        wordsSaved: before.words - review.after.words
+      }
+    };
+  }
+
+  return {
+    process: process,
+    processDoc: processDoc,
+    transform: transform,
+    analyze: analyze,
+    reviewParas: reviewParas,
+    authorialPresence: authorialPresence,
+    defaultDimensions: DEFAULT_DIMENSIONS,
+    defaultConfig: DEFAULT_CONFIG,
+    fleschScore: fleschScore
+  };
+})();
+
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = MyridiusEngine;
+}
+
+</script>
+<script>
+/*
+ * Patralekhiser file input/output
+ * Reads .docx, .md, .txt (and .pdf via lazily loaded pdf.js).
+ * Writes .docx, .pdf, .txt, .md.
+ * The zip, docx and pdf code is self contained: no libraries, no network.
+ * Runs in the browser and in Node 18+ (module.exports guarded at the bottom).
+ */
+
+var MyridiusFileIO = (function () {
+  "use strict";
+
+  /* ------------------------------------------------------------------ */
+  /* CRC32 (for zip)                                                      */
+  /* ------------------------------------------------------------------ */
+
+  var CRC_TABLE = (function () {
+    var t = new Uint32Array(256);
+    for (var n = 0; n < 256; n++) {
+      var c = n;
+      for (var k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+      t[n] = c >>> 0;
+    }
+    return t;
+  })();
+
+  function crc32(buf) {
+    var c = 0xFFFFFFFF;
+    for (var i = 0; i < buf.length; i++) c = CRC_TABLE[(c ^ buf[i]) & 0xFF] ^ (c >>> 8);
+    return (c ^ 0xFFFFFFFF) >>> 0;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Minimal ZIP writer (stored entries, valid zip, Word opens it)        */
+  /* ------------------------------------------------------------------ */
+
+  function u16(v) { return [v & 0xFF, (v >>> 8) & 0xFF]; }
+  function u32(v) { return [v & 0xFF, (v >>> 8) & 0xFF, (v >>> 16) & 0xFF, (v >>> 24) & 0xFF]; }
+
+  function zipStore(files) {
+    /* files: [{ name: string, data: Uint8Array }] */
+    var chunks = [];
+    var central = [];
+    var offset = 0;
+    var enc = new TextEncoder();
+
+    for (var i = 0; i < files.length; i++) {
+      var name = enc.encode(files[i].name);
+      var data = files[i].data;
+      var crc = crc32(data);
+      var local = new Uint8Array([].concat(
+        u32(0x04034B50), u16(20), u16(0), u16(0), u16(0), u16(0x21),
+        u32(crc), u32(data.length), u32(data.length), u16(name.length), u16(0)
+      ));
+      chunks.push(local, name, data);
+      central.push({ name: name, crc: crc, size: data.length, offset: offset });
+      offset += local.length + name.length + data.length;
+    }
+
+    var cdStart = offset;
+    for (var j = 0; j < central.length; j++) {
+      var e = central[j];
+      var hdr = new Uint8Array([].concat(
+        u32(0x02014B50), u16(20), u16(20), u16(0), u16(0), u16(0), u16(0x21),
+        u32(e.crc), u32(e.size), u32(e.size), u16(e.name.length),
+        u16(0), u16(0), u16(0), u16(0), u32(0), u32(e.offset)
+      ));
+      chunks.push(hdr, e.name);
+      offset += hdr.length + e.name.length;
+    }
+    var eocd = new Uint8Array([].concat(
+      u32(0x06054B50), u16(0), u16(0), u16(central.length), u16(central.length),
+      u32(offset - cdStart), u32(cdStart), u16(0)
+    ));
+    chunks.push(eocd);
+
+    var total = 0;
+    chunks.forEach(function (c) { total += c.length; });
+    var out = new Uint8Array(total);
+    var pos = 0;
+    chunks.forEach(function (c) { out.set(c, pos); pos += c.length; });
+    return out;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Minimal ZIP reader (stored + deflated entries)                       */
+  /* ------------------------------------------------------------------ */
+
+  function rd16(b, o) { return b[o] | (b[o + 1] << 8); }
+  function rd32(b, o) { return (b[o] | (b[o + 1] << 8) | (b[o + 2] << 16) | (b[o + 3] << 24)) >>> 0; }
+
+  function inflateRaw(data) {
+    var ds = new DecompressionStream("deflate-raw");
+    var stream = new Blob([data]).stream().pipeThrough(ds);
+    return new Response(stream).arrayBuffer().then(function (ab) {
+      return new Uint8Array(ab);
+    });
+  }
+
+  function unzip(buf) {
+    /* find end of central directory */
+    var eocd = -1;
+    var min = Math.max(0, buf.length - 65558);
+    for (var i = buf.length - 22; i >= min; i--) {
+      if (rd32(buf, i) === 0x06054B50) { eocd = i; break; }
+    }
+    if (eocd === -1) return Promise.reject(new Error("Not a zip file"));
+    var count = rd16(buf, eocd + 10);
+    var cdOff = rd32(buf, eocd + 16);
+
+    var dec = new TextDecoder();
+    var promises = [];
+    var names = [];
+    var p = cdOff;
+    for (var n = 0; n < count; n++) {
+      if (rd32(buf, p) !== 0x02014B50) break;
+      var method = rd16(buf, p + 10);
+      var compSize = rd32(buf, p + 20);
+      var nameLen = rd16(buf, p + 28);
+      var extraLen = rd16(buf, p + 30);
+      var commentLen = rd16(buf, p + 32);
+      var localOff = rd32(buf, p + 42);
+      var name = dec.decode(buf.subarray(p + 46, p + 46 + nameLen));
+      /* local header tells the real data start */
+      var lNameLen = rd16(buf, localOff + 26);
+      var lExtraLen = rd16(buf, localOff + 28);
+      var dataStart = localOff + 30 + lNameLen + lExtraLen;
+      var raw = buf.subarray(dataStart, dataStart + compSize);
+      names.push(name);
+      promises.push(method === 8 ? inflateRaw(raw) : Promise.resolve(new Uint8Array(raw)));
+      p += 46 + nameLen + extraLen + commentLen;
+    }
+    return Promise.all(promises).then(function (datas) {
+      var out = {};
+      for (var k = 0; k < names.length; k++) out[names[k]] = datas[k];
+      return out;
+    });
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Markdown-ish text -> paragraph model                                 */
+  /* ------------------------------------------------------------------ */
+
+  function parseDoc(text) {
+    var paras = String(text).replace(/\r\n/g, "\n").split(/\n\s*\n/);
+    var out = [];
+    for (var i = 0; i < paras.length; i++) {
+      var p = paras[i].trim();
+      if (!p) continue;
+      var level = 0;
+      var m = p.match(/^(#{1,6})\s+/);
+      if (m) { level = Math.min(m[1].length, 3); p = p.replace(/^#{1,6}\s+/, ""); }
+      p = p.replace(/\n/g, " ");
+      var runs = [];
+      var parts = p.split(/\*\*([^*]+)\*\*/);
+      for (var j = 0; j < parts.length; j++) {
+        if (!parts[j]) continue;
+        runs.push({ text: parts[j], bold: j % 2 === 1 });
+      }
+      if (!runs.length) runs.push({ text: p, bold: false });
+      out.push({ level: level, runs: runs });
+    }
+    return out;
+  }
+
+  function plainText(text) {
+    return parseDoc(text).map(function (p) {
+      return p.runs.map(function (r) { return r.text; }).join("");
+    }).join("\n\n");
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* DOCX writer                                                          */
+  /* ------------------------------------------------------------------ */
+
+  function xmlEscape(s) {
+    return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;").replace(/'/g, "&apos;");
+  }
+
+  var W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
+
+  function toDocx(text) {
+    var paras = parseDoc(text);
+    var body = "";
+    for (var i = 0; i < paras.length; i++) {
+      var p = paras[i];
+      var pr = p.level ? "<w:pPr><w:pStyle w:val=\"Heading" + p.level + "\"/></w:pPr>" : "";
+      var runs = "";
+      for (var j = 0; j < p.runs.length; j++) {
+        var r = p.runs[j];
+        runs += "<w:r>" + (r.bold ? "<w:rPr><w:b/></w:rPr>" : "") +
+                "<w:t xml:space=\"preserve\">" + xmlEscape(r.text) + "</w:t></w:r>";
+      }
+      body += "<w:p>" + pr + runs + "</w:p>";
+    }
+
+    var documentXml =
+      "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
+      "<w:document xmlns:w=\"" + W_NS + "\"><w:body>" + body +
+      "<w:sectPr><w:pgSz w:w=\"12240\" w:h=\"15840\"/>" +
+      "<w:pgMar w:top=\"1440\" w:right=\"1440\" w:bottom=\"1440\" w:left=\"1440\"/></w:sectPr>" +
+      "</w:body></w:document>";
+
+    function headingStyle(n, sz) {
+      return "<w:style w:type=\"paragraph\" w:styleId=\"Heading" + n + "\">" +
+        "<w:name w:val=\"heading " + n + "\"/><w:basedOn w:val=\"Normal\"/>" +
+        "<w:pPr><w:spacing w:before=\"240\" w:after=\"120\"/><w:outlineLvl w:val=\"" + (n - 1) + "\"/></w:pPr>" +
+        "<w:rPr><w:b/><w:sz w:val=\"" + sz + "\"/><w:szCs w:val=\"" + sz + "\"/></w:rPr></w:style>";
+    }
+
+    var stylesXml =
+      "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
+      "<w:styles xmlns:w=\"" + W_NS + "\">" +
+      "<w:style w:type=\"paragraph\" w:default=\"1\" w:styleId=\"Normal\"><w:name w:val=\"Normal\"/>" +
+      "<w:rPr><w:sz w:val=\"22\"/><w:szCs w:val=\"22\"/></w:rPr></w:style>" +
+      headingStyle(1, "32") + headingStyle(2, "28") + headingStyle(3, "24") +
+      "</w:styles>";
+
+    var contentTypes =
+      "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
+      "<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">" +
+      "<Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/>" +
+      "<Default Extension=\"xml\" ContentType=\"application/xml\"/>" +
+      "<Override PartName=\"/word/document.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml\"/>" +
+      "<Override PartName=\"/word/styles.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml\"/>" +
+      "</Types>";
+
+    var rels =
+      "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
+      "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">" +
+      "<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"word/document.xml\"/>" +
+      "</Relationships>";
+
+    var docRels =
+      "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
+      "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">" +
+      "<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles\" Target=\"styles.xml\"/>" +
+      "</Relationships>";
+
+    var enc = new TextEncoder();
+    return zipStore([
+      { name: "[Content_Types].xml", data: enc.encode(contentTypes) },
+      { name: "_rels/.rels", data: enc.encode(rels) },
+      { name: "word/document.xml", data: enc.encode(documentXml) },
+      { name: "word/_rels/document.xml.rels", data: enc.encode(docRels) },
+      { name: "word/styles.xml", data: enc.encode(stylesXml) }
+    ]);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* DOCX reader                                                          */
+  /* ------------------------------------------------------------------ */
+
+  function xmlUnescape(s) {
+    return s.replace(/&#(\d+);/g, function (_, d) { return String.fromCharCode(parseInt(d, 10)); })
+            .replace(/&#x([0-9a-fA-F]+);/g, function (_, h) { return String.fromCharCode(parseInt(h, 16)); })
+            .replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+            .replace(/&quot;/g, "\"").replace(/&apos;/g, "'").replace(/&amp;/g, "&");
+  }
+
+  function fromDocx(buf) {
+    return unzip(buf).then(function (files) {
+      var xmlBytes = files["word/document.xml"];
+      if (!xmlBytes) throw new Error("No word/document.xml found. Is this a .docx file?");
+      var xml = new TextDecoder().decode(xmlBytes);
+      var paras = [];
+      var re = /<w:p(?:\s[^>]*)?>([\s\S]*?)<\/w:p>|<w:p(?:\s[^>]*)?\/>/g;
+      var m;
+      while ((m = re.exec(xml)) !== null) {
+        var body = m[1] || "";
+        var prefix = "";
+        var sm = body.match(/<w:pStyle[^>]*w:val="(?:Heading|heading)\s*(\d)"/);
+        if (sm) prefix = new Array(Math.min(3, parseInt(sm[1], 10)) + 1).join("#") + " ";
+        var texts = [];
+        var tre = /<w:t(?:\s[^>]*)?>([\s\S]*?)<\/w:t>|<w:tab\/>|<w:br\/>/g;
+        var tm;
+        while ((tm = tre.exec(body)) !== null) {
+          if (tm[0] === "<w:tab/>") texts.push(" ");
+          else if (tm[0] === "<w:br/>") texts.push("\n");
+          else texts.push(xmlUnescape(tm[1]));
+        }
+        var joined = texts.join("");
+        paras.push(joined.trim() ? prefix + joined : "");
+      }
+      /* collapse runs of empty paragraphs; join with blank lines */
+      var out = [];
+      for (var i = 0; i < paras.length; i++) {
+        if (paras[i]) out.push(paras[i]);
+      }
+      return out.join("\n\n");
+    });
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* PDF writer (Letter, Helvetica, headings bold and larger)             */
+  /* ------------------------------------------------------------------ */
+
+  var WINANSI = { "‘": 145, "’": 146, "“": 147, "”": 148, "–": 150, "—": 151, "…": 133, "•": 149 };
+
+  function pdfEncode(s) {
+    var out = "";
+    for (var i = 0; i < s.length; i++) {
+      var code = s.charCodeAt(i);
+      if (WINANSI[s[i]]) code = WINANSI[s[i]];
+      if (code > 255) code = 63; /* ? */
+      var ch = String.fromCharCode(code);
+      if (ch === "\\" || ch === "(" || ch === ")") out += "\\" + ch;
+      else out += ch;
+    }
+    return out;
+  }
+
+  function toPdf(text) {
+    var paras = parseDoc(text);
+    var PAGE_W = 612, PAGE_H = 792, MARGIN = 60;
+    var maxWidth = PAGE_W - 2 * MARGIN;
+
+    /* flatten paragraphs to wrapped lines */
+    var lines = [];
+    for (var i = 0; i < paras.length; i++) {
+      var p = paras[i];
+      var size = p.level === 1 ? 17 : p.level === 2 ? 14.5 : p.level === 3 ? 12.5 : 11;
+      var bold = p.level > 0;
+      var flat = p.runs.map(function (r) { return r.text; }).join("");
+      var wordsArr = flat.split(/\s+/).filter(Boolean);
+      var line = "";
+      var charW = size * 0.5;
+      for (var w = 0; w < wordsArr.length; w++) {
+        var attempt = line ? line + " " + wordsArr[w] : wordsArr[w];
+        if (attempt.length * charW > maxWidth && line) {
+          lines.push({ text: line, size: size, bold: bold, gap: 0 });
+          line = wordsArr[w];
+        } else {
+          line = attempt;
+        }
+      }
+      if (line) lines.push({ text: line, size: size, bold: bold, gap: 1 });
+    }
+
+    /* paginate */
+    var pages = [];
+    var current = [];
+    var y = PAGE_H - MARGIN;
+    for (var L = 0; L < lines.length; L++) {
+      var lh = lines[L].size * 1.45;
+      if (y - lh < MARGIN) { pages.push(current); current = []; y = PAGE_H - MARGIN; }
+      y -= lh;
+      current.push({ text: lines[L].text, size: lines[L].size, bold: lines[L].bold, y: y });
+      if (lines[L].gap) y -= lines[L].size * 0.6;
+    }
+    if (current.length) pages.push(current);
+    if (!pages.length) pages.push([]);
+
+    /* build objects */
+    var objects = [];
+    function addObj(content) { objects.push(content); return objects.length; }
+
+    var catalogId = addObj(null);   /* placeholder, filled after pages known */
+    var pagesId = addObj(null);
+    var fontId = addObj("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>");
+    var fontBoldId = addObj("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>");
+
+    var pageIds = [];
+    for (var pg = 0; pg < pages.length; pg++) {
+      var ops = "BT\n";
+      var curFont = "";
+      for (var li = 0; li < pages[pg].length; li++) {
+        var ln = pages[pg][li];
+        var f = (ln.bold ? "/F2 " : "/F1 ") + ln.size + " Tf";
+        if (f !== curFont) { ops += f + "\n"; curFont = f; }
+        ops += "1 0 0 1 " + MARGIN + " " + ln.y.toFixed(1) + " Tm (" + pdfEncode(ln.text) + ") Tj\n";
+      }
+      ops += "ET";
+      var contentId = addObj("<< /Length " + ops.length + " >>\nstream\n" + ops + "\nendstream");
+      var pageId = addObj("<< /Type /Page /Parent " + pagesId + " 0 R /MediaBox [0 0 " + PAGE_W + " " + PAGE_H + "] " +
+        "/Resources << /Font << /F1 " + fontId + " 0 R /F2 " + fontBoldId + " 0 R >> >> " +
+        "/Contents " + contentId + " 0 R >>");
+      pageIds.push(pageId);
+    }
+
+    objects[catalogId - 1] = "<< /Type /Catalog /Pages " + pagesId + " 0 R >>";
+    objects[pagesId - 1] = "<< /Type /Pages /Kids [" + pageIds.map(function (id) { return id + " 0 R"; }).join(" ") + "] /Count " + pageIds.length + " >>";
+
+    /* serialise */
+    var pdf = "%PDF-1.4\n%âãÏÓ\n";
+    var offsets = [0];
+    for (var o = 0; o < objects.length; o++) {
+      offsets.push(pdf.length);
+      pdf += (o + 1) + " 0 obj\n" + objects[o] + "\nendobj\n";
+    }
+    var xrefPos = pdf.length;
+    pdf += "xref\n0 " + (objects.length + 1) + "\n0000000000 65535 f \n";
+    for (var x = 1; x <= objects.length; x++) {
+      pdf += String(offsets[x]).padStart(10, "0") + " 00000 n \n";
+    }
+    pdf += "trailer\n<< /Size " + (objects.length + 1) + " /Root " + catalogId + " 0 R >>\nstartxref\n" + xrefPos + "\n%%EOF";
+
+    var bytes = new Uint8Array(pdf.length);
+    for (var b = 0; b < pdf.length; b++) bytes[b] = pdf.charCodeAt(b) & 0xFF;
+    return bytes;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* PDF reader (browser only; loads pdf.js from cdnjs on first use)      */
+  /* ------------------------------------------------------------------ */
+
+  var PDFJS_URL = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+  var PDFJS_WORKER = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  var pdfjsLoading = null;
+
+  function loadPdfJs() {
+    if (typeof window === "undefined") return Promise.reject(new Error("PDF reading works in the browser only"));
+    if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+    if (pdfjsLoading) return pdfjsLoading;
+    pdfjsLoading = new Promise(function (resolve, reject) {
+      var s = document.createElement("script");
+      s.src = PDFJS_URL;
+      s.onload = function () {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER;
+        resolve(window.pdfjsLib);
+      };
+      s.onerror = function () {
+        pdfjsLoading = null;
+        reject(new Error("Could not load the PDF reader. Reading PDFs needs an internet connection once per session. You can also convert the file to .docx or .md and upload that."));
+      };
+      document.head.appendChild(s);
+    });
+    return pdfjsLoading;
+  }
+
+  function fromPdf(arrayBuffer) {
+    return loadPdfJs().then(function (pdfjsLib) {
+      return pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    }).then(function (pdf) {
+      var pagePromises = [];
+      for (var i = 1; i <= pdf.numPages; i++) {
+        pagePromises.push(pdf.getPage(i).then(function (page) {
+          return page.getTextContent();
+        }));
+      }
+      return Promise.all(pagePromises);
+    }).then(function (contents) {
+      var paras = [];
+      for (var c = 0; c < contents.length; c++) {
+        var items = contents[c].items;
+        var lastY = null, lastH = 12;
+        var buf = "";
+        for (var i = 0; i < items.length; i++) {
+          var it = items[i];
+          if (!it.str) continue;
+          var y = it.transform[5];
+          var h = it.height || lastH;
+          if (lastY !== null && Math.abs(lastY - y) > h * 1.7) {
+            /* big vertical gap: new paragraph */
+            if (buf.trim()) paras.push(buf.trim());
+            buf = "";
+          } else if (lastY !== null && Math.abs(lastY - y) > 1) {
+            /* new line inside same paragraph */
+            if (buf && !/\s$/.test(buf)) buf += " ";
+          }
+          buf += it.str;
+          if (it.hasEOL && !/\s$/.test(buf)) buf += " ";
+          lastY = y; lastH = h;
+        }
+        if (buf.trim()) paras.push(buf.trim());
+      }
+      return paras.join("\n\n").replace(/[ \t]{2,}/g, " ");
+    });
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* TXT                                                                  */
+  /* ------------------------------------------------------------------ */
+
+  function toTxt(text) {
+    return parseDoc(text).map(function (p) {
+      var t = p.runs.map(function (r) { return r.text; }).join("");
+      return p.level ? t.toUpperCase() : t;
+    }).join("\n\n");
+  }
+
+  return {
+    toDocx: toDocx,
+    fromDocx: fromDocx,
+    toPdf: toPdf,
+    fromPdf: fromPdf,
+    toTxt: toTxt,
+    plainText: plainText,
+    zipStore: zipStore,
+    unzip: unzip,
+    parseDoc: parseDoc
+  };
+})();
+
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = MyridiusFileIO;
+}
+
+</script>
+
+<script>
+"use strict";
+
+/* ------- state ------- */
+var config = JSON.parse(JSON.stringify(MyridiusEngine.defaultConfig));
+var lastResult = null;
+var rawInput = "";
+var activeTab = "result";
+var syncing = false;
+
+/* ------- view switching ------- */
+function showView(v) {
+  var editor = v === "editor";
+  document.getElementById("toolbar").classList.toggle("hidden", !editor);
+  document.getElementById("workspace").classList.toggle("hidden", !editor);
+  document.getElementById("viewConfig").classList.toggle("hidden", editor);
+  document.getElementById("navEditor").classList.toggle("active", editor);
+  document.getElementById("navConfig").classList.toggle("active", !editor);
+  if (!editor) renderConfig();
+}
+
+function showTab(t) {
+  activeTab = t;
+  ["result", "changes", "flags"].forEach(function (k) {
+    document.getElementById("tab" + k.charAt(0).toUpperCase() + k.slice(1)).classList.toggle("active", k === t);
+  });
+  document.getElementById("rightTitle").textContent =
+    t === "result" ? "Patralekhised" : t === "changes" ? "Automatic changes" : "Resemblance audit";
+  renderRight();
+}
+
+/* ------- helpers ------- */
+function esc(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+function status(msg, sticky) {
+  var el = document.getElementById("statusMsg");
+  el.textContent = msg || "";
+  if (!sticky && msg) setTimeout(function () { if (el.textContent === msg) el.textContent = ""; }, 4000);
+}
+function headingClass(text) {
+  var m = text.match(/^(#{1,3})\s/);
+  return m ? " h" + m[1].length : "";
+}
+
+/* ------- run ------- */
+function run() {
+  var ta = document.getElementById("inputText");
+  if (ta) rawInput = ta.value;
+  if (!rawInput.trim()) { status("Paste an article or upload a file first."); return; }
+
+  lastResult = MyridiusEngine.processDoc(rawInput, config);
+
+  renderOriginalParas();
+  renderRight();
+  renderStats();
+
+  resetReview();
+
+  var cc = document.getElementById("changeCount");
+  cc.textContent = lastResult.changes.length; cc.classList.remove("hidden");
+  var fc = document.getElementById("flagCount");
+  fc.textContent = lastResult.resemblance.total.toFixed(1); fc.classList.remove("hidden");
+  document.getElementById("dlBtn").disabled = false;
+  document.getElementById("copyBtn").disabled = false;
+  document.getElementById("editBtn").classList.remove("hidden");
+  showTab("result");
+}
+
+function renderOriginalParas() {
+  var body = document.getElementById("leftBody");
+  body.classList.remove("editing");
+  var html = "";
+  lastResult.paragraphs.forEach(function (p, i) {
+    html += '<div class="para o' + headingClass(p.original) + '" data-i="' + i + '">' + esc(p.original) + "</div>";
+  });
+  body.innerHTML = html;
+  document.getElementById("inputMeta").textContent = lastResult.stats.before.words + " words";
+  attachParaEvents(body);
+}
+
+function renderRight() {
+  var body = document.getElementById("rightBody");
+  if (!lastResult) return;
+  if (activeTab === "result") {
+    var html = "";
+    lastResult.paragraphs.forEach(function (p, i) {
+      html += '<div class="para r' + headingClass(p.output) + '" data-i="' + i + '">' + esc(p.output) + "</div>";
+    });
+    body.innerHTML = html || '<div class="empty">Nothing to show.</div>';
+    document.getElementById("outputMeta").textContent = lastResult.stats.after.words + " words";
+    attachParaEvents(body);
+  } else if (activeTab === "changes") {
+    renderChanges(body);
+  } else {
+    renderResemblance(body);
+  }
+}
+
+function renderChanges(pane) {
+  var changes = lastResult.changes;
+  if (!changes.length) { pane.innerHTML = '<div class="empty">No automatic changes were needed.</div>'; return; }
+  var groups = {};
+  changes.forEach(function (c) { (groups[c.category] = groups[c.category] || []).push(c); });
+  var html = "";
+  Object.keys(groups).forEach(function (g) {
+    html += '<div class="group-title">' + esc(g) + " (" + groups[g].length + ")</div>";
+    groups[g].forEach(function (c) {
+      html += '<div class="item fix"><div class="head">' + esc(c.before) + " &rarr; " + esc(c.after) + "</div>"
+            + (c.context ? '<div class="ctx">' + esc(c.context) + "</div>" : "") + "</div>";
+    });
+  });
+  pane.innerHTML = html;
+}
+
+/* ================== resemblance review panel ================== */
+
+var review = { base: [], edits: [], reviewed: {}, sel: null, filter: {}, scope: "phrase" };
+
+function resetReview() {
+  review = {
+    base: lastResult.paragraphs.map(function (p) { return p.output; }),
+    edits: [], reviewed: {}, sel: null, filter: {}, scope: "phrase"
+  };
+  hideDrawer();
+}
+
+function flagKey(f) {
+  return (f.paragraph === null || f.paragraph === undefined ? "doc" : f.paragraph)
+    + "|" + f.type + "|" + f.found + "|" + (f.start || 0);
+}
+function dimIndex() {
+  var m = {};
+  (lastResult.resemblance.dims || []).forEach(function (d) { m[d.key] = d; });
+  return m;
+}
+function dimColor(key) {
+  var d = dimIndex()[key];
+  return d ? d.color : "#64748b";
+}
+function visibleFlag(f) { return !review.filter[f.dim]; }
+function reviewList() {
+  return lastResult.flags.filter(function (f) {
+    return visibleFlag(f) && !review.reviewed[flagKey(f)];
+  });
+}
+function findFlag(key) {
+  for (var i = 0; i < lastResult.flags.length; i++) {
+    if (flagKey(lastResult.flags[i]) === key) return lastResult.flags[i];
+  }
+  return null;
+}
+
+function renderResemblance(pane) {
+  var r = lastResult.resemblance;
+  var dm = dimIndex();
+  var open = reviewList().length;
+  var html = "";
+
+  html += '<div class="res-score"><div class="res-top">'
+    + '<span class="res-num">' + r.total.toFixed(1) + "<span>/20</span></span>"
+    + '<span class="res-verdict">' + esc(r.verdict) + "</span>"
+    + '<span class="res-sub">' + open + " open &middot; " + review.edits.length + " rewritten &middot; "
+    + Object.keys(review.reviewed).length + ' reviewed</span></div><div class="res-dims">';
+  r.dims.forEach(function (d) {
+    html += '<div class="res-dim"><span>' + esc(d.name) + "</span>"
+      + '<span class="res-bar"><i style="width:' + (d.score / 4 * 100) + "%;background:" + d.color + '"></i></span>'
+      + "<b>" + d.score + "/4</b></div>";
+  });
+  html += "</div></div>";
+
+  html += '<p class="res-note">This measures how closely the text resembles the default register of model output. It cannot establish authorship: formal business writing and second language writing both score high without any model involved.'
+    + (r.words < 400 ? " At " + r.words + " words this sits under the 400 word mark where sentence length statistics settle, so the reading leans on phrase density rather than rhythm." : "")
+    + "</p>";
+
+  html += '<div class="res-filters">';
+  r.dims.forEach(function (d) {
+    html += '<button class="res-chip' + (review.filter[d.key] ? "" : " on") + '" data-dim="' + d.key + '">'
+      + '<i style="background:' + d.color + '"></i>' + esc(d.name) + " " + d.count + "</button>";
+  });
+  html += "</div>";
+
+  if (review.edits.length) {
+    html += '<div class="res-applied">' + review.edits.length + " rewrite" + (review.edits.length > 1 ? "s" : "") + " applied to the output. ";
+    review.edits.forEach(function (e, i) {
+      html += '<div style="margin-top:5px;">' + esc(e.from) + " &rarr; " + (e.to.trim() ? esc(e.to) : "<i>(removed)</i>")
+        + ' <button class="step" data-revert="' + i + '">Revert to original</button></div>';
+    });
+    html += "</div>";
+  }
+
+  var docFlags = lastResult.flags.filter(function (f) { return f.kind === "document" && visibleFlag(f); });
+  docFlags.forEach(function (f) {
+    var k = flagKey(f);
+    html += '<div class="res-doclevel" data-key="' + esc(k) + '"><div class="head">' + esc(f.type) + ": " + esc(f.found) + "</div>"
+      + '<div>' + esc(f.excerpt) + "</div>"
+      + '<div class="sug">' + esc(f.suggestion) + ".</div></div>";
+  });
+
+  html += '<div class="res-doc">';
+  lastResult.paragraphs.forEach(function (p, i) {
+    var inline = lastResult.flags.filter(function (f) {
+      return f.paragraph === i && (f.kind === "swap" || f.kind === "advice") && visibleFlag(f);
+    });
+    var spanNotes = lastResult.flags.filter(function (f) {
+      return f.paragraph === i && f.kind === "advice-span" && visibleFlag(f);
+    });
+    html += '<div class="para r' + headingClass(p.output) + '" data-i="' + i + '">' + annotate(p.output, inline, dm) + "</div>";
+    if (spanNotes.length) {
+      html += '<div style="margin:-4px 0 12px;display:flex;gap:6px;flex-wrap:wrap;">';
+      spanNotes.forEach(function (f) {
+        var k = flagKey(f);
+        html += '<button class="res-chip' + (review.sel === k ? " on" : "") + '" data-key="' + esc(k) + '">'
+          + '<i style="background:' + dimColor(f.dim) + '"></i>' + esc(f.type) + " &middot; " + esc(f.found) + "</button>";
+      });
+      html += "</div>";
+    }
+  });
+  html += "</div>";
+
+  if (!lastResult.flags.length) {
+    html += '<div class="empty">No resemblance markers left. Ship it.</div>';
+  }
+
+  pane.innerHTML = html;
+  document.getElementById("outputMeta").textContent = lastResult.stats.after.words + " words";
+  attachParaEvents(pane);
+  bindResemblanceEvents(pane);
+  renderDrawer();
+}
+
+function annotate(text, flags, dm) {
+  var spans = flags.slice().sort(function (a, b) { return a.start - b.start; });
+  var out = "", pos = 0;
+  spans.forEach(function (f) {
+    if (f.start < pos) return;
+    out += esc(text.slice(pos, f.start));
+    var k = flagKey(f);
+    var cls = "rz" + (review.sel === k ? " sel" : "") + (review.reviewed[k] ? " rev" : "");
+    var color = dm[f.dim] ? dm[f.dim].color : "#64748b";
+    out += '<mark class="' + cls + '" data-key="' + esc(k) + '" style="--rz:' + color + '">'
+      + esc(text.slice(f.start, f.end)) + "</mark>";
+    pos = f.end;
+  });
+  out += esc(text.slice(pos));
+  return out;
+}
+
+function bindResemblanceEvents(pane) {
+  pane.querySelectorAll("[data-dim]").forEach(function (el) {
+    el.addEventListener("click", function () {
+      var k = el.getAttribute("data-dim");
+      review.filter[k] = !review.filter[k];
+      review.sel = null;
+      renderRight();
+    });
+  });
+  pane.querySelectorAll("[data-key]").forEach(function (el) {
+    el.addEventListener("click", function (ev) {
+      ev.stopPropagation();
+      selectFlag(el.getAttribute("data-key"));
+    });
+  });
+  pane.querySelectorAll("[data-revert]").forEach(function (el) {
+    el.addEventListener("click", function (ev) {
+      ev.stopPropagation();
+      revertEdit(parseInt(el.getAttribute("data-revert"), 10));
+    });
+  });
+}
+
+function selectFlag(key) {
+  review.sel = review.sel === key ? null : key;
+  renderRight();
+  revealSelection();
+}
+
+/* Bring the selected highlight into the strip of pane still visible above
+   the drawer. Never scrollIntoView: that would move the whole app. */
+function revealSelection() {
+  if (!review.sel) return;
+  var body = document.getElementById("rightBody");
+  if (!body) return;
+  var el = body.querySelector('[data-key="' + (window.CSS && CSS.escape ? CSS.escape(review.sel) : review.sel) + '"]');
+  if (!el) {
+    var all = body.querySelectorAll("[data-key]");
+    for (var i = 0; i < all.length; i++) {
+      if (all[i].getAttribute("data-key") === review.sel) { el = all[i]; break; }
+    }
+  }
+  if (!el) return;
+  var drawer = document.getElementById("resDrawer");
+  var drawerH = drawer && !drawer.classList.contains("hidden") ? drawer.offsetHeight : 0;
+  var band = Math.max(60, body.clientHeight - drawerH);
+  var top = el.getBoundingClientRect().top - body.getBoundingClientRect().top + body.scrollTop;
+  var target = top - Math.max(24, (band - el.offsetHeight) / 2);
+  var max = body.scrollHeight - body.clientHeight;
+  body.scrollTop = Math.min(Math.max(0, target), Math.max(0, max));
+}
+
+function stepFlag(dir) {
+  var list = reviewList();
+  if (!list.length) return;
+  var keys = list.map(flagKey);
+  var i = keys.indexOf(review.sel);
+  var n = i < 0 ? (dir > 0 ? 0 : keys.length - 1) : (i + dir + keys.length) % keys.length;
+  review.sel = keys[n];
+  renderRight();
+  revealSelection();
+}
+
+function hideDrawer() {
+  var d = document.getElementById("resDrawer");
+  if (d) { d.classList.add("hidden"); d.innerHTML = ""; }
+}
+
+function renderDrawer() {
+  var d = document.getElementById("resDrawer");
+  if (!d) return;
+  if (activeTab !== "flags" || !review.sel) { hideDrawer(); return; }
+  var f = findFlag(review.sel);
+  if (!f) { hideDrawer(); return; }
+  var dm = dimIndex();
+  var name = dm[f.dim] ? dm[f.dim].name : f.type;
+  var list = reviewList();
+  var pos = list.map(flagKey).indexOf(review.sel);
+  var canApply = f.kind === "swap" || f.kind === "advice" || f.kind === "advice-span";
+  var rng = editRange(f);
+  var spanText = rng ? lastResult.paragraphs[f.paragraph].output.slice(rng.start, rng.end) : "";
+  var prefill = (f.kind === "swap" && review.scope === "phrase") ? (f.replace || "") : spanText;
+  if (!rng) canApply = false;
+
+  var html = '<div class="res-d-head"><i style="background:' + dimColor(f.dim) + '"></i>' + esc(name)
+    + (f.type === name ? "" : " &middot; " + esc(f.type)) + '<span class="spacer"></span>'
+    + '<button id="resClose" title="Close">&times;</button></div>';
+  html += '<p class="res-quote">' + esc(f.found) + "</p>";
+  html += '<p class="res-why">' + esc(f.reason) + ". " + esc(f.suggestion) + ".</p>";
+  if (canApply) {
+    html += '<div class="res-scope">'
+      + '<button class="res-chip' + (review.scope === "phrase" ? " on" : "") + '" data-scope="phrase">Rewrite the phrase</button>'
+      + '<button class="res-chip' + (review.scope === "sentence" ? " on" : "") + '" data-scope="sentence">Rewrite the whole sentence</button>'
+      + '<span class="res-edit-label">' + (f.kind === "swap" && review.scope === "phrase"
+        ? "Suggested replacement, edit before accepting" : "Edit the text, then accept") + "</span></div>";
+    html += '<textarea class="res-edit" id="resEdit">' + esc(prefill) + "</textarea>";
+  }
+  html += '<div class="res-d-actions">';
+  if (canApply) html += '<button class="btn" id="resAccept">Accept changes</button>';
+  html += '<button class="btn secondary" id="resReviewed">Mark reviewed</button>'
+    + '<span class="pos">' + (pos >= 0 ? (pos + 1) + " of " + list.length : "reviewed") + "</span>"
+    + '<button class="step" id="resPrev">&larr; Previous</button>'
+    + '<button class="step" id="resNext">Next &rarr;</button></div>';
+  d.innerHTML = html;
+  d.classList.remove("hidden");
+
+  document.getElementById("resClose").addEventListener("click", function () { review.sel = null; renderRight(); });
+  document.getElementById("resPrev").addEventListener("click", function () { stepFlag(-1); });
+  document.getElementById("resNext").addEventListener("click", function () { stepFlag(1); });
+  document.getElementById("resReviewed").addEventListener("click", function () {
+    review.reviewed[review.sel] = true;
+    stepFlag(1);
+  });
+  d.querySelectorAll("[data-scope]").forEach(function (el) {
+    el.addEventListener("click", function () {
+      review.scope = el.getAttribute("data-scope");
+      renderDrawer();
+    });
+  });
+  var acc = document.getElementById("resAccept");
+  if (acc) acc.addEventListener("click", acceptSelected);
+}
+
+/* The sentence a flagged span sits inside. Word level flags are often too
+   narrow to rewrite grammatically, so the drawer can widen to this. */
+function sentenceRange(text, start, end) {
+  var a = 0, b = text.length;
+  var re = /[.!?]["')\]]?\s+/g, m;
+  while ((m = re.exec(text)) !== null) {
+    var cut = m.index + m[0].length;
+    if (cut <= start) a = cut;
+    else { b = m.index + 1; break; }
+  }
+  if (b < end) b = end;
+  return { start: a, end: b };
+}
+
+function editRange(f) {
+  if (f.paragraph === null || f.paragraph === undefined || typeof f.start !== "number") return null;
+  var text = lastResult.paragraphs[f.paragraph].output;
+  if (review.scope === "sentence" && f.kind !== "advice-span") return sentenceRange(text, f.start, f.end);
+  return { start: f.start, end: f.end };
+}
+
+function occurrenceIndex(text, sub, before) {
+  var n = 0, i = 0;
+  if (!sub) return 0;
+  while ((i = text.indexOf(sub, i)) !== -1 && i < before) { n++; i += sub.length; }
+  return n;
+}
+
+function replaceNth(text, from, to, nth) {
+  var i = -1, n = -1;
+  while (n < nth) {
+    i = text.indexOf(from, i + 1);
+    if (i === -1) return text;
+    n++;
+  }
+  var out = text.slice(0, i) + to + text.slice(i + from.length);
+  if (!to.trim()) {
+    out = out.replace(/ {2,}/g, " ").replace(/\s+([.,;:!?])/g, "$1").replace(/^\s+/, "");
+    out = out.charAt(0).toUpperCase() + out.slice(1);
+  }
+  return out;
+}
+
+function acceptSelected() {
+  var f = findFlag(review.sel);
+  if (!f || f.paragraph === null || f.paragraph === undefined) return;
+  var ta = document.getElementById("resEdit");
+  var to = ta ? ta.value : "";
+  var current = lastResult.paragraphs[f.paragraph].output;
+  var rng = editRange(f);
+  if (!rng) return;
+  var from = current.slice(rng.start, rng.end);
+  if (to === from) { review.reviewed[review.sel] = true; stepFlag(1); return; }
+  review.edits.push({
+    paragraph: f.paragraph, from: from, to: to,
+    nth: occurrenceIndex(current, from, rng.start), dim: f.dim, type: f.type
+  });
+  review.sel = null;
+  rebuild();
+  status("Rewrite applied to the output.");
+}
+
+function revertEdit(i) {
+  review.edits.splice(i, 1);
+  review.sel = null;
+  rebuild();
+  status("Reverted to the original wording.");
+}
+
+/* Rebuild every paragraph from the engine output, then re-apply the accepted
+   rewrites in order, then re-analyse so offsets, ease and the score all agree. */
+function rebuild() {
+  lastResult.paragraphs.forEach(function (p, i) { p.output = review.base[i]; });
+  review.edits.forEach(function (e) {
+    var p = lastResult.paragraphs[e.paragraph];
+    p.output = replaceNth(p.output, e.from, e.to, e.nth);
+  });
+  var res = MyridiusEngine.reviewParas(lastResult.paragraphs, config);
+  lastResult.flags = res.flags;
+  lastResult.output = res.output;
+  lastResult.resemblance = res.resemblance;
+  lastResult.stats.after = res.after;
+  lastResult.stats.flagCount = res.flags.length;
+  lastResult.stats.wordsSaved = lastResult.stats.before.words - res.after.words;
+  document.getElementById("flagCount").textContent = res.resemblance.total.toFixed(1);
+  renderRight();
+  renderStats();
+  revealSelection();
+}
+
+function renderStats() {
+  var s = lastResult.stats;
+  var r = lastResult.resemblance;
+  document.getElementById("miniStats").innerHTML =
+    "<b>" + s.before.words + " &rarr; " + s.after.words + "</b> words &middot; " +
+    "ease <b>" + s.before.score + " &rarr; " + s.after.score + "</b> &middot; " +
+    "<b>" + s.changeCount + "</b> fixes &middot; resemblance <b>" + r.total.toFixed(1) + "/20</b> " +
+    esc(r.verdict.toLowerCase());
+}
+
+/* ------- edit original ------- */
+function editOriginal() {
+  var body = document.getElementById("leftBody");
+  body.classList.add("editing");
+  body.innerHTML = '<textarea id="inputText"></textarea>';
+  var ta = document.getElementById("inputText");
+  ta.value = rawInput;
+  ta.focus();
+  document.getElementById("editBtn").classList.add("hidden");
+  document.getElementById("inputMeta").textContent = "";
+  bindInputMeta();
+}
+
+function bindInputMeta() {
+  var ta = document.getElementById("inputText");
+  if (!ta) return;
+  ta.addEventListener("input", function () {
+    var w = (this.value.match(/\S+/g) || []).length;
+    document.getElementById("inputMeta").textContent = w ? w + " words" : "";
+  });
+}
+bindInputMeta();
+
+/* ------- paragraph scroll sync + hover pairing ------- */
+function attachParaEvents(container) {
+  container.querySelectorAll(".para").forEach(function (el) {
+    el.addEventListener("mouseenter", function () { pairHighlight(el.dataset.i, true); });
+    el.addEventListener("mouseleave", function () { pairHighlight(el.dataset.i, false); });
+  });
+}
+function pairHighlight(i, on) {
+  document.querySelectorAll('.para[data-i="' + i + '"]').forEach(function (el) {
+    el.classList.toggle("hl", on);
+  });
+}
+
+function syncFrom(srcId, dstId) {
+  var src = document.getElementById(srcId);
+  var dst = document.getElementById(dstId);
+  if (syncing || (activeTab !== "result" && activeTab !== "flags")) return;
+  if (document.getElementById("workspace").classList.contains("solo")) return;
+  var sParas = src.querySelectorAll(".para");
+  var dParas = dst.querySelectorAll(".para");
+  if (!sParas.length || !dParas.length) return;
+  syncing = true;
+  /* True offset inside the scrolling container, so a pane may carry chrome
+     (the resemblance score card, filters, document level cards) above its
+     first paragraph without throwing the pairing off by that height. */
+  function contentTop(container, el) {
+    return el.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop;
+  }
+  var sTop = src.scrollTop;
+  var i = 0;
+  while (i < sParas.length - 1 && contentTop(src, sParas[i + 1]) <= sTop) i++;
+  var p = sParas[i];
+  var pTop = contentTop(src, p);
+  var frac = Math.min(1, Math.max(0, (sTop - pTop) / Math.max(1, p.offsetHeight)));
+  var q = dParas[Math.min(i, dParas.length - 1)];
+  var target = contentTop(dst, q) + frac * q.offsetHeight;
+  var max = dst.scrollHeight - dst.clientHeight;
+  dst.scrollTop = Math.min(Math.max(0, target), Math.max(0, max));
+  requestAnimationFrame(function () { syncing = false; });
+}
+
+document.getElementById("leftBody").addEventListener("scroll", function () { syncFrom("leftBody", "rightBody"); });
+document.getElementById("rightBody").addEventListener("scroll", function () { syncFrom("rightBody", "leftBody"); });
+
+/* ------- show/hide original ------- */
+function toggleOriginal() {
+  var on = document.getElementById("showOriginal").checked;
+  document.getElementById("workspace").classList.toggle("solo", !on);
+}
+
+/* ------- upload ------- */
+function handleUpload(ev) {
+  var file = ev.target.files[0];
+  ev.target.value = "";
+  if (!file) return;
+  var name = file.name.toLowerCase();
+  status("Reading " + file.name + "…", true);
+
+  function done(text) {
+    rawInput = text;
+    var body = document.getElementById("leftBody");
+    body.classList.add("editing");
+    body.innerHTML = '<textarea id="inputText"></textarea>';
+    document.getElementById("inputText").value = text;
+    document.getElementById("editBtn").classList.add("hidden");
+    bindInputMeta();
+    status("Loaded " + file.name);
+    run();
+  }
+  function fail(e) { status("Could not read " + file.name + ": " + (e && e.message ? e.message : e), true); }
+
+  if (name.endsWith(".docx")) {
+    file.arrayBuffer().then(function (ab) { return MyridiusFileIO.fromDocx(new Uint8Array(ab)); }).then(done).catch(fail);
+  } else if (name.endsWith(".pdf")) {
+    file.arrayBuffer().then(function (ab) { return MyridiusFileIO.fromPdf(ab); }).then(done).catch(fail);
+  } else if (name.endsWith(".md") || name.endsWith(".markdown") || name.endsWith(".txt")) {
+    file.text().then(done).catch(fail);
+  } else if (name.endsWith(".doc")) {
+    fail(new Error("Old .doc format is not supported. Save it as .docx in Word and upload again."));
+  } else {
+    fail(new Error("Use .docx, .pdf, .md or .txt"));
+  }
+}
+
+/* ------- download ------- */
+function toggleMenu(ev) {
+  ev.stopPropagation();
+  document.getElementById("dlMenu").classList.toggle("open");
+}
+document.addEventListener("click", function () {
+  document.getElementById("dlMenu").classList.remove("open");
+});
+
+function saveBlob(data, type, filename) {
+  var blob = data instanceof Blob ? data : new Blob([data], { type: type });
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function download(fmt) {
+  if (!lastResult) return;
+  var text = lastResult.output;
+  if (fmt === "md") {
+    saveBlob(text, "text/markdown", "patralekhised-article.md");
+  } else if (fmt === "txt") {
+    saveBlob(MyridiusFileIO.toTxt(text), "text/plain", "patralekhised-article.txt");
+  } else if (fmt === "docx") {
+    saveBlob(MyridiusFileIO.toDocx(text), "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "patralekhised-article.docx");
+  } else if (fmt === "pdf") {
+    saveBlob(MyridiusFileIO.toPdf(text), "application/pdf", "patralekhised-article.pdf");
+  }
+  document.getElementById("dlMenu").classList.remove("open");
+}
+
+function copyResult() {
+  if (!lastResult) return;
+  var text = lastResult.output;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function () { status("Copied."); });
+  } else {
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+    status("Copied.");
+  }
+}
+
+/* ------- config rendering ------- */
+function pairsToLines(list) {
+  return list.map(function (r) { return r.find + " => " + r.replace; }).join("\n");
+}
+function linesToPairs(text) {
+  var out = [];
+  text.split("\n").forEach(function (line) {
+    var m = line.split("=>");
+    if (m.length === 2 && m[0].trim() && m[1].trim() !== undefined) {
+      out.push({ find: m[0].trim(), replace: m[1].trim() });
+    }
+  });
+  return out;
+}
+function flagsToLines(list) {
+  return list.map(function (r) {
+    var line = r.find + " | " + r.reason + " | " + r.suggestion;
+    if (r.dim || typeof r.replace === "string") line += " | " + (r.dim || "");
+    if (typeof r.replace === "string") line += " | " + r.replace;
+    return line;
+  }).join("\n");
+}
+function linesToFlags(text) {
+  var out = [];
+  text.split("\n").forEach(function (line) {
+    var p = line.split("|");
+    if (p[0] && p[0].trim()) {
+      var rule = { find: p[0].trim(), reason: (p[1] || "Blocked word").trim(), suggestion: (p[2] || "Rewrite this").trim() };
+      if (p[3] && p[3].trim()) rule.dim = p[3].trim();
+      if (p.length > 4) rule.replace = p.slice(4).join("|").trim();
+      out.push(rule);
+    }
+  });
+  return out;
+}
+function renderDimConfig() {
+  var host = document.getElementById("cfgDims");
+  if (!host) return;
+  var dims = config.dimensions || MyridiusEngine.defaultDimensions;
+  host.innerHTML = dims.map(function (d, i) {
+    return '<label class="toggle" style="margin:0 14px 0 0;">'
+      + '<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:' + d.color + ';"></span>'
+      + esc(d.name) + ' <input type="number" min="0" max="5" step="0.5" data-dimw="' + i + '" value="' + d.weight + '"></label>';
+  }).join("");
+}
+
+function renderConfig() {
+  document.getElementById("setContractions").checked = config.settings.expandContractions;
+  document.getElementById("setEmojis").checked = config.settings.removeEmojis;
+  document.getElementById("setDashes").checked = config.settings.fixDashes;
+  document.getElementById("setPassive").checked = config.settings.flagPassiveVoice;
+  document.getElementById("setSemicolons").checked = config.settings.flagSemicolons;
+  document.getElementById("setMaxWords").value = config.settings.maxSentenceWords;
+  document.getElementById("cfgProtected").value = config.protectedTerms.join("\n");
+  document.getElementById("cfgSimple").value = pairsToLines(config.simpleSwaps);
+  document.getElementById("cfgHype").value = pairsToLines(config.hypeSwaps);
+  document.getElementById("cfgFiller").value = pairsToLines(config.fillerPhrases);
+  document.getElementById("cfgStartDeletes").value = config.sentenceStartDeletes.join("\n");
+  document.getElementById("cfgMidDeletes").value = config.midSentenceDeletes.join("\n");
+  document.getElementById("cfgFlagWords").value = flagsToLines(config.flagWords);
+  renderDimConfig();
+}
+
+function applyConfig() {
+  config.settings.expandContractions = document.getElementById("setContractions").checked;
+  config.settings.removeEmojis = document.getElementById("setEmojis").checked;
+  config.settings.fixDashes = document.getElementById("setDashes").checked;
+  config.settings.flagPassiveVoice = document.getElementById("setPassive").checked;
+  config.settings.flagSemicolons = document.getElementById("setSemicolons").checked;
+  config.settings.maxSentenceWords = parseInt(document.getElementById("setMaxWords").value, 10) || 28;
+  config.protectedTerms = document.getElementById("cfgProtected").value.split("\n").map(function (s) { return s.trim(); }).filter(Boolean);
+  config.simpleSwaps = linesToPairs(document.getElementById("cfgSimple").value);
+  config.hypeSwaps = linesToPairs(document.getElementById("cfgHype").value);
+  config.fillerPhrases = linesToPairs(document.getElementById("cfgFiller").value);
+  config.sentenceStartDeletes = document.getElementById("cfgStartDeletes").value.split("\n").map(function (s) { return s.trim(); }).filter(Boolean);
+  config.midSentenceDeletes = document.getElementById("cfgMidDeletes").value.split("\n").map(function (s) { return s.trim(); }).filter(Boolean);
+  config.flagWords = linesToFlags(document.getElementById("cfgFlagWords").value);
+  var dims = config.dimensions || MyridiusEngine.defaultDimensions.slice();
+  document.querySelectorAll("[data-dimw]").forEach(function (el) {
+    var i = parseInt(el.getAttribute("data-dimw"), 10);
+    if (dims[i]) dims[i].weight = parseFloat(el.value) || 0;
+  });
+  config.dimensions = dims;
+  if (lastResult) rebuild();
+  cfgNote("Applied. Rules are active for the next run.");
+}
+
+function cfgNote(msg) {
+  var el = document.getElementById("cfgMsg");
+  el.textContent = msg;
+  setTimeout(function () { el.textContent = ""; }, 3000);
+}
+
+function exportConfig() {
+  saveBlob(JSON.stringify(config, null, 2), "application/json", "myridius-style-config.json");
+  cfgNote("Exported.");
+}
+
+function importConfig(ev) {
+  var file = ev.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function () {
+    try {
+      var loaded = JSON.parse(reader.result);
+      if (!loaded.settings || !loaded.simpleSwaps) throw new Error("bad shape");
+      config = loaded;
+      renderConfig();
+      cfgNote("Imported " + file.name + ".");
+    } catch (e) {
+      cfgNote("Could not read that file. Is it a Patralekhiser config export?");
+    }
+  };
+  reader.readAsText(file);
+  ev.target.value = "";
+}
+
+function resetConfig() {
+  config = JSON.parse(JSON.stringify(MyridiusEngine.defaultConfig));
+  renderConfig();
+  cfgNote("Back to defaults.");
+}
+</script>
+</body>
+</html>

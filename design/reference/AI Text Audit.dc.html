@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/organic-b92d6d2a-6f50-41e8-9131-f72fcd3b7126/styles.css">
+<script src="_ds/organic-b92d6d2a-6f50-41e8-9131-f72fcd3b7126/_ds_bundle.js"></script>
+<style>
+  body { background: var(--color-bg); }
+  mark { color: inherit; }
+</style>
+</helmet>
+<div style="min-height:100vh; background:var(--color-bg); font-family:var(--font-body); color:var(--color-text)">
+
+  <div style="display:flex; align-items:center; justify-content:space-between; gap:var(--space-4); padding:var(--space-3) var(--space-8); border-bottom:1px solid var(--color-divider)">
+    <div style="display:flex; align-items:center; gap:var(--space-3)">
+      <div style="width:26px; height:26px; border-radius:999px; background:var(--color-accent)"></div>
+      <span style="font-family:var(--font-heading); font-size:17px">Resemblance</span>
+      <span class="text-muted" style="font-size:13px">/ Audit</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:var(--space-2)">
+      <button class="btn btn-secondary" onClick="{{ toggleHighlight }}" style="border-radius:999px">{{ highlightLabel }}</button>
+      <button class="btn btn-primary" style="border-radius:999px">Export report</button>
+    </div>
+  </div>
+
+  <div style="display:grid; grid-template-columns:minmax(0,1fr) 372px; gap:var(--space-8); align-items:start; max-width:1320px; margin:0 auto; padding:var(--space-8) var(--space-8) 96px">
+
+    <div style="min-width:0">
+      <h1 style="font-size:38px; margin:0 0 var(--space-2)">Data governance blog draft</h1>
+      <p class="text-muted" style="font-size:13px; margin:0 0 var(--space-6)">207 words · uploaded 19 August 2026 · model-resemblance pass v4</p>
+
+      <div style="display:flex; flex-wrap:wrap; gap:var(--space-2); align-items:center; margin:0 0 var(--space-4)">
+        <span class="text-muted" style="font-size:12px; letter-spacing:.06em; text-transform:uppercase; margin-right:var(--space-1)">Filter</span>
+        <button class="tag" onClick="{{ filterD1 }}" style="{{ chip.d1 }}">Stock wording <b style="opacity:.65">5</b></button>
+        <button class="tag" onClick="{{ filterD2 }}" style="{{ chip.d2 }}">Sentence rhythm <b style="opacity:.65">6</b></button>
+        <button class="tag" onClick="{{ filterD3 }}" style="{{ chip.d3 }}">Fence-sitting <b style="opacity:.65">5</b></button>
+        <button class="tag" onClick="{{ filterD4 }}" style="{{ chip.d4 }}">Missing specifics <b style="opacity:.65">2</b></button>
+        <button class="tag tag-outline" style="border-radius:999px; opacity:.55; cursor:default; display:inline-flex; gap:6px; align-items:center; font-family:var(--font-body); font-size:12px; padding:5px 12px">No personal voice <b>0</b></button>
+      </div>
+
+      <div style="background:var(--color-neutral-100); border-radius:var(--radius-lg); padding:var(--space-6) var(--space-6) var(--space-4); box-shadow:var(--shadow-sm)">
+        <div style="font-size:16.5px; line-height:1.75; max-width:62ch">
+          <p><mark onClick="{{ pick }}" data-flag="f1" style="{{ ms.f1 }}"><span style="{{ os.f1 }}">In today's rapidly evolving business landscape</span><span style="{{ ns.f1 }}">Since most teams moved to managed Postgres</span></mark>, organizations face <mark onClick="{{ pick }}" data-flag="f2" style="{{ ms.f2 }}"><span style="{{ os.f2 }}">unprecedented challenges</span><span style="{{ ns.f2 }}">problems they haven't hit before at this data volume</span></mark> <mark onClick="{{ pick }}" data-flag="f3" style="{{ ms.f3 }}"><span style="{{ os.f3 }}">when it comes to</span><span style="{{ ns.f3 }}">in</span></mark> managing their data infrastructure. As companies continue to scale, the need for <mark onClick="{{ pick }}" data-flag="f4" style="{{ ms.f4 }}"><span style="{{ os.f4 }}">robust, seamless, and comprehensive solutions</span><span style="{{ ns.f4 }}">tooling that survives a schema change without a migration window</span></mark> <mark onClick="{{ pick }}" data-flag="f5" style="{{ ms.f5 }}"><span style="{{ os.f5 }}">has never been more critical</span><span style="{{ ns.f5 }}">is what two of our four audit findings last year came down to</span></mark>.</p>
+          <p>Data governance <mark onClick="{{ pick }}" data-flag="f6" style="{{ ms.f6 }}"><span style="{{ os.f6 }}">plays a crucial role in ensuring that information remains</span><span style="{{ ns.f6 }}">keeps information</span></mark> accurate, accessible, and secure. <mark onClick="{{ pick }}" data-flag="f7" style="{{ ms.f7 }}"><span style="{{ os.f7 }}">Studies show that organizations with mature governance frameworks experience up to 40% fewer compliance incidents</span><span style="{{ ns.f7 }}">Gartner's 2025 survey of 1,200 firms found 40% fewer compliance incidents where table ownership was documented</span></mark>. <mark onClick="{{ pick }}" data-flag="f8" style="{{ ms.f8 }}"><span style="{{ os.f8 }}">However, implementing such a framework is not without its challenges</span><span style="{{ ns.f8 }}">The first six months are mostly arguing about who owns which table</span></mark>.</p>
+          <p><mark onClick="{{ pick }}" data-flag="f9" style="{{ ms.f9 }}"><span style="{{ os.f9 }}">Furthermore, it's important to note that governance</span><span style="{{ ns.f9 }}">Governance</span></mark> is <mark onClick="{{ pick }}" data-flag="f10" style="{{ ms.f10 }}"><span style="{{ os.f10 }}">not just about compliance, it's about unlocking the true value of your data assets</span><span style="{{ ns.f10 }}">the floor. What we actually care about is that nobody can find the revenue tables</span></mark>. By leveraging modern tooling, teams can <mark onClick="{{ pick }}" data-flag="f11" style="{{ ms.f11 }}"><span style="{{ os.f11 }}">foster a culture of accountability, transparency, and continuous improvement</span><span style="{{ ns.f11 }}">give every table a named owner in the catalogue, and page that owner when it breaks</span></mark>.</p>
+          <p><mark onClick="{{ pick }}" data-flag="f12" style="{{ ms.f12 }}"><span style="{{ os.f12 }}">Moreover, many organizations struggle to navigate the complexities of legacy systems</span><span style="{{ ns.f12 }}">Legacy systems are where this gets hard</span></mark>. <mark onClick="{{ pick }}" data-flag="f13" style="{{ ms.f13 }}"><span style="{{ os.f13 }}">While migration offers significant long-term benefits, it also raises important questions about cost, timeline, and operational risk</span><span style="{{ ns.f13 }}">Migration pays back in about eighteen months, and the risk is concentrated in the cutover weekend</span></mark>. <mark onClick="{{ pick }}" data-flag="f14" style="{{ ms.f14 }}"><span style="{{ os.f14 }}">Experts agree that a phased approach typically yields the best outcomes</span><span style="{{ ns.f14 }}">We phased ours across three quarters and I'd do that again</span></mark>.</p>
+          <p>Ultimately, <mark onClick="{{ pick }}" data-flag="f15" style="{{ ms.f15 }}"><span style="{{ os.f15 }}">the key lies in finding the right balance between ambition and pragmatism</span><span style="{{ ns.f15 }}">ship governance on the twenty tables that matter and leave the long tail alone for a year</span></mark>. <mark onClick="{{ pick }}" data-flag="f16" style="{{ ms.f16 }}"><span style="{{ os.f16 }}">Whether you're a seasoned data leader or just beginning your journey</span><span style="{{ ns.f16 }}">If you already have a catalogue nobody uses</span></mark>, success depends on <mark onClick="{{ pick }}" data-flag="f17" style="{{ ms.f17 }}"><span style="{{ os.f17 }}">careful planning, strong stakeholder alignment, and a willingness to iterate</span><span style="{{ ns.f17 }}">whether the platform team has the headcount</span></mark>. <mark onClick="{{ pick }}" data-flag="f18" style="{{ ms.f18 }}"><span style="{{ os.f18 }}">In conclusion, by embracing these principles, organizations can transform their data landscape and pave the way for sustainable growth</span><span style="{{ ns.f18 }}">Start Monday by listing who owns your twenty busiest tables</span></mark>.</p>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:var(--space-3); background:var(--color-accent-2-200); border-radius:var(--radius-md); padding:var(--space-4) var(--space-4); margin-top:var(--space-4)">
+        <div style="width:6px; border-radius:999px; background:var(--color-accent-2-600); flex:none"></div>
+        <p style="margin:0; font-size:13px; line-height:1.6; color:var(--color-accent-2-900)">Nothing here is highlighted for <b>no personal voice</b> — that dimension is judged by what is absent. In 207 words there is no first person, no named colleague, no date, no anecdote, and no opinion a reader could argue with. It still scored 4 of 4, and phrase-level rewrites cannot clear it.</p>
+      </div>
+
+      <div style="margin-top:var(--space-8)">
+        <button class="btn btn-secondary" onClick="{{ toggleMethod }}" style="border-radius:999px; font-size:13px">{{ methodLabel }}</button>
+        <div style="{{ methodBox }}">
+          <p class="text-muted" style="font-size:13.5px; margin:0 0 var(--space-4); max-width:70ch">Five things get checked, each scored out of 4, then weighted into the headline number. They are independent on purpose: any one alone is weak evidence, but a text that trips all five is doing something distinctive.</p>
+          <div style="display:grid; gap:var(--space-4)">
+            <div style="display:grid; grid-template-columns:10px minmax(0,1fr); gap:var(--space-3)">
+              <div style="border-radius:999px; background:#f6a06b"></div>
+              <div>
+                <h5 style="margin:0 0 2px">Stock wording <span class="text-muted" style="font-family:var(--font-body); font-size:12px">lexical fingerprint</span></h5>
+                <p style="margin:0 0 4px; font-size:13.5px">Words and phrases models reach for far more often than people do. No single one proves anything; the pile-up counts.</p>
+                <p class="text-muted" style="margin:0; font-size:12.5px">A person writing: <i>"Most teams still run this on spreadsheets, and it breaks around 50 users."</i></p>
+              </div>
+            </div>
+            <div style="display:grid; grid-template-columns:10px minmax(0,1fr); gap:var(--space-3)">
+              <div style="border-radius:999px; background:#aebf92"></div>
+              <div>
+                <h5 style="margin:0 0 2px">Sentence rhythm <span class="text-muted" style="font-family:var(--font-body); font-size:12px">syntactic rhythm</span></h5>
+                <p style="margin:0 0 4px; font-size:13.5px">People put long sentences next to short ones. Models produce even lengths, even paragraphs, and a great many three-item lists. Hardest marker to remove — it survives a vocabulary swap.</p>
+                <p class="text-muted" style="margin:0; font-size:12.5px">A person writing: a 40-word sentence, then <i>"It didn't work."</i></p>
+              </div>
+            </div>
+            <div style="display:grid; grid-template-columns:10px minmax(0,1fr); gap:var(--space-3)">
+              <div style="border-radius:999px; background:#c0b6a5"></div>
+              <div>
+                <h5 style="margin:0 0 2px">Fence-sitting <span class="text-muted" style="font-family:var(--font-body); font-size:12px">rhetorical posture</span></h5>
+                <p style="margin:0 0 4px; font-size:13.5px">Every claim balanced by its opposite, everything hedged, a conclusion true of any topic at all. Appeals to unnamed authority count here too.</p>
+                <p class="text-muted" style="margin:0; font-size:12.5px">A person writing: <i>"We should do it. The migration risk is real but a quarter of downtime is worse."</i></p>
+              </div>
+            </div>
+            <div style="display:grid; grid-template-columns:10px minmax(0,1fr); gap:var(--space-3)">
+              <div style="border-radius:999px; background:#ffc6a5"></div>
+              <div>
+                <h5 style="margin:0 0 2px">Missing specifics <span class="text-muted" style="font-family:var(--font-body); font-size:12px">informational density</span></h5>
+                <p style="margin:0 0 4px; font-size:13.5px">Could this have been written by someone with no access to the subject? Real subject-matter writing leaks detail constantly. Models produce the shape of evidence without the substance.</p>
+                <p class="text-muted" style="margin:0; font-size:12.5px">A person writing: <i>"Cost came in at $18k against a $12k estimate, mostly overtime."</i></p>
+              </div>
+            </div>
+            <div style="display:grid; grid-template-columns:10px minmax(0,1fr); gap:var(--space-3)">
+              <div style="border-radius:999px; background:var(--color-accent-2-600)"></div>
+              <div>
+                <h5 style="margin:0 0 2px">No personal voice <span class="text-muted" style="font-family:var(--font-body); font-size:12px">authorial presence</span></h5>
+                <p style="margin:0 0 4px; font-size:13.5px">Is anyone in there? An opinion someone could argue with, a story, an irritation, a habit of phrasing. Judged by absence, so a count of zero is not a pass.</p>
+                <p class="text-muted" style="margin:0; font-size:12.5px">A person writing: <i>"I still think we picked the wrong week for it."</i></p>
+              </div>
+            </div>
+          </div>
+          <p class="text-muted" style="margin:var(--space-4) 0 0; font-size:12.5px; max-width:70ch">All five describe how the writing reads, not who typed it. Formal business, legal and academic writing scores high by convention, and people writing in a second language score high on the first two through no fault of their own.</p>
+        </div>
+      </div>
+    </div>
+
+    <div style="position:sticky; top:var(--space-4); display:grid; gap:var(--space-3)">
+
+      <div style="background:var(--color-accent-200); border-radius:var(--radius-lg); padding:var(--space-6); box-shadow:var(--shadow-sm)">
+        <div style="display:flex; align-items:baseline; gap:var(--space-2)">
+          <span style="font-family:var(--font-heading); font-size:44px; line-height:1; color:var(--color-accent-800)">{{ score }}</span>
+          <span style="font-size:15px; color:var(--color-accent-800); opacity:.7">/ 20</span>
+        </div>
+        <div style="font-family:var(--font-heading); font-size:19px; margin-top:var(--space-2); color:var(--color-accent-900)">{{ verdict }}</div>
+        <div style="font-size:12.5px; color:var(--color-accent-900); opacity:.72; margin-top:2px">Confidence: moderate · {{ resolvedLine }}</div>
+        <div style="height:1px; background:color-mix(in srgb, var(--color-accent-900) 18%, transparent); margin:var(--space-4) 0"></div>
+        <div style="display:grid; gap:var(--space-2)">
+          <sc-for list="{{ dims }}" as="d" hint-placeholder-count="5">
+            <div style="display:grid; grid-template-columns:minmax(0,1fr) auto; gap:var(--space-2); align-items:center; font-size:12.5px; color:var(--color-accent-900)">
+              <div>
+                <div style="margin-bottom:3px">{{ d.name }}</div>
+                <div style="height:7px; border-radius:999px; background:color-mix(in srgb, var(--color-accent-900) 12%, transparent)">
+                  <div style="{{ d.bar }}"></div>
+                </div>
+              </div>
+              <span style="font-variant-numeric:tabular-nums; opacity:.7">{{ d.label }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="background:var(--color-neutral-100); border:1px solid var(--color-divider); border-radius:var(--radius-lg); padding:var(--space-6)">
+        <sc-if value="{{ hasSel }}" hint-placeholder-val="{{ false }}">
+          <div>
+            <div style="display:flex; align-items:center; gap:var(--space-2); margin-bottom:var(--space-3)">
+              <span style="width:10px; height:10px; border-radius:999px; background:{{ sel.color }}"></span>
+              <span style="font-size:11.5px; letter-spacing:.07em; text-transform:uppercase">{{ sel.dimName }}</span>
+            </div>
+            <p style="margin:0 0 var(--space-3); font-size:15px; line-height:1.5; font-family:var(--font-heading)">“{{ sel.text }}”</p>
+            <p style="margin:0 0 var(--space-4); font-size:13.5px; line-height:1.6">{{ sel.why }}</p>
+            <div style="background:var(--color-accent-2-100); border-radius:var(--radius-md); padding:var(--space-3) var(--space-4)">
+              <div style="font-size:11.5px; letter-spacing:.07em; text-transform:uppercase; color:var(--color-accent-2-800); margin-bottom:4px">Write it like this</div>
+              <p style="margin:0; font-size:13.5px; line-height:1.6; color:var(--color-accent-2-900)">{{ sel.fix }}</p>
+            </div>
+            <div style="display:flex; gap:var(--space-2); margin-top:var(--space-4)">
+              <button class="btn btn-primary" onClick="{{ applyFix }}" style="border-radius:999px; flex:1">{{ applyLabel }}</button>
+              <button class="btn btn-secondary" onClick="{{ clearSel }}" style="border-radius:999px">Dismiss</button>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-top:var(--space-3); font-size:12.5px">
+              <button class="btn btn-ghost" onClick="{{ prev }}" style="padding:2px 6px; font-size:12.5px">← Previous</button>
+              <span class="text-muted">{{ selPos }}</span>
+              <button class="btn btn-ghost" onClick="{{ next }}" style="padding:2px 6px; font-size:12.5px">Next →</button>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ noSel }}" hint-placeholder-val="{{ true }}">
+          <div>
+            <h5 style="margin:0 0 var(--space-2)">18 passages flagged</h5>
+            <p class="text-muted" style="margin:0 0 var(--space-4); font-size:13.5px; line-height:1.6">Select any highlight to see why it was flagged and how to rewrite it. Work top to bottom, or filter to one dimension above.</p>
+            <button class="btn btn-primary" onClick="{{ next }}" style="border-radius:999px; width:100%">Start with the first flag</button>
+          </div>
+        </sc-if>
+      </div>
+
+      <div style="border:1px solid var(--color-divider); border-radius:var(--radius-lg); padding:var(--space-4) var(--space-6)">
+        <p class="text-muted" style="margin:0; font-size:12.5px; line-height:1.6">This measures how closely the writing resembles the default register of model output. It cannot establish authorship. At 207 words the text sits under the 400-word threshold where sentence-length statistics become dependable, so this reading rests mainly on phrase density and unsourced authority rather than on rhythm.</p>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;annotationStyle&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;tint&quot;,&quot;underline&quot;],&quot;default&quot;:&quot;tint&quot;,&quot;tsType&quot;:&quot;'tint' | 'underline'&quot;,&quot;section&quot;:&quot;Annotation&quot;},&quot;showProjectedScore&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Annotation&quot;}}">
+const DIMS = {
+  d1: { name: "Stock wording", color: "#f6a06b", bar: "var(--color-accent-600)" },
+  d2: { name: "Sentence rhythm", color: "#aebf92", bar: "var(--color-accent-2-600)" },
+  d3: { name: "Fence-sitting", color: "#c0b6a5", bar: "var(--color-neutral-600)" },
+  d4: { name: "Missing specifics", color: "#ffc6a5", bar: "var(--color-accent-400)" },
+  d5: { name: "No personal voice", color: "#728157", bar: "var(--color-accent-2-800)" }
+};
+
+const FLAGS = [
+  { id: "f1", dim: "d1", text: "In today's rapidly evolving business landscape", why: "\"In today's [X] landscape\" is one of the highest-frequency openings in model-written business prose, and it tells the reader nothing they didn't already know. Name the change that actually happened instead.", fix: "Since most teams moved to managed Postgres" },
+  { id: "f2", dim: "d1", text: "unprecedented challenges", why: "Stock adjective plus abstract noun. Unprecedented compared with when? The word is doing emphasis work, not information work.", fix: "problems they haven't hit before at this data volume" },
+  { id: "f3", dim: "d1", text: "when it comes to", why: "A four-word stock connective standing in for a one-word preposition.", fix: "in" },
+  { id: "f4", dim: "d2", text: "robust, seamless, and comprehensive solutions", why: "A three-item list built from three stock adjectives, none of which does distinct work. Models default to threes because three sounds complete. Pick the one that's true and say why.", fix: "tooling that survives a schema change without a migration window" },
+  { id: "f5", dim: "d3", text: "has never been more critical", why: "Manufactured urgency. The sentence performs importance rather than demonstrating it, and it can be attached to any topic at all. Show the cost instead.", fix: "is what two of our four audit findings last year came down to" },
+  { id: "f6", dim: "d1", text: "plays a crucial role in ensuring that information remains", why: "Stock verb phrase — six words where one would do.", fix: "keeps information" },
+  { id: "f7", dim: "d4", text: "Studies show that organizations with mature governance frameworks experience up to 40% fewer compliance incidents", why: "\"Studies show\" with no study named, plus a suspiciously round figure softened by \"up to\", which makes it unfalsifiable — 0% is also up to 40%. Cite it or drop it.", fix: "Gartner's 2025 survey of 1,200 firms found 40% fewer compliance incidents where table ownership was documented" },
+  { id: "f8", dim: "d3", text: "However, implementing such a framework is not without its challenges", why: "Reflexive counterweight. The claim in the previous sentence is balanced away immediately, so no position survives the paragraph. Commit, then qualify with something specific.", fix: "The first six months are mostly arguing about who owns which table" },
+  { id: "f9", dim: "d2", text: "Furthermore, it's important to note that governance", why: "Two scaffolding devices stacked: a transition word opening the paragraph, then a stock hedge marker. If the point weren't important you wouldn't write it.", fix: "Governance" },
+  { id: "f10", dim: "d1", text: "not just about compliance, it's about unlocking the true value of your data assets", why: "The \"not just X, it's Y\" construction — one of the most recognisable model templates. It works by dismissing a straw man nobody argued for.", fix: "the floor. What we actually care about is that nobody can find the revenue tables" },
+  { id: "f11", dim: "d2", text: "foster a culture of accountability, transparency, and continuous improvement", why: "Second three-item list in three paragraphs, again of abstractions with no mechanism attached. A culture of accountability achieved how, by whom, measured against what?", fix: "give every table a named owner in the catalogue, and page that owner when it breaks" },
+  { id: "f12", dim: "d2", text: "Moreover, many organizations struggle to navigate the complexities of legacy systems", why: "Third consecutive paragraph opening with a transition connective. Human writers usually transition with content instead, by referring back to what they just said.", fix: "Legacy systems are where this gets hard" },
+  { id: "f13", dim: "d3", text: "While migration offers significant long-term benefits, it also raises important questions about cost, timeline, and operational risk", why: "A balanced \"While X, Y\" clause wrapped around yet another three-item list. Which questions, raised by whom, is never answered — so the sentence is unarguable and therefore uninformative.", fix: "Migration pays back in about eighteen months, and the risk is concentrated in the cutover weekend" },
+  { id: "f14", dim: "d4", text: "Experts agree that a phased approach typically yields the best outcomes", why: "Appeal to unnamed authority, then \"typically\" hedges it so far that it cannot be wrong. No expert is identifiable and no claim is testable. Own the judgment.", fix: "We phased ours across three quarters and I'd do that again" },
+  { id: "f15", dim: "d3", text: "the key lies in finding the right balance between ambition and pragmatism", why: "Non-committal conclusion. True of virtually any topic, which is exactly why it says nothing about this one. Give the trade-off and where you'd land.", fix: "ship governance on the twenty tables that matter and leave the long tail alone for a year" },
+  { id: "f16", dim: "d3", text: "Whether you're a seasoned data leader or just beginning your journey", why: "Reader-flattering content-marketing framing, applied regardless of who is actually reading. It also signals the writer doesn't know the audience.", fix: "If you already have a catalogue nobody uses" },
+  { id: "f17", dim: "d2", text: "careful planning, strong stakeholder alignment, and a willingness to iterate", why: "Fourth three-item list in a 207-word piece. At this density the structure is a template rather than a rhetorical choice, and that pattern is what the rhythm score measures.", fix: "whether the platform team has the headcount" },
+  { id: "f18", dim: "d2", text: "In conclusion, by embracing these principles, organizations can transform their data landscape and pave the way for sustainable growth", why: "Closing restatement that adds no new information, in the standard \"By [verb]ing X, organisations can Y\" shape. A reader who skipped it would lose nothing — end on what you'd do Monday.", fix: "Start Monday by listing who owns your twenty busiest tables" }
+];
+
+const SCORES = { d1: 4, d2: 4, d3: 4, d4: 4, d5: 4 };
+
+class Component extends DCLogic {
+  state = { sel: null, hidden: {}, fixed: {}, hl: true, method: false };
+
+  visible(f) { return !this.state.hidden[f.dim]; }
+
+  pick = (e) => {
+    const id = e.currentTarget.getAttribute("data-flag");
+    this.setState(s => ({ sel: s.sel === id ? null : id }));
+  };
+
+  step(dir) {
+    const list = FLAGS.filter(f => this.visible(f));
+    if (!list.length) return;
+    const i = list.findIndex(f => f.id === this.state.sel);
+    const n = i < 0 ? (dir > 0 ? 0 : list.length - 1) : (i + dir + list.length) % list.length;
+    this.setState({ sel: list[n].id });
+  }
+
+  markStyle(f) {
+    const on = this.state.hl && this.visible(f);
+    const isSel = this.state.sel === f.id;
+    const fixed = this.state.fixed[f.id];
+    const tint = DIMS[f.dim].color;
+    const underline = (this.props.annotationStyle ?? "tint") === "underline";
+    const s = {
+      cursor: "pointer", borderRadius: "5px", padding: "1px 2px",
+      WebkitBoxDecorationBreak: "clone", boxDecorationBreak: "clone",
+      transition: "background .12s, box-shadow .12s",
+      background: "transparent", color: "inherit"
+    };
+    if (fixed) {
+      if (on) s.boxShadow = "inset 0 -0.18em 0 var(--color-accent-2-500)";
+      if (isSel) s.boxShadow = (on ? "inset 0 -0.18em 0 var(--color-accent-2-500), " : "") + "0 0 0 2px var(--color-accent-2-700)";
+      return s;
+    }
+    if (!on) return s;
+    if (underline) {
+      s.boxShadow = "inset 0 -0.32em 0 " + tint;
+    } else {
+      s.background = tint;
+    }
+    if (isSel) s.boxShadow = (underline ? "inset 0 -0.32em 0 " + tint + ", " : "") + "0 0 0 2px var(--color-text)";
+    return s;
+  }
+
+  chipStyle(k) {
+    const off = this.state.hidden[k];
+    return {
+      borderRadius: "999px", cursor: "pointer", fontSize: "12px",
+      padding: "5px 12px", display: "inline-flex", gap: "6px", alignItems: "center",
+      fontFamily: "var(--font-body)", border: "1px solid transparent",
+      background: off ? "transparent" : DIMS[k].color,
+      borderColor: off ? "var(--color-divider)" : "transparent",
+      color: off ? "color-mix(in srgb, var(--color-text) 55%, transparent)" : "var(--color-text)"
+    };
+  }
+
+  renderVals() {
+    const fixedCount = FLAGS.filter(f => this.state.fixed[f.id]).length;
+    const live = this.props.showProjectedScore !== false;
+    const subScore = {};
+    Object.keys(DIMS).forEach(k => {
+      if (k === "d5") { subScore.d5 = 4; return; }
+      const all = FLAGS.filter(f => f.dim === k);
+      const open = all.filter(f => !this.state.fixed[f.id]).length;
+      subScore[k] = !live || !all.length ? SCORES[k] : Math.round((open / all.length) * 8) / 2;
+    });
+    const total = Object.keys(subScore).reduce((a, k) => a + subScore[k], 0);
+    const verdict = total >= 15 ? "Heavy resemblance"
+      : total >= 10 ? "Moderate resemblance"
+      : total >= 6 ? "Light resemblance"
+      : "Little resemblance left";
+    const sel = FLAGS.find(f => f.id === this.state.sel);
+    const visList = FLAGS.filter(f => this.visible(f));
+
+    const ms = {}, os = {}, ns = {};
+    FLAGS.forEach(f => {
+      ms[f.id] = this.markStyle(f);
+      const swapped = !!this.state.fixed[f.id];
+      os[f.id] = { display: swapped ? "none" : "inline" };
+      ns[f.id] = { display: swapped ? "inline" : "none" };
+    });
+    const chip = {};
+    Object.keys(DIMS).forEach(k => { chip[k] = this.chipStyle(k); });
+
+    const dims = Object.keys(DIMS).map(k => ({
+      name: DIMS[k].name,
+      label: subScore[k] + "/4",
+      bar: {
+        height: "7px", borderRadius: "999px",
+        transition: "width .2s",
+        width: (subScore[k] / 4) * 100 + "%",
+        background: DIMS[k].bar
+      }
+    }));
+
+    return {
+      ms, os, ns, chip, dims, verdict,
+      score: total.toFixed(1),
+      resolvedLine: fixedCount ? fixedCount + " of 18 rewritten" : "18 passages flagged",
+      hasSel: !!sel, noSel: !sel,
+      sel: sel ? {
+        text: sel.text, why: sel.why, fix: sel.fix,
+        dimName: DIMS[sel.dim].name, color: DIMS[sel.dim].color
+      } : {},
+      applyLabel: sel && this.state.fixed[sel.id] ? "Revert to original" : "Accept changes",
+      selPos: sel ? (visList.findIndex(f => f.id === sel.id) + 1) + " of " + visList.length : "",
+      highlightLabel: this.state.hl ? "Hide highlighting" : "Show highlighting",
+      methodLabel: this.state.method ? "Hide how this is scored" : "How is this scored?",
+      methodBox: {
+        display: this.state.method ? "block" : "none",
+        marginTop: "var(--space-4)", paddingTop: "var(--space-4)",
+        borderTop: "1px solid var(--color-divider)"
+      },
+      pick: this.pick,
+      clearSel: () => this.setState({ sel: null }),
+      next: () => this.step(1),
+      prev: () => this.step(-1),
+      applyFix: () => this.setState(s => ({ fixed: Object.assign({}, s.fixed, { [s.sel]: !s.fixed[s.sel] }) })),
+      toggleHighlight: () => this.setState(s => ({ hl: !s.hl })),
+      toggleMethod: () => this.setState(s => ({ method: !s.method })),
+      filterD1: () => this.toggleDim("d1"),
+      filterD2: () => this.toggleDim("d2"),
+      filterD3: () => this.toggleDim("d3"),
+      filterD4: () => this.toggleDim("d4")
+    };
+  }
+
+  toggleDim(k) {
+    this.setState(s => ({ hidden: Object.assign({}, s.hidden, { [k]: !s.hidden[k] }), sel: null }));
+  }
+}
+</script>
+</body>
+</html>
