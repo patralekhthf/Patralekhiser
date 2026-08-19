@@ -237,10 +237,12 @@ for a non-technical person who just wants to use the tool.
   The `add_repo` tool the proxy suggests is not exposed in this session.
 - Bridge VM on the Mac: no network at all (403 from its proxy), no stored
   credentials, no SSH keys, no `gh`.
-- So every push must be run by the user from their own Mac Terminal. Commits are
-  prepared locally and left ready.
-- Unpushed as of this note: 8884909, 42332b3, 38e99a4 plus the current commit.
-  Remote HEAD is 74c3b03.
+- So every push must be run by the user from their own Mac Terminal. Prepare commits
+  locally, then hand over the exact command.
+- As of be91116 everything is pushed; remote main matches local main. Credential
+  hygiene resolved: the token was deleted at GitHub on 2026-08-19, and a full scan of
+  all 9 published commits for GitHub/AWS token formats, private keys and URL-embedded
+  credentials came back empty.
 
 ## Open threads / blockers
 - Back-port gap: `design/index.html` is a BUILT artifact. The additions must be
