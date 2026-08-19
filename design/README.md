@@ -259,7 +259,14 @@ rest of the app (the Configuration view says as much).
 
 ## No assets
 
-No images, icons, fonts or network requests. Everything is CSS and inline SVG-free markup.
+No images, fonts or network requests. Everything is CSS and markup.
+
+One exception, added later: a favicon, inlined as a `data:image/svg+xml,` URI in the `<head>`
+(navy rounded square, white `P`, using `--accent` #1f4e79). It is not a separate file and fetches
+nothing. It exists because a browser requests `/favicon.ico` on its own whenever the page is
+served over http rather than opened from disk, which logged a 404 and left the tab iconless on
+GitHub Pages. Verified: serving the built page over http now produces exactly one request, the
+page itself, and zero console errors.
 
 ## Files
 

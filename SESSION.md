@@ -200,6 +200,48 @@ View-layer only, `design/index.html` script 3. Engine untouched. Documented in
   figure, which is the d5 presence signal working), Esc discards, resemblance
   tab and scroll sync unaffected, zero console errors.
 
+## Public distribution shape, settled 2026-08-19
+Both repos public. `Patralekhiser` keeps everything; `Patralekhiser-Public` is built
+for a non-technical person who just wants to use the tool.
+- `Patralekhiser` is ALREADY public. Verified by an anonymous clone from the cloud
+  sandbox with the proxy explicitly declining to supply a credential. So SESSION.md,
+  the ADRs, both specs, `design/` and `dist/` have been world-readable since 74c3b03.
+  User's decision: leave it public.
+- `Patralekhiser-Public` holds exactly three files, two of them visible:
+  `index.html` (the app, so GitHub Pages serves it at a clean URL), `README.md`,
+  and `.nojekyll`. Nothing in the listing looks like source code.
+- Two access paths: https://patralekhthf.github.io/Patralekhiser-Public/ opens and
+  runs with no download, and the release asset
+  `Patralekhiser-v1.2.0-preview.3.html` downloads a keepable offline copy. A raw
+  link is NOT used: GitHub serves raw HTML as text/plain, so it shows source.
+- Pages here is static file serving, not the PWA decision ADR-0002 deferred. No
+  manifest, no service worker. Consistent with that ADR.
+- Public README rewritten for a non-technical reader: plain language, the one-click
+  link first, and an explicit warning not to click `index.html` in the file list
+  because GitHub shows code rather than the page. Honesty preserved: the score is
+  not a detector, bands are uncalibrated, second-language English likely scored
+  unfairly.
+- `publish/publish.sh` now creates the repo, pushes, enables Pages via
+  `gh api -X POST repos/:owner/:repo/pages`, tags, and publishes the release with
+  the versioned asset. Idempotent. Full browser-only fallback in its comments.
+- Added an inline `data:image/svg+xml` favicon to `design/index.html`. A browser
+  requests `/favicon.ico` unprompted when the page is served over http, which
+  logged a 404 and left the tab iconless. Serving the built page over http now
+  makes exactly one request, the page itself, with zero console errors and no
+  off-origin traffic.
+
+## PUSH IS BLOCKED FROM BOTH ENVIRONMENTS (verified, not assumed)
+- Cloud sandbox: can READ github (anonymous clone works) but the git proxy refuses
+  writes: "not in this session's authorized repository set, so the proxy will not
+  inject a credential". Dry-run pushes to `main` and to a throwaway ref both 403.
+  The `add_repo` tool the proxy suggests is not exposed in this session.
+- Bridge VM on the Mac: no network at all (403 from its proxy), no stored
+  credentials, no SSH keys, no `gh`.
+- So every push must be run by the user from their own Mac Terminal. Commits are
+  prepared locally and left ready.
+- Unpushed as of this note: 8884909, 42332b3, 38e99a4 plus the current commit.
+  Remote HEAD is 74c3b03.
+
 ## Open threads / blockers
 - Back-port gap: `design/index.html` is a BUILT artifact. The additions must be
   split back into `src/engine.js` (engine functions, DEFAULT_CONFIG.dimensions)
@@ -213,7 +255,11 @@ View-layer only, `design/index.html` script 3. Engine untouched. Documented in
   -language English docs are the G-1 gate.
 - Team style calibration: sample Myridius articles promised, never arrived.
 - pdf.js still loads from cdnjs. Vendoring it locally is still open.
-- User may still need to revoke the GitHub token exposed in an earlier chat.
+- URGENT: revoke the GitHub token exposed in an earlier chat. The repo is public and
+  the previous commit 74c3b03 publicly contains a SESSION.md line announcing that a
+  token may still be live. The token itself is NOT in the repo (all objects across
+  all commits scanned for ghp_/github_pat_/gho_/AKIA/private-key patterns: clean),
+  but the sentence points people at it. Revoke first, then decide whether to reword.
 - Known gaps carried from the design docs: auto-swaps run before flagging so the
   score describes post-rewrite text; density bands saturate above roughly nine
   flags per thousand words; `replaceNth` can in principle target the wrong
