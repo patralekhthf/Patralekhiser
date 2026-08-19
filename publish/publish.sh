@@ -37,6 +37,11 @@ cp "$SRC/README.md" "$DEST/README.md"
 cd "$DEST"
 
 if [ ! -d .git ]; then git init -q -b main; fi
+# The versioned build lives on the release, not in the repo listing. Drop any
+# stray copy an earlier run left behind, so visitors see two files, not four.
+for stray in Patralekhiser-v*.html; do
+  [ -e "$stray" ] && git rm -q --ignore-unmatch "$stray" 2>/dev/null && rm -f "$stray"
+done
 git add index.html README.md .nojekyll
 git -c user.name="Satyam Patralekh" -c user.email="patralekh.satyam@myridius.com" \
     commit -q -m "Patralekhiser $TAG" || echo "   (nothing new to commit)"

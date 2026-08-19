@@ -12,7 +12,7 @@ It is one web page that does all its work in your browser.
 
 **Just open it.** Click the link above. It works straight away.
 
-**Or keep your own copy.** Go to the [latest release](../../releases/latest) and download the
+**Or keep your own copy.** Go to [releases](../../releases), open the one at the top, and download the
 `.html` file at the bottom of that page. Save it anywhere, double-click it, and it opens in your
 browser like any other page. It keeps working with no internet connection, so a copy on your
 desktop is a copy you own.
