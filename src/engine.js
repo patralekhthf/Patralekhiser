@@ -1,5 +1,5 @@
 /*
- * Myridiusizer rule engine
+ * Patralekhiser rule engine
  * Deterministic, dictionary and pattern based text transformation.
  * No LLM, no network calls, no external dependencies.
  * Runs in the browser and in Node (module.exports guarded at the bottom).
@@ -641,12 +641,11 @@ var MyridiusEngine = (function () {
   /* Main entry point                                                     */
   /* ------------------------------------------------------------------ */
 
-  function process(input, config) {
+  /* Apply all auto fixes to a piece of text. Paragraph boundaries survive. */
+  function transform(input, config) {
     config = config || DEFAULT_CONFIG;
     var settings = config.settings || {};
     var changes = [];
-
-    var before = fleschScore(input);
 
     var p = protect(input, config.protectedTerms);
     var text = p.text;
@@ -663,25 +662,69 @@ var MyridiusEngine = (function () {
       text = applySwaps(text, config.contractions || [], "Contraction expanded", changes);
     }
 
-    /* whitespace tidy */
-    text = text.replace(/ {2,}/g, " ").replace(/ +\n/g, "\n").replace(/\n{3,}/g, "\n\n");
-
-    var flags = collectFlags(text, config);
+    /* whitespace tidy inside the block, never across paragraph breaks */
+    text = text.replace(/ {2,}/g, " ").replace(/ +\n/g, "\n");
 
     text = restore(text, p.vault);
-    /* flags were built on protected text; restore placeholders in excerpts */
+    for (var c = 0; c < changes.length; c++) {
+      changes[c].context = restore(changes[c].context || "", p.vault);
+    }
+    return { output: text, changes: changes };
+  }
+
+  /* Collect flags for human review on (usually already transformed) text. */
+  function analyze(text, config) {
+    config = config || DEFAULT_CONFIG;
+    var p = protect(text, config.protectedTerms);
+    var flags = collectFlags(p.text, config);
     for (var i = 0; i < flags.length; i++) {
       flags[i].excerpt = restore(flags[i].excerpt, p.vault);
       flags[i].found = restore(String(flags[i].found), p.vault);
     }
-    for (var c = 0; c < changes.length; c++) {
-      changes[c].context = restore(changes[c].context || "", p.vault);
-    }
+    return flags;
+  }
 
-    var after = fleschScore(text);
-
+  function process(input, config) {
+    var before = fleschScore(input);
+    var t = transform(input, config);
+    var flags = analyze(t.output, config);
+    var after = fleschScore(t.output);
     return {
-      output: text,
+      output: t.output,
+      changes: t.changes,
+      flags: flags,
+      stats: {
+        before: before,
+        after: after,
+        changeCount: t.changes.length,
+        flagCount: flags.length,
+        wordsSaved: before.words - after.words
+      }
+    };
+  }
+
+  /* Paragraph aware processing: returns 1:1 mapped original/output pairs
+     so a UI can sync scroll positions at paragraph level. */
+  function processDoc(input, config) {
+    var normalized = input.replace(/\r\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+    var originals = normalized ? normalized.split(/\n\n/) : [];
+    var pairs = [];
+    var changes = [];
+    for (var i = 0; i < originals.length; i++) {
+      var t = transform(originals[i], config);
+      for (var c = 0; c < t.changes.length; c++) {
+        t.changes[c].paragraph = i;
+        changes.push(t.changes[c]);
+      }
+      pairs.push({ original: originals[i], output: t.output });
+    }
+    var joined = pairs.map(function (x) { return x.output; }).join("\n\n");
+    var flags = analyze(joined, config);
+    var before = fleschScore(normalized);
+    var after = fleschScore(joined);
+    return {
+      paragraphs: pairs,
+      output: joined,
       changes: changes,
       flags: flags,
       stats: {
@@ -696,6 +739,9 @@ var MyridiusEngine = (function () {
 
   return {
     process: process,
+    processDoc: processDoc,
+    transform: transform,
+    analyze: analyze,
     defaultConfig: DEFAULT_CONFIG,
     fleschScore: fleschScore
   };

@@ -1,10 +1,12 @@
-# Myridiusizer
+# Patralekhiser
 
 A tool that takes any article and returns a version written in the Myridius house style. It runs entirely in the browser with deterministic rules. There is no LLM, no API call, and no network access in its operation. The same input always produces the same output.
 
 ## How to use it
 
-Open `app/index.html` in any browser. Paste an article, press Myridiusize. You get three things: the cleaned article, a log of every change made, and a list of spots that need a human rewrite with a reason and a suggestion for each.
+Open `app/index.html` in any browser. Paste an article on the left (or press Upload to load a .docx, .pdf, .md or .txt file), then press Patralekhise. The Patralekhised version appears on the right, paragraph by paragraph. The two panes scroll in sync at paragraph level, in both directions, and hovering a paragraph highlights its pair. The Show original switch hides the left pane when you want only the result. Download the output as Word, PDF, Markdown or plain text, or Copy it to the clipboard. The Changes tab logs every automatic fix and the Needs a human tab lists spots that need a real rewrite, each with a reason and a suggestion.
+
+Everything runs in your browser. The one exception is reading an uploaded PDF, which loads the standard pdf.js library from a CDN the first time you use it in a session; every other feature, including writing PDFs and Word files, works fully offline.
 
 ## What it fixes automatically
 
@@ -23,11 +25,12 @@ Open the Configuration tab in the app. Every word list and behaviour toggle is e
 ```
 app/index.html    The tool. This is the only file users need.
 src/engine.js     Rule engine source (runs in Node and browser)
+src/fileio.js     File import/export: docx, pdf, txt, md (no libraries)
 src/template.html UI shell
-src/build.js      Inlines the engine into app/index.html
+src/build.js      Inlines engine and fileio into app/index.html
 config/           Default style configuration (JSON)
 docs/             The Myridius style profile in prose
-samples/          Test article and its Myridiusized output
+samples/          Test article and its Patralekhised output
 tests/test.js     Engine test suite
 ```
 
@@ -36,8 +39,9 @@ tests/test.js     Engine test suite
 Edit `src/engine.js` or `src/template.html`, then:
 
 ```
-node tests/test.js     # run the test suite
-node src/build.js      # rebuild app/index.html
+node tests/test.js         # engine test suite
+node tests/fileio.test.js  # file format test suite
+node src/build.js          # rebuild app/index.html
 ```
 
 ## Known limits
