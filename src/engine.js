@@ -681,6 +681,660 @@ var MyridiusEngine = (function () {
   }
 
   /* ------------------------------------------------------------------ */
+  /* Invisible Unicode artifacts                                          */
+  /* ------------------------------------------------------------------ */
+
+  /* Ported from guillaumemeyer/watermarks-remover (MIT licence),
+     service/scripts/text_unicode.py at v0.5.0. This is a port, not a
+     dependency: no code is loaded at runtime and nothing here calls out.
+     Requirement: docs/req-unicode-artifacts.md (FR-U1 to FR-U54).
+
+     Tables checked against Unicode 15.1, 2026-08-24. RE-CHECK ON VERSION
+     BUMPS. Reserved default-ignorable ranges are enumerated explicitly and
+     are never derived from a category test, because assignment turns a strip
+     entry into a keep-in-context case: U+180F was unassigned until Unicode 14
+     made it Mongolian free variation selector 4, and a category rule would
+     have deleted it. There is no category fallback at all (FR-U26), so a
+     format character assigned after this date is missed rather than guessed
+     at. That is the correct trade: a missed strip is a line in a panel that a
+     human reads, a wrong strip is a changed word nobody noticed.
+
+     Invisible codepoints appear here only as escape sequences. A source file
+     about invisible characters that contains them cannot be reviewed. */
+
+  var ARTIFACT_TABLE_VERSION = "unicode-15.1/2026-08-24";
+
+  var DEFAULT_ARTIFACT_SETTINGS = {
+    artifactClean: true,
+    artifactNormalizeSpaces: true,
+    artifactStripBidiMarks: false,
+    artifactFoldConfusables: false,
+    artifactScanCode: false
+  };
+
+  /* ---- strip tables ------------------------------------------------- */
+
+  /* Zero-width family: the common edit-based carriers. */
+  var ART_ZW_FAMILY = { 0x200b: 1, 0x200c: 1, 0x200d: 1, 0x2060: 1, 0xfeff: 1, 0x180e: 1 };
+
+  /* Directional format controls. */
+  var ART_BIDI = {
+    0x061c: 1, 0x200e: 1, 0x200f: 1,
+    0x202a: 1, 0x202b: 1, 0x202c: 1, 0x202d: 1, 0x202e: 1,
+    0x2066: 1, 0x2067: 1, 0x2068: 1, 0x2069: 1
+  };
+  /* Marks and isolates are legitimate in mixed-direction prose. Overrides
+     (LRO, RLO) and unpaired embeddings are not, and are always stripped. */
+  var ART_BIDI_PRESERVABLE = { 0x061c: 1, 0x200e: 1, 0x200f: 1, 0x2066: 1, 0x2067: 1, 0x2068: 1, 0x2069: 1 };
+
+  var ART_MONGOLIAN_FVS = { 0x180b: 1, 0x180c: 1, 0x180d: 1, 0x180f: 1 };
+  var ART_KHMER_VOWELS = { 0x17b4: 1, 0x17b5: 1 };
+  var ART_HANGUL_FILLERS = { 0x115f: 1, 0x1160: 1, 0x3164: 1, 0xffa0: 1 };
+
+  /* Cf and filler characters that are invisible but not directional and not
+     zero-width joiners: soft hyphen, combining grapheme joiner, the invisible
+     maths operators, the deprecated shaping controls, interlinear annotation,
+     and the same-script fillers above. */
+  var ART_FORMAT = {
+    0x00ad: 1, 0x034f: 1,
+    0x2061: 1, 0x2062: 1, 0x2063: 1, 0x2064: 1,
+    0x206a: 1, 0x206b: 1, 0x206c: 1, 0x206d: 1, 0x206e: 1, 0x206f: 1,
+    0xfff9: 1, 0xfffa: 1, 0xfffb: 1
+  };
+
+  /* Arabic and Syriac orthography, never carriers. */
+  var ART_ORTHOGRAPHIC = {
+    0x0600: 1, 0x0601: 1, 0x0602: 1, 0x0603: 1, 0x0604: 1, 0x0605: 1,
+    0x06dd: 1, 0x070f: 1, 0x08e2: 1, 0x110bd: 1, 0x110cd: 1
+  };
+
+  /* Format controls that visibly govern how their own script renders:
+     Egyptian hieroglyph quadrat controls, Duployan shorthand overlaps, and
+     musical beams, ties and slurs. Body text next to their own script,
+     contraband floating between unrelated characters. */
+  var ART_LAYOUT_CF = [
+    { from: 0x13430, to: 0x1343f, scriptFrom: 0x13000, scriptTo: 0x143ff },
+    { from: 0x1bca0, to: 0x1bca3, scriptFrom: 0x1bc00, scriptTo: 0x1bca3 },
+    { from: 0x1d173, to: 0x1d17a, scriptFrom: 0x1d100, scriptTo: 0x1d1ff }
+  ];
+
+  /* Spaces that look like, or stand in for, U+0020. */
+  var ART_SPACES = {
+    0x00a0: " ", 0x1680: " ",
+    0x2000: " ", 0x2001: " ", 0x2002: " ", 0x2003: " ", 0x2004: " ",
+    0x2005: " ", 0x2006: " ", 0x2007: " ", 0x2008: " ", 0x2009: " ", 0x200a: " ",
+    0x202f: " ", 0x205f: " ", 0x3000: " "
+  };
+
+  /* Cyrillic and fullwidth Latin lookalikes. Off by default: folding these
+     turns genuine Russian into mojibake. */
+  var ART_CONFUSABLES = (function () {
+    var map = {
+      0x0410: "A", 0x0412: "B", 0x0415: "E", 0x041a: "K", 0x041c: "M", 0x041d: "H",
+      0x041e: "O", 0x0420: "P", 0x0421: "C", 0x0422: "T", 0x0425: "X",
+      0x0430: "a", 0x0435: "e", 0x043e: "o", 0x0440: "p", 0x0441: "c",
+      0x0443: "y", 0x0445: "x", 0x0456: "i"
+    };
+    var upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    var lower = "abcdefghijklmnopqrstuvwxyz";
+    for (var i = 0; i < 26; i++) {
+      map[0xff21 + i] = upper.charAt(i);
+      map[0xff41 + i] = lower.charAt(i);
+    }
+    return map;
+  })();
+
+  /* The 66 noncharacters. Permanently prohibited in interchange and
+     permanently unassignable, so stripping carries no future-Unicode risk. */
+  function artIsNoncharacter(cp) {
+    return (cp >= 0xfdd0 && cp <= 0xfdef) || (cp & 0xfffe) === 0xfffe;
+  }
+
+  /* Unassigned codepoints with Other_Default_Ignorable_Code_Point=Yes.
+     Explicit ranges, per FR-U13. */
+  function artIsReservedIgnorable(cp) {
+    return cp === 0x2065 || cp === 0xe0000 ||
+      (cp >= 0xfff0 && cp <= 0xfff8) ||
+      (cp >= 0xe0080 && cp <= 0xe00ff) ||
+      (cp >= 0xe01f0 && cp <= 0xe0fff);
+  }
+
+  function artIsPrivateUse(cp) {
+    return (cp >= 0xe000 && cp <= 0xf8ff) ||
+      (cp >= 0xf0000 && cp <= 0xffffd) ||
+      (cp >= 0x100000 && cp <= 0x10fffd);
+  }
+
+  /* C0 and C1 controls except tab, newline and carriage return (FR-U12). */
+  function artIsControl(cp) {
+    if (cp === 0x09 || cp === 0x0a || cp === 0x0d) return false;
+    return cp < 0x20 || cp === 0x7f || (cp >= 0x80 && cp <= 0x9f);
+  }
+
+  function artIsTagChar(cp) { return cp >= 0xe0001 && cp <= 0xe007f; }
+  function artIsVariationSelector(cp) {
+    return (cp >= 0xfe00 && cp <= 0xfe0f) ||
+      (cp >= 0xe0100 && cp <= 0xe01ef) ||
+      ART_MONGOLIAN_FVS[cp] === 1;
+  }
+
+  /* Which of the eleven kinds this codepoint belongs to, or null when it is
+     not a carrier at all. Order matters: the narrower classes come first. */
+  function artifactKind(cp, settings) {
+    if (artIsControl(cp)) return "control";
+    if (artIsTagChar(cp)) return "tag_chars";
+    if (artIsNoncharacter(cp)) return "noncharacter";
+    if (artIsReservedIgnorable(cp)) return "reserved_ignorable";
+    if (artIsVariationSelector(cp)) return "variation_selector";
+    if (ART_BIDI[cp] === 1) return "bidi";
+    if (ART_ZW_FAMILY[cp] === 1) return "zwj_family";
+    if (artIsPrivateUse(cp)) return "private_use";
+    if (ART_FORMAT[cp] === 1 || ART_KHMER_VOWELS[cp] === 1 || ART_HANGUL_FILLERS[cp] === 1) return "format";
+    /* Orthographic Cf and the visible-layout controls are carriers only in
+       the sense that they are invisible and must be accounted for. They enter
+       the taxonomy here so their keep rules in artDecide are reachable and
+       testable, and so the panel can show that the tool knows the difference.
+       The source project reaches them through a category-Cf fallback, which
+       FR-U26 forbids; without this line both keep rules would be dead code
+       and the layout controls would never be stripped when they float free
+       of their own script, which is the case the source calls contraband. */
+    if (ART_ORTHOGRAPHIC[cp] === 1) return "format";
+    for (var li = 0; li < ART_LAYOUT_CF.length; li++) {
+      if (cp >= ART_LAYOUT_CF[li].from && cp <= ART_LAYOUT_CF[li].to) return "format";
+    }
+    if (ART_SPACES[cp] !== undefined) return "space";
+    /* Confusables are a carrier class only when folding is on. Reporting
+       every Cyrillic letter in a Russian document would bury the panel in
+       thousands of rows that say nothing. */
+    if (settings.artifactFoldConfusables && ART_CONFUSABLES[cp] !== undefined) return "confusable";
+    return null;
+  }
+
+  /* ---- script tests for the keep rules ------------------------------ */
+
+  /* Broad script groups where ZWJ and ZWNJ carry orthographic meaning. The
+     source consults unicodedata for a letter-or-mark test. FR-U26 forbids a
+     category lookup here, so the block range alone decides. That keeps more
+     than the source does, which is the correct direction: an extra keep is a
+     reported line, an extra strip is a silently altered word. */
+  function artJoiningScript(cp) {
+    if (cp >= 0x0600 && cp <= 0x08ff) return "arabic";
+    if (cp >= 0x0900 && cp <= 0x0dff) return "indic";
+    if (cp >= 0x0f00 && cp <= 0x109f) return "south-asian";
+    if (cp >= 0x1780 && cp <= 0x17ff) return "khmer";
+    if (cp >= 0x1800 && cp <= 0x18af) return "mongolian";
+    return null;
+  }
+
+  function artIsCjkIdeograph(cp) {
+    return (cp >= 0x3400 && cp <= 0x4dbf) || (cp >= 0x4e00 && cp <= 0x9fff) ||
+      (cp >= 0xf900 && cp <= 0xfaff) || (cp >= 0x20000 && cp <= 0x323af);
+  }
+  function artIsMongolianBase(cp) { return cp >= 0x1800 && cp <= 0x18af; }
+  function artIsKhmerBase(cp) { return cp >= 0x1780 && cp <= 0x17ff; }
+  function artIsHangulJamo(cp) {
+    return (cp >= 0x1100 && cp <= 0x11ff) || (cp >= 0xa960 && cp <= 0xa97c) ||
+      (cp >= 0xd7b0 && cp <= 0xd7c6) || (cp >= 0x3131 && cp <= 0x318e) ||
+      (cp >= 0xffa1 && cp <= 0xffdc);
+  }
+
+  /* Characters that can start or continue an emoji sequence. Shared with
+     removeEmojis so the two functions cannot drift apart (FR-U24a). */
+  function artIsEmojiBase(cp) {
+    if (cp >= 0x1f000 && cp <= 0x1faff) return true;
+    if (cp >= 0x2190 && cp <= 0x25ff) return true;
+    if (cp >= 0x2600 && cp <= 0x27bf) return true;
+    if (cp >= 0x2b00 && cp <= 0x2bff) return true;
+    if (cp === 0x203c || cp === 0x2049 || cp === 0x2139 || cp === 0x2934 || cp === 0x2935) return true;
+    if (cp === 0x00a9 || cp === 0x00ae || cp === 0x2122 ||
+        cp === 0x3030 || cp === 0x303d || cp === 0x3297 || cp === 0x3299) return true;
+    /* keycap bases */
+    return cp === 0x0023 || cp === 0x002a || (cp >= 0x0030 && cp <= 0x0039);
+  }
+
+  function artIsEmojiGlue(cp) { return cp === 0x200d || cp === 0xfe0e || cp === 0xfe0f; }
+
+  /* Glue never advances the previous-base pointer (FR-U19), so a ZWJ chain or
+     a tag run stays anchored to the character that opened it. Without this a
+     three-person family emoji fails on its second joiner. */
+  function artIsGlue(cp) {
+    return artIsEmojiGlue(cp) || artIsVariationSelector(cp) ||
+      cp === 0x200c || cp === 0x200d ||
+      (cp >= 0xe0020 && cp <= 0xe007f) ||
+      ART_MONGOLIAN_FVS[cp] === 1 || ART_KHMER_VOWELS[cp] === 1 || ART_HANGUL_FILLERS[cp] === 1;
+  }
+
+  /* ---- whole-text passes that the per-codepoint decision needs ------- */
+
+  /* UTF-16 offsets of tag characters inside a COMPLETE subdivision flag
+     sequence: U+1F3F4, a run of tag characters, terminated by U+E007F.
+     A lone tag character is never part of one. */
+  function artFlagTagOffsets(text) {
+    var valid = {};
+    var cps = [];
+    var offs = [];
+    for (var i = 0; i < text.length; ) {
+      var cp = text.codePointAt(i);
+      cps.push(cp);
+      offs.push(i);
+      i += cp > 0xffff ? 2 : 1;
+    }
+    var k = 0;
+    while (k < cps.length) {
+      if (cps[k] !== 0x1f3f4) { k++; continue; }
+      var j = k + 1;
+      while (j < cps.length && cps[j] >= 0xe0020 && cps[j] <= 0xe007e) j++;
+      if (j > k + 1 && j < cps.length && cps[j] === 0xe007f) {
+        for (var m = k + 1; m <= j; m++) valid[offs[m]] = 1;
+        k = j + 1;
+      } else {
+        k++;
+      }
+    }
+    return valid;
+  }
+
+  /* UTF-16 offsets belonging to a balanced LRE/RLE ... PDF pair. Overrides
+     (LRO, RLO) open a frame on the stack so they consume their PDF, but are
+     never themselves valid. */
+  function artBidiPairOffsets(text) {
+    var valid = {};
+    var stack = [];
+    for (var i = 0; i < text.length; ) {
+      var cp = text.codePointAt(i);
+      if (cp === 0x202a || cp === 0x202b || cp === 0x202d || cp === 0x202e) {
+        stack.push({ cp: cp, at: i });
+      } else if (cp === 0x202c && stack.length) {
+        var opener = stack.pop();
+        if (opener.cp === 0x202a || opener.cp === 0x202b) {
+          valid[opener.at] = 1;
+          valid[i] = 1;
+        }
+      }
+      i += cp > 0xffff ? 2 : 1;
+    }
+    return valid;
+  }
+
+  /* Fenced and inline code spans, as UTF-16 ranges. Computed from the
+     backtick delimiters only. Those are ASCII and cannot themselves be
+     defeated by a zero-width character, so running this before the
+     classifier is safe (FR-U22). Deliberately NOT protectedRanges: terms,
+     URLs and emails are matched after the pass so that they see clean text. */
+  function artCodeRanges(text) {
+    var ranges = [];
+    var res = [/```[\s\S]*?```/g, /`[^`\n]+`/g];
+    for (var r = 0; r < res.length; r++) {
+      var re = res[r];
+      var m;
+      re.lastIndex = 0;
+      while ((m = re.exec(text)) !== null) {
+        ranges.push([m.index, m.index + m[0].length]);
+        if (m[0].length === 0) re.lastIndex++;
+      }
+    }
+    return ranges;
+  }
+
+  function artInRanges(ranges, at) {
+    for (var i = 0; i < ranges.length; i++) {
+      if (at >= ranges[i][0] && at < ranges[i][1]) return true;
+    }
+    return false;
+  }
+
+  /* ---- the single decision function --------------------------------- */
+
+  /* Called by BOTH inspectArtifacts and cleanArtifacts (FR-U6). The source
+     project has its inspect step running with strip_bidi on while its clean
+     step defaults it off, so it reports findings its own default clean will
+     not remove. One function decides here, and a panel that disagrees with
+     the Changes tab is therefore impossible.
+
+     Keep rules are evaluated BEFORE the strip test (FR-U18): a codepoint in a
+     strip class survives when it is load-bearing, and when a keep rule and a
+     strip class disagree the keep rule wins. */
+  function artDecide(cp, ctx, settings) {
+    var kind = artifactKind(cp, settings);
+
+    /* Controls are removed before anything else, including inside code
+       (FR-U16). protect() stashes spans as NUL + index + NUL and guardText
+       marks abbreviations with U+0001, so a literal U+0000 in the input can
+       corrupt a vault restore. Taking controls out in front of protect()
+       makes that unreachable. This is the one keep rule that never applies. */
+    if (kind === "control") {
+      return { action: "strip", replacement: "", kind: kind, keptBecause: null };
+    }
+    if (kind === null) return null;
+
+    /* Reported, never modified: an article ABOUT invisible characters must
+       survive its own subject matter (FR-U21). */
+    if (ctx.inCode && !settings.artifactScanCode) {
+      return { action: "keep", replacement: null, kind: kind, keptBecause: "in-code" };
+    }
+
+    var prevIn = ctx.prevInput, nextIn = ctx.nextInput, prevKept = ctx.prevKept;
+
+    if (!settings.artifactStripBidiMarks) {
+      if (ctx.pairedBidi) return { action: "keep", replacement: null, kind: kind, keptBecause: "paired-bidi" };
+      if (ART_BIDI_PRESERVABLE[cp] === 1) {
+        return { action: "keep", replacement: null, kind: kind, keptBecause: "paired-bidi" };
+      }
+    }
+
+    /* Variation selectors after a base from the matching script. */
+    if (prevIn !== null) {
+      if (cp >= 0xe0100 && cp <= 0xe01ef && artIsCjkIdeograph(prevIn)) {
+        return { action: "keep", replacement: null, kind: kind, keptBecause: "same-script-base" };
+      }
+      if (ART_MONGOLIAN_FVS[cp] === 1 && artIsMongolianBase(prevIn)) {
+        return { action: "keep", replacement: null, kind: kind, keptBecause: "same-script-base" };
+      }
+      if (cp >= 0xfe00 && cp <= 0xfe0d && artIsCjkIdeograph(prevIn)) {
+        return { action: "keep", replacement: null, kind: kind, keptBecause: "same-script-base" };
+      }
+    }
+
+    /* Emoji glue. VS15 and VS16 look back one input character; ZWJ needs an
+       emoji base on both sides, and looks back at the last non-glue base so
+       a multi-person sequence holds together. */
+    if (artIsEmojiGlue(cp)) {
+      if ((cp === 0xfe0e || cp === 0xfe0f) && prevIn !== null && artIsEmojiBase(prevIn)) {
+        return { action: "keep", replacement: null, kind: kind, keptBecause: "emoji-glue" };
+      }
+      if (cp === 0x200d && prevKept !== null && nextIn !== null &&
+          artIsEmojiBase(prevKept) && artIsEmojiBase(nextIn)) {
+        return { action: "keep", replacement: null, kind: kind, keptBecause: "emoji-glue" };
+      }
+    }
+
+    /* ZWNJ and ZWJ are orthography inside complex scripts: Persian mi-rawam,
+       the Devanagari ka-virama-ZWJ-ssa cluster. This is the D3 fix. */
+    if ((cp === 0x200c || cp === 0x200d) && prevIn !== null && nextIn !== null) {
+      var ps = artJoiningScript(prevIn);
+      var ns = artJoiningScript(nextIn);
+      if (ps !== null && ps === ns) {
+        return { action: "keep", replacement: null, kind: kind, keptBecause: "script-joiner" };
+      }
+    }
+
+    if (cp >= 0xe0020 && cp <= 0xe007f && ctx.flagTag) {
+      return { action: "keep", replacement: null, kind: kind, keptBecause: "flag-sequence" };
+    }
+    if (ART_MONGOLIAN_FVS[cp] === 1 && prevKept !== null && artIsMongolianBase(prevKept)) {
+      return { action: "keep", replacement: null, kind: kind, keptBecause: "same-script-base" };
+    }
+    if (ART_KHMER_VOWELS[cp] === 1 && prevKept !== null && artIsKhmerBase(prevKept)) {
+      return { action: "keep", replacement: null, kind: kind, keptBecause: "same-script-base" };
+    }
+    if (ART_HANGUL_FILLERS[cp] === 1 && prevKept !== null && artIsHangulJamo(prevKept)) {
+      return { action: "keep", replacement: null, kind: kind, keptBecause: "same-script-base" };
+    }
+    if (ART_ORTHOGRAPHIC[cp] === 1) {
+      return { action: "keep", replacement: null, kind: kind, keptBecause: "orthographic" };
+    }
+    for (var i = 0; i < ART_LAYOUT_CF.length; i++) {
+      var lc = ART_LAYOUT_CF[i];
+      if (cp < lc.from || cp > lc.to) continue;
+      var near = (prevIn !== null && prevIn >= lc.scriptFrom && prevIn <= lc.scriptTo) ||
+                 (nextIn !== null && nextIn >= lc.scriptFrom && nextIn <= lc.scriptTo);
+      if (near) return { action: "keep", replacement: null, kind: kind, keptBecause: "layout-control" };
+    }
+
+    if (kind === "space") {
+      return settings.artifactNormalizeSpaces
+        ? { action: "replace", replacement: ART_SPACES[cp], kind: kind, keptBecause: null }
+        : { action: "keep", replacement: null, kind: kind, keptBecause: null };
+    }
+    if (kind === "confusable") {
+      /* artifactFoldConfusables is what made this a carrier class at all,
+         so reaching here means folding is on. */
+      return { action: "replace", replacement: ART_CONFUSABLES[cp], kind: kind, keptBecause: null };
+    }
+    return { action: "strip", replacement: "", kind: kind, keptBecause: null };
+  }
+
+  /* ---- confidence ---------------------------------------------------- */
+
+  /* Broad script of a word character, for FR-U4. Unknown returns null, which
+     downgrades to informational: the quieter answer when we cannot tell. */
+  function artWordScript(cp) {
+    if ((cp >= 0x0041 && cp <= 0x005a) || (cp >= 0x0061 && cp <= 0x007a) ||
+        (cp >= 0x00c0 && cp <= 0x024f)) return "latin";
+    if (cp >= 0x0030 && cp <= 0x0039) return "latin";
+    if (cp >= 0x0370 && cp <= 0x03ff) return "greek";
+    if (cp >= 0x0400 && cp <= 0x04ff) return "cyrillic";
+    if (cp >= 0x0590 && cp <= 0x05ff) return "hebrew";
+    var joining = artJoiningScript(cp);
+    if (joining !== null) return joining;
+    if (artIsCjkIdeograph(cp)) return "cjk";
+    return null;
+  }
+
+  /* FR-U3 and FR-U4. Kinds with no legitimate use in running prose are
+     confirmed; everything else, and every keep, is informational. */
+  function artConfidence(cp, decision, ctx) {
+    if (decision.action === "keep") return "informational";
+    if (decision.kind === "tag_chars" || decision.kind === "noncharacter" ||
+        decision.kind === "reserved_ignorable" || decision.kind === "private_use" ||
+        decision.kind === "control") return "confirmed";
+    if (decision.kind === "bidi") {
+      /* An override, or an embedding that never found its PDF. */
+      return "confirmed";
+    }
+    if (decision.kind === "zwj_family" || decision.kind === "format") {
+      /* A carrier between two word characters of the same script is inside a
+         word, and a zero-width character inside a word is not a paste
+         artefact. At a boundary it usually is, so say so more quietly. */
+      if (ctx.prevInput !== null && ctx.nextInput !== null) {
+        var ps = artWordScript(ctx.prevInput);
+        var ns = artWordScript(ctx.nextInput);
+        if (ps !== null && ps === ns) return "confirmed";
+      }
+      return "informational";
+    }
+    return "informational";
+  }
+
+  /* ---- labels and context ------------------------------------------- */
+
+  var ART_NAMES = {
+    0x0000: "NULL", 0x0001: "START OF HEADING", 0x0007: "BELL", 0x0008: "BACKSPACE",
+    0x000b: "LINE TABULATION", 0x000c: "FORM FEED", 0x001b: "ESCAPE", 0x007f: "DELETE",
+    0x00a0: "NO-BREAK SPACE", 0x00ad: "SOFT HYPHEN", 0x034f: "COMBINING GRAPHEME JOINER",
+    0x061c: "ARABIC LETTER MARK", 0x115f: "HANGUL CHOSEONG FILLER",
+    0x1160: "HANGUL JUNGSEONG FILLER", 0x1680: "OGHAM SPACE MARK",
+    0x17b4: "KHMER VOWEL INHERENT AQ", 0x17b5: "KHMER VOWEL INHERENT AA",
+    0x180b: "MONGOLIAN FREE VARIATION SELECTOR ONE",
+    0x180c: "MONGOLIAN FREE VARIATION SELECTOR TWO",
+    0x180d: "MONGOLIAN FREE VARIATION SELECTOR THREE",
+    0x180e: "MONGOLIAN VOWEL SEPARATOR",
+    0x180f: "MONGOLIAN FREE VARIATION SELECTOR FOUR",
+    0x200b: "ZERO WIDTH SPACE", 0x200c: "ZERO WIDTH NON-JOINER",
+    0x200d: "ZERO WIDTH JOINER", 0x200e: "LEFT-TO-RIGHT MARK",
+    0x200f: "RIGHT-TO-LEFT MARK",
+    0x202a: "LEFT-TO-RIGHT EMBEDDING", 0x202b: "RIGHT-TO-LEFT EMBEDDING",
+    0x202c: "POP DIRECTIONAL FORMATTING", 0x202d: "LEFT-TO-RIGHT OVERRIDE",
+    0x202e: "RIGHT-TO-LEFT OVERRIDE", 0x202f: "NARROW NO-BREAK SPACE",
+    0x2060: "WORD JOINER", 0x2061: "FUNCTION APPLICATION",
+    0x2062: "INVISIBLE TIMES", 0x2063: "INVISIBLE SEPARATOR", 0x2064: "INVISIBLE PLUS",
+    0x2065: "RESERVED DEFAULT-IGNORABLE",
+    0x2066: "LEFT-TO-RIGHT ISOLATE", 0x2067: "RIGHT-TO-LEFT ISOLATE",
+    0x2068: "FIRST STRONG ISOLATE", 0x2069: "POP DIRECTIONAL ISOLATE",
+    0x205f: "MEDIUM MATHEMATICAL SPACE", 0x3000: "IDEOGRAPHIC SPACE",
+    0x3164: "HANGUL FILLER", 0xfeff: "ZERO WIDTH NO-BREAK SPACE (BOM)",
+    0xffa0: "HALFWIDTH HANGUL FILLER",
+    0xfff9: "INTERLINEAR ANNOTATION ANCHOR", 0xfffa: "INTERLINEAR ANNOTATION SEPARATOR",
+    0xfffb: "INTERLINEAR ANNOTATION TERMINATOR",
+    0xe0001: "LANGUAGE TAG", 0xe007f: "CANCEL TAG"
+  };
+
+  /* No unicodedata in the browser, so names come from a table for the
+     codepoints worth naming and are derived from the range otherwise. */
+  function artLabel(cp, kind) {
+    if (ART_NAMES[cp]) return ART_NAMES[cp];
+    if (cp >= 0x2000 && cp <= 0x200a) return "EN/EM SPACE VARIANT";
+    if (cp >= 0x206a && cp <= 0x206f) return "DEPRECATED FORMAT CHARACTER";
+    if (cp >= 0xe0020 && cp <= 0xe007e) {
+      return "TAG " + JSON.stringify(String.fromCharCode(cp - 0xe0000));
+    }
+    if (kind === "tag_chars") return "TAG CHARACTER";
+    if (cp >= 0xfe00 && cp <= 0xfe0f) return "VARIATION SELECTOR-" + (cp - 0xfe00 + 1);
+    if (cp >= 0xe0100 && cp <= 0xe01ef) return "VARIATION SELECTOR-" + (cp - 0xe0100 + 17);
+    if (kind === "noncharacter") return "NONCHARACTER";
+    if (kind === "reserved_ignorable") return "RESERVED DEFAULT-IGNORABLE";
+    if (kind === "private_use") return "PRIVATE USE CHARACTER";
+    if (kind === "confusable") return "LATIN LOOKALIKE";
+    if (kind === "control") return "CONTROL CHARACTER";
+    return "FORMAT CHARACTER";
+  }
+
+  /* A short excerpt with the position marked, for the panel. Any other
+     carrier inside the window is dropped, so the excerpt is readable. */
+  function artContext(text, at, len, settings) {
+    var from = Math.max(0, at - 12);
+    var to = Math.min(text.length, at + len + 12);
+    function visible(s) {
+      var out = "";
+      for (var ch of s) {
+        var cp = ch.codePointAt(0);
+        if (artifactKind(cp, settings) === null || cp === 0x20) out += ch;
+      }
+      return out.replace(/\n/g, " ");
+    }
+    return visible(text.slice(from, at)) + "|" + visible(text.slice(at + len, to));
+  }
+
+  /* ---- settings ------------------------------------------------------ */
+
+  /* Missing keys fall back to the defaults, never to undefined (FR-U28), so
+     a config exported before this feature still loads. Accepts either a
+     settings object or a whole config. */
+  function artifactSettings(source) {
+    var s = source || {};
+    if (s.settings && typeof s.settings === "object") s = s.settings;
+    var out = {};
+    for (var k in DEFAULT_ARTIFACT_SETTINGS) {
+      if (!Object.prototype.hasOwnProperty.call(DEFAULT_ARTIFACT_SETTINGS, k)) continue;
+      out[k] = (s[k] === undefined || s[k] === null) ? DEFAULT_ARTIFACT_SETTINGS[k] : !!s[k];
+    }
+    return out;
+  }
+
+  /* ---- the single walk ----------------------------------------------- */
+
+  /* One pass over the codepoints, producing the artifact list and, when
+     asked, the cleaned text. inspectArtifacts and cleanArtifacts both come
+     out of here so they can never disagree (FR-U6).
+
+     Iterates by codepoint and tracks the UTF-16 index alongside (FR-U7,
+     FR-U8): every carrier above U+FFFF is a surrogate pair in a JS string,
+     and a code-unit loop would split it. Offsets are UTF-16 indices into the
+     ORIGINAL text so they stay usable by sentenceSpans, protectedRanges,
+     replaceNth and the existing mark rendering. */
+  function artScan(text, settings, buildText) {
+    text = String(text === undefined || text === null ? "" : text);
+    var flagTags = artFlagTagOffsets(text);
+    var bidiPairs = artBidiPairOffsets(text);
+    var codeRanges = settings.artifactScanCode ? [] : artCodeRanges(text);
+
+    /* Codepoints and their UTF-16 offsets, once. */
+    var cps = [];
+    var offs = [];
+    for (var i = 0; i < text.length; ) {
+      var cp = text.codePointAt(i);
+      cps.push(cp);
+      offs.push(i);
+      i += cp > 0xffff ? 2 : 1;
+    }
+
+    var artifacts = [];
+    var out = buildText ? [] : null;
+    var removed = 0;
+    var replaced = 0;
+    var prevKept = null;
+
+    for (var n = 0; n < cps.length; n++) {
+      var c = cps[n];
+      var at = offs[n];
+      var width = c > 0xffff ? 2 : 1;
+      var ch = String.fromCodePoint(c);
+      var ctx = {
+        prevInput: n > 0 ? cps[n - 1] : null,
+        nextInput: n + 1 < cps.length ? cps[n + 1] : null,
+        prevKept: prevKept,
+        flagTag: flagTags[at] === 1,
+        pairedBidi: bidiPairs[at] === 1,
+        inCode: codeRanges.length ? artInRanges(codeRanges, at) : false
+      };
+      var d = artDecide(c, ctx, settings);
+
+      if (d === null) {
+        /* Not a carrier at all. */
+        if (out) out.push(ch);
+        if (!artIsGlue(c)) prevKept = c;
+        continue;
+      }
+
+      artifacts.push({
+        paragraph: null,
+        start: at,
+        end: at + width,
+        cp: c,
+        label: artLabel(c, d.kind),
+        kind: d.kind,
+        action: d.action,
+        replacement: d.action === "strip" ? "" : (d.action === "replace" ? d.replacement : ch),
+        keptBecause: d.keptBecause,
+        confidence: artConfidence(c, d, ctx),
+        context: artContext(text, at, width, settings)
+      });
+
+      if (d.action === "strip") {
+        removed++;
+        /* prevKept unchanged: a removed character was never a base. */
+      } else if (d.action === "replace") {
+        replaced++;
+        if (out) out.push(d.replacement);
+        prevKept = d.replacement.codePointAt(0);
+      } else {
+        if (out) out.push(ch);
+        if (!artIsGlue(c)) prevKept = c;
+      }
+    }
+
+    return {
+      text: out ? out.join("") : text,
+      artifacts: artifacts,
+      removed: removed,
+      replaced: replaced
+    };
+  }
+
+  /* Report only. Never modifies the text (FR-U5). Artifacts come back in
+     ascending start order (FR-U10); unlike Findings they may be adjacent,
+     and neither the non-overlap rule nor the highlight cap applies to them.
+     A run of forty tag characters is forty artifacts, and the panel is
+     expected to collapse the run for display rather than discard evidence. */
+  function inspectArtifacts(text, settings) {
+    return artScan(text, artifactSettings(settings), false).artifacts;
+  }
+
+  /* Report and apply. Strips and replaces only: never inserts, never
+     reorders, never re-cases, never collapses whitespace (FR-U11). */
+  function cleanArtifacts(text, settings) {
+    var s = artifactSettings(settings);
+    if (!s.artifactClean) {
+      /* Removal off, reporting still on. A silent carrier is the failure
+         mode this whole pass exists to fix, so there is no setting that
+         turns the report off. */
+      var report = artScan(text, s, false);
+      return { text: String(text === undefined || text === null ? "" : text),
+               artifacts: report.artifacts, removed: 0, replaced: 0 };
+    }
+    return artScan(text, s, true);
+  }
+  /* ------------------------------------------------------------------ */
   /* Main entry point                                                     */
   /* ------------------------------------------------------------------ */
 
@@ -785,6 +1439,10 @@ var MyridiusEngine = (function () {
     processDoc: processDoc,
     transform: transform,
     analyze: analyze,
+    inspectArtifacts: inspectArtifacts,
+    cleanArtifacts: cleanArtifacts,
+    defaultArtifactSettings: DEFAULT_ARTIFACT_SETTINGS,
+    artifactTableVersion: ARTIFACT_TABLE_VERSION,
     defaultConfig: DEFAULT_CONFIG,
     fleschScore: fleschScore
   };
