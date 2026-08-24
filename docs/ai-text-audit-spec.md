@@ -271,12 +271,26 @@ English, refuse analysis with an explanation. The entire lexicon and every thres
 this spec is English-specific and applying it to other languages produces noise. Use a
 small n-gram language identifier bundled locally, not a heuristic on stopwords alone.
 
+**The artifact pass of FR-1.8 still runs when this refuses**, and the artifacts panel of
+FR-8.5 still renders, with the resemblance panel absent. A codepoint table is not
+English-specific: a carrier is a carrier in any language, and the reasoning that makes the
+rubric English-only does not apply to it. This falls out of the design for free.
+
 **FR-1.8** `T0` Normalization produces a canonical text plus an **offset map** back to
 the original character positions, so every later finding can be anchored to the exact
-source range. Normalization: collapse runs of whitespace, normalize Unicode to NFC,
-convert smart quotes to straight quotes for matching only (never for display), preserve
-paragraph breaks. Highlights must land on the original text, so the offset map is
-load-bearing and needs its own tests.
+source range. Normalization, in order: **classify and clean invisible Unicode artifacts
+first** (see `docs/req-unicode-artifacts.md`), then collapse runs of whitespace, normalize
+Unicode to NFC, convert smart quotes to straight quotes for matching only (never for
+display), preserve paragraph breaks. Highlights must land on the original text, so the
+offset map is load-bearing and needs its own tests.
+
+The artifact pass precedes NFC because **NFC does nothing to any of these codepoints**.
+Zero-width characters, bidi controls, tag characters, noncharacters and private-use
+codepoints all survive NFC untouched, by design: normalization is *required* to preserve
+them. An earlier draft of this line treated NFC as sufficient, and that was the defect.
+The consequence is not cosmetic. Every lexicon match in section 6 is a word-boundary
+match on the text, so one U+200B inside a word makes that word unmatchable and the
+document reports as analysed when nothing ran.
 
 **FR-1.9** `T0` Sentence segmentation must handle abbreviations (Dr., Inc., e.g., i.e.,
 U.S.), decimals, ellipses, and quoted sentences. A naive split on `[.!?]` will corrupt
@@ -391,6 +405,28 @@ paraphrasing. A small model's perplexity also says as much about how predictable
 displayed alongside the rubric, cap their total contribution to the score at 2 of 20
 points, and never let them alone move a document up a band. Budget the 90 MB only if
 users specifically ask for it.
+
+
+### 6.7 Artifact metrics `T0`
+
+Invisible-Unicode artifacts, from the pass in FR-1.8. **None of these is ever scored**,
+following the M-27 precedent: they are reported as context and never contribute to a
+dimension, the weighted score, the band or the confidence.
+
+| ID | Metric | Definition |
+|----|--------|-----------|
+| M-42 | `artifactCount` | Total artifacts found, including the ones deliberately kept |
+| M-43 | `artifactConfirmedCount` | Artifacts of a kind with no legitimate use in running prose: tag characters, noncharacters, reserved default-ignorables, private-use codepoints, controls, and bidi overrides or unpaired embeddings |
+| M-44 | `artifactKeptCount` | Load-bearing invisibles preserved with a stated reason: emoji glue, script joiners, complete flag sequences, same-script selectors and fillers, paired bidi, orthographic marks, layout controls, and anything inside a code span |
+| M-45 | `artifactKinds` | Counts per kind, from the eleven-kind taxonomy |
+
+Keeping these out of the score is not a tuning choice, it is the boundary in section 1.2.
+Artifacts are the most concrete-looking evidence this module will ever hold, and concrete
+evidence inside a scored rubric is what turns a resemblance report into an accusation. A
+banded, density-driven score that moves because of one pasted codepoint is measuring
+whether the author's clipboard was clean, not how the prose reads. Adjacent and
+unweighted, the report can say *here is one thing we can prove, and separately, here is an
+estimate*. Merged, the product has quietly become a detector.
 
 ---
 
@@ -518,11 +554,52 @@ shown, or a zero reads as a pass.
 
 ### 8.2 Report UI
 
+
+### 8.1a Artifacts
+
+**FR-8.1a** `T0` An invisible-Unicode artifact produces an `Artifact`, which is a
+**distinct type from `Finding`** and must never be pushed into `findings`:
+
+```ts
+interface Artifact {
+  paragraph: number | null;   // index into the paragraph pairs, null at document level
+  start: number;              // UTF-16 offset into the ORIGINAL text
+  end: number;
+  cp: number;                 // code point, not code unit
+  label: string;              // "ZERO WIDTH SPACE"
+  kind: 'zwj_family'|'bidi'|'tag_chars'|'variation_selector'|'noncharacter'|
+        'reserved_ignorable'|'private_use'|'format'|'space'|'confusable'|'control';
+  action: 'strip'|'replace'|'keep';
+  replacement: string;
+  keptBecause: null | 'emoji-glue'|'script-joiner'|'flag-sequence'|'same-script-base'|
+                      'paired-bidi'|'orthographic'|'layout-control'|'in-code';
+  confidence: 'confirmed'|'informational';
+  context: string;            // short excerpt with the position marked
+}
+```
+
+**FR-8.1b** `T0` **FR-8.2 and FR-8.3 do not apply to artifacts.** Findings may not overlap
+and highlights are capped at 20 percent of the document; artifacts may be adjacent, and
+there is no cap. A run of forty tag characters is forty artifacts. The panel collapses the
+run for display; it does not discard the evidence.
+
 **FR-8.5** `T0` The analysis view contains, in order: score and band with confidence
 adjacent; the non-dismissible limitation notice; a colour legend using **plain** dimension
 names with per-dimension finding counts; a collapsed explainer panel; the highlighting
-toggle; the annotated document; the provenance panel; the metrics table; the guards
-section; the section-variation table.
+toggle; the annotated document; the provenance panel; **the artifacts panel**; the
+metrics table; the guards section; the section-variation table.
+
+The artifacts panel sits next to the provenance panel and gets the same visual separation
+from the resemblance panel, because both are file history rather than register. It is not
+a sixth dimension: no bar, no entry in the colour legend, no entry in the chip filter row.
+It renders even when there are no artifacts, as an explicit empty state, because an absent
+panel reads as an absent check. It carries a fixed caveat from the locked vocabulary of
+FR-0.2 stating that finding no artifacts is not evidence of human authorship and that
+finding artifacts is not evidence of anything about authorship either: carriers arrive
+from web pages, PDFs, CMS exports and ordinary copy-paste far more often than from
+anything deliberate. Kept artifacts are shown in their own subsection with the reason in
+plain words, because a panel that only shows removals looks like a tool that removes
+everything.
 
 **FR-8.6** `T0` The explainer panel is collapsed by default, opens on click, and defines
 each of the five dimensions in one or two plain sentences with a contrasting pair of
@@ -663,6 +740,11 @@ interface AnalysisResult {
   guards: Array<{ id: string; label: string; explanation: string;
                   effect: string; firedBecause: string }>;
   findings: Finding[];
+  artifacts: Artifact[];              // never scored, see 6.7 and 8.1a
+  artifactSummary: { total: number; confirmed: number; kept: number;
+                     removed: number; replaced: number;
+                     kinds: Record<string, number>;
+                     tableVersion: string };   // e.g. "unicode-15.1/2026-08-24" 
   sections?: Array<{ title: string; start: number; end: number;
                      weighted: number; deviation: number }>;
   provenance?: { totalTimeMinutes?: number; application?: string;
@@ -689,6 +771,31 @@ that cannot be explained is a score that cannot be defended.
 original text sliced by `[start, end)` equals `matchedText`. This is the test that stops
 highlights drifting.
 **FR-11.3** Every scoring rule tested at its threshold boundary and one unit either side.
+
+**FR-11.3a** Invisible-Unicode artifact fixtures, per section 9 of
+`docs/req-unicode-artifacts.md`. Every fixture is built from escape sequences in the test
+source and never from literal characters, because a test file containing literal carriers
+cannot be reviewed and a diff containing them cannot be read. Required:
+
+- The three defect regressions, written first: a zero-width space inside a word no longer
+  blocks the lexicon match; bidi overrides and tag characters are absent from the output
+  and each is reported as `confirmed`; the Devanagari `ka + virama + ZWJ + ssa` cluster is
+  byte-identical through the pipeline and produces no emoji-removal entry.
+- One fixture per kind in the eleven-kind taxonomy, asserting removal, kind and confidence,
+  including a tag-character run, a noncharacter, a private-use codepoint above U+FFFF to
+  exercise codepoint iteration, and an unpaired U+202A.
+- The keep set, each round-tripping byte-identical: the man-woman-girl family emoji, a red
+  heart with VS16, a complete Scotland flag tag sequence, Persian with a ZWNJ, the
+  Devanagari cluster, an Arabic number sign, a CJK ideograph with a variation selector, and
+  Mongolian, Khmer and Hangul same-script fillers. Plus a carrier inside a fenced block, a
+  carrier inside inline backticks, a non-breaking space with space normalization off, and
+  Cyrillic with confusable folding off.
+- Invariants: idempotence; offset validity, which is FR-11.2 applied to artifacts; inspect
+  and clean agreeing on every decision; score invariance, which is the assertion that FR-U1
+  is real; disabled-is-inert, proving the output is byte-identical to the pre-feature engine
+  when the pass is switched off; sentinel safety; disjoint codepoint ownership between the
+  artifact pass and emoji removal; and correct offsets for an astral character adjacent to a
+  carrier, proving no surrogate pair was split.
 
 ### 11.2 Segmentation
 
@@ -735,11 +842,21 @@ colours across light and dark.
 ## 12. Delivery phases
 
 **Phase 1: deterministic core** `T0`
-Ingestion for all formats, normalization and offset map, metrics M-01 to M-30, dimension
-scoring, bands, confidence, guards G-3 G-5 G-6, findings with template notes, the full
-report UI including the explainer, all three exports, lexicon pack loading.
+Ingestion for all formats, normalization and offset map **including the invisible-Unicode
+artifact pass**, metrics M-01 to M-30 plus M-42 to M-45, dimension scoring, bands,
+confidence, guards G-3 G-5 G-6, findings with template notes, the full report UI including
+the explainer and the artifacts panel, all three exports, lexicon pack loading.
 *Exit criterion: separates the human and unedited-AI corpus classes with no overlap in
 band, and produces zero false positives above "mild" on the pre-2022 human class.*
+
+**The exit criterion moved when the artifact pass landed, and this is deliberate.** Fixing
+the zero-width-space defect means lexicon rules now match on text where they silently did
+not, so any corpus document carrying invisible characters scores differently after the pass
+than before it. The earlier number was wrong, not the later one. Calibration figures
+recorded before this landed are **not comparable** to figures recorded after. Note that
+against the corpus rather than silently re-baselining, and let the FR-8.11 provenance
+header carry `artifactSummary.tableVersion` so two reports can be checked for
+comparability.
 
 **Phase 2: classical NLP** `T1`
 NER, POS metrics, language detection, L2 heuristics, guards G-1 G-2 G-4, Burrows's Delta

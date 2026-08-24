@@ -1,4 +1,4 @@
-# Session Context: Patralekhiser (2026-08-19)
+# Session Context: Patralekhiser (2026-08-24)
 
 ## Standing rule: where design comes from
 All design and UI decisions for this project are read from the `design/` folder.
@@ -16,8 +16,9 @@ Never invent tokens, colours, spacing or interaction patterns. If it is not in
 `design/`, ask before adding it.
 
 ## Context at save
-Context window: 62,109 tokens = 31% of 200,000 at resume; see below for the
-current figure when this file is next saved.
+Context window: 289,556 tokens = 145% of 200,000 (2026-08-24 save; the session
+ran long on codebase analysis and requirement drafting, so start fresh with /RC).
+Previous save: 62,109 tokens = 31%.
 
 ## Current stage & gate status
 Patralekhiser v1.1 is live, committed and pushed
@@ -28,8 +29,21 @@ arrived in `design/index.html` (117 KB, 2,690 lines) as a patched superset of
 `app/index.html` (81 KB, 1,921 lines). It is self-contained, runs in a browser,
 and carries the full resemblance-audit feature.
 
-Next stage: write the requirement and handover document for Claude Code, then
-back-port the design implementation into the `src/` build pipeline.
+Next stage, updated 2026-08-24: the requirement and handover documents for the
+Unicode artifacts work now exist (`docs/req-unicode-artifacts.md`,
+`docs/handoff-unicode-artifacts.md`) and that piece is ready to build independently
+of the back-port. The `design/` back-port into `src/` is still open and is still the
+larger job.
+
+Confirmed 2026-08-24, and it is the trap that will confuse the next implementer:
+`reviewParas`, `resemblance`, `protectedRanges` and `guardText` exist in
+`design/index.html`, `dist/Patralekhiser-test-build.html` and
+`publish/Patralekhiser-v1.2.0-preview.4.html`, and in NONE of `src/engine.js`,
+`src/template.html` or `app/index.html`. `design/index.html` is a fork of the built
+app that is ahead of `src/`. `node src/build.js` is therefore safe to run, because
+`app/index.html` is already the pre-audit build and loses nothing, but any
+requirement touching the resemblance UI cannot be built in `src/` until the
+back-port lands.
 
 ## What exists and works
 - Single-file app at `app/index.html`, no runtime dependencies, no LLM.
@@ -239,8 +253,9 @@ for a non-technical person who just wants to use the tool.
   credentials, no SSH keys, no `gh`.
 - So every push must be run by the user from their own Mac Terminal. Commits are
   prepared locally and left ready.
-- Unpushed as of this note: 8884909, 42332b3, 38e99a4 plus the current commit.
-  Remote HEAD is 74c3b03.
+- Unpushed as of this note: the five invisible-Unicode commits plus everything
+  earlier that has not been pushed. Run `git log origin/main..main` to see the exact
+  list rather than trusting a number recorded here.
 
 ## Shipped 2026-08-19: mechanical rewrite options (v1.2.0-preview.4)
 User asked whether the tool can offer selectable rewrite options. Answer: yes for a
@@ -282,6 +297,99 @@ Found while analysing a real article. `are open` ("my messages are open"), `was 
 ("search access was down") and `is unmanaged` are adjectival complements after a copula,
 not passives. 3 of 11 passive flags on that document were false, inflating d3 by roughly
 a band. Needs an adjectival-complement guard, same shape as the verbOnly fix.
+
+## Shipped 2026-08-24: invisible Unicode artifacts (engine only)
+
+`docs/req-unicode-artifacts.md` implemented in `src/engine.js`, `src/template.html`,
+`config/default-config.json` and `tests/test.js`, following the six stages and gates in
+`docs/handoff-unicode-artifacts.md`. Five commits: classifier, defect fix, config, build,
+documents. 178 engine checks and 15 file-IO checks pass; the original 34 engine checks are
+unchanged.
+
+- Stage 0 first: all three defects reproduced against the shipped engine before any code
+  was written. They then stopped reproducing, which is the regression evidence.
+- New engine surface: `inspectArtifacts`, `cleanArtifacts`, `defaultArtifactSettings`,
+  `artifactTableVersion`. Both entry points come out of ONE decision function, so a panel
+  and a Changes tab can never disagree. The source project gets this wrong: its inspect
+  step runs with `strip_bidi` on while its clean step defaults it off.
+- `transform` now returns `artifacts`; `process` and `processDoc` also return
+  `artifactSummary`. `processDoc` stamps the paragraph index. Offsets are UTF-16 indices
+  into the ORIGINAL paragraph text, so the panel anchors to the left pane.
+- `removeEmojis` rewritten to match whole emoji sequences. Landed in the same commit as
+  the pipeline placement, because splitting them produces a state worse than today.
+- Tables pinned to Unicode 15.1 with a dated comment. Re-check on version bumps.
+
+### What turned out different from the requirement, worth knowing before the back-port
+
+1. **Two keep rules were dead code as specified.** FR-U26 forbids a Unicode category
+   fallback, and without one the orthographic Arabic and Syriac marks (U+0600 to U+0605,
+   U+06DD, U+070F, U+08E2, U+110BD, U+110CD) and the visible-layout controls (Egyptian
+   hieroglyph quadrat, Duployan, musical beaming) never enter a strip class at all, so
+   their keep rules could never fire. They are now part of the `format` kind, which makes
+   both rules reachable and testable and lets the layout controls be stripped when they
+   float free of their own script, which is the case the source project calls contraband.
+2. **FR-U12 and the 2.1 table disagree about controls.** The table lists U+0000 to U+0008,
+   U+000B, U+000E to U+001F, U+007F, which leaves out form feed and the C1 range. FR-U12
+   says "C0 and C1 controls except tab, newline and carriage return". FR-U12 was
+   implemented as the normative text, so U+000C and U+0080 to U+009F are also stripped.
+3. **Confusables are only a carrier class when `artifactFoldConfusables` is on.** Reporting
+   every Cyrillic letter in a Russian document would bury the panel in thousands of rows
+   that say nothing. This follows the source project's behaviour.
+4. **FR-U16 beats FR-U21 for controls.** A carrier inside a code span is kept, but a
+   control is stripped even there, because FR-U16 says controls go before anything else and
+   a literal U+0000 inside a code span would reach `protect()` and could corrupt a vault
+   restore. Every other kind is kept inside code as specified.
+5. **FR-U6's invariant holds when `artifactClean` is true.** With it false the report
+   describes what would be removed rather than what was, which is the documented point of
+   the setting.
+6. **The README's "Needs a human" reference is NOT stale for `src/`.** The tab in
+   `src/template.html` is still called "Needs a human", so the note in
+   `req-sentence-splitting.md` acceptance item 9 only becomes true after the back-port. It
+   was left correct rather than corrected into being wrong. Rename it with the back-port.
+
+### FR-U38, recorded rather than hidden
+
+Fixing D1 means swap rules now fire on text where they silently did not. Because auto-swaps
+run before flagging (known gap 1), a document that was bypassing its swaps will produce
+fewer flags after this and therefore a **lower** resemblance score. The old number was
+wrong, not the new one. Any calibration figure recorded before this landed is **not
+comparable** to a figure recorded after, and `artifactSummary.tableVersion` is carried so
+two reports can be checked for comparability. Note this against the corpus rather than
+silently re-baselining.
+
+The existing sample article is unaffected: it carries no invisible characters, so old and
+new engines produce byte-identical output for it and
+`samples/sample-article-patralekhised.md` was NOT regenerated, per FR-U54.
+
+### Verification actually performed
+
+- Browser, from the built `app/index.html`, no server and no network: zero console errors,
+  zero network requests, the five toggles round-tripping through `renderConfig`,
+  `applyConfig` and `resetConfig`, and the Changes tab showing the new entries.
+- All four exports byte-scanned, not eyeballed: no stripped codepoint appears in the
+  markdown, the plain text, the docx container, the inflated `word/document.xml`, or the
+  pdf. Codepoints kept elsewhere in the document are excluded from that scan, because the
+  same U+200B is stripped inside a word and kept inside a code span.
+- `toPdf` is single-byte WinAnsi and turns anything above U+00FF into "?", so only
+  codepoints that fit in one byte could ever have appeared there as themselves. That is a
+  pre-existing export limitation, not something this change introduced.
+- Boundary proved by grep, per acceptance item 9: no artifact reaches `flags`, and the
+  only mention of the score in the artifact code is a comment explaining why it must not.
+
+### Deferred, and why
+
+- FR-U30 to FR-U36, the artifacts panel. No resemblance UI exists in `src/template.html`.
+- FR-U48, score invariance. `reviewParas` does not exist in `src/engine.js`. The test is
+  WRITTEN and skips with a printed reason naming FR-U48. The back-port must unskip it.
+- FR-U40, the artifact pass running when language detection refuses. FR-1.7 is unbuilt, so
+  this is recorded in the spec amendment only.
+
+### Tester build lag, expected and not a new bug
+
+`dist/Patralekhiser-test-build.html` is built from `design/index.html`, not from `src/`, so
+it still carries all three defects. Tester reports of stray or missing characters during
+the current round are KNOWN. Do not hand-edit `design/index.html` to patch it: two
+divergent implementations of this classifier is the worse outcome.
 
 ## Open threads / blockers
 - Back-port gap: `design/index.html` is a BUILT artifact. The additions must be
@@ -330,15 +438,117 @@ sentence splitting for a bounded syntactic subset, no LLM.
   by FR-S34a, a byte-identical test against `splitMaxTier: 0`. Config carries
   only `splitMaxTier` (2) and `minClauseWords` (4).
 
+## Unicode artifacts requirement (new, 2026-08-24)
+`docs/req-unicode-artifacts.md` written and ready for Claude Code. A deterministic
+invisible-Unicode pass, ported from `guillaumemeyer/watermarks-remover` (MIT,
+`service/scripts/text_unicode.py` v0.5.0). Repo analysis in
+`docs/ref-watermarks-remover-analysis.md`.
+
+Three defects were found by running the current `src/engine.js`, not inferred:
+- **D1** A single U+200B inside a word defeats every swap and flag rule, because they are
+  all `\b`-anchored regexes on the raw string. `util<ZWSP>ize` is neither fixed nor
+  flagged, so the document looks processed and is not.
+- **D2** Bidi overrides (U+202E, the Trojan-Source class) and tag characters
+  (U+E0001 to U+E007F) pass straight through into the Word, PDF, Markdown and text
+  exports. Nothing flags them.
+- **D3** `removeEmojis` matches U+200D and U+FE0F as bare codepoints, so it deletes the
+  orthographic ZWJ in Devanagari clusters and logs it as "Emoji removal". Myridius writes
+  for readers in India, so this is a live locale, not a hypothetical.
+
+Design decisions settled in the requirement:
+- The pass runs **first** in `transform`, before `protect()`. Placement is the fix for D1.
+  This is the inverse of FR-S14 for splitting and the two do not conflict.
+- Artifacts are a **separate evidence class, never scored**. FR-U1 forbids any effect on
+  the band, the dimensions or the confidence. Same reasoning as FR-1.4's provenance panel:
+  a rubric that responds to one pasted codepoint is measuring clipboards, not register.
+- The value of the port is the **keep rules**, not the strip tables: emoji ZWJ chains,
+  script joiners, complete flag tag sequences, paired bidi versus overrides, same-script
+  fillers. A naive strip table would make D3 systematic instead of accidental.
+- `removeEmojis` must be rewritten in the same change to match whole emoji sequences
+  (FR-U24), or fixing D3 leaves orphaned joiners behind.
+- Carriers inside fenced or inline code are reported and **not** removed (FR-U21), so an
+  article about invisible characters survives its own subject matter.
+- U+0000 and U+0001 are stripped as controls before `protect()` runs, which closes an
+  existing vault-restore hazard rather than creating one (FR-U16).
+- No Unicode category fallback (FR-U26). JS has no `unicodedata`, so the port is
+  table-driven only and will miss newly assigned format characters. Tables carry a dated
+  Unicode-version comment (FR-U13), because U+180F became Mongolian FVS4 in Unicode 14.
+
+Known consequence to record rather than hide: fixing D1 means swaps now fire where they
+previously did not, so resemblance scores will **drop** on carrier-laden documents (known
+gap 1: swaps run before flagging). The old number was wrong, not the new one. Calibration
+figures recorded before this lands are not comparable to figures after (FR-U39).
+
+Amends `docs/ai-text-audit-spec.md` in eight places, listed as a checklist in section 0.2
+and repeated in section 12 of the requirement. FR-1.8 is the headline: "normalize Unicode
+to NFC" is the defect, because NFC is required to preserve every one of these codepoints.
+
+SHIPPED 2026-08-24. See the section below.
+
+## Decisions made 2026-08-24
+- Analysed `guillaumemeyer/watermarks-remover` (MIT, v0.5.0, 15.6k stars) as prior
+  art. 822 tests pass on a bare container. Roughly 90% deterministic; the only
+  LLM-dependent layer is the statistical rewrite, whose default backend just prints a
+  prompt. Written up in `docs/ref-watermarks-remover-analysis.md`, with two bugs found
+  in it (`clean_image.py --in-place` tuple unpack; `av_meta._strip_mp4` truncated-tail
+  data loss).
+- ADOPT the invisible-Unicode classifier (their Layer A), ported Python to JS.
+  Requirement in `docs/req-unicode-artifacts.md`, 57 numbered FR-U requirements.
+- REJECT from the same project: the statistical rewrite layer (needs an LLM, breaks
+  the no-network promise), all image/audio/PDF metadata surgery (this is a text tool),
+  pixel-domain and torch backends, the HTTP service, hooks and SARIF (ADR-0002 settled
+  on a single-file browser app).
+- SETTLED: artifacts never touch the score, the band or the confidence (FR-U1). Same
+  reasoning as spec FR-1.4's provenance panel. This is the boundary that stops the
+  module drifting into being an AI detector, per spec section 1.2. Do not relitigate.
+- SETTLED: the pass runs FIRST in `transform`, before `protect()`. Placement is the
+  fix, not an optimisation. This is the inverse of FR-S14 for splitting and the two do
+  not conflict.
+- SETTLED: `removeEmojis` must be rewritten to match whole emoji sequences in the same
+  commit (FR-U24), or fixing the Devanagari defect leaves orphaned joiners behind.
+- SETTLED: carriers inside fenced or inline code are reported, never removed (FR-U21),
+  so an article about invisible characters survives its own subject matter.
+- SETTLED: no Unicode category fallback (FR-U26). JS has no `unicodedata`, so the port
+  is table-driven only, with a dated Unicode-version comment (FR-U13). U+180F became
+  Mongolian FVS4 in Unicode 14 and a category rule would have deleted it.
+- Still open and cheap, not folded in: DOCX provenance reading (spec FR-1.4;
+  `fileio.js` already has a working `unzip()` that discards `docProps/`), and a
+  fail-loud ingestion contract so a partial read never reports as a clean read.
+
+## Deferred until the design back-port
+- FR-U30 to FR-U36, the artifacts panel. No resemblance UI exists in `src/`.
+- FR-U48, score invariance. `reviewParas` does not exist in `src/`. The handoff says
+  write the test now and skip it with a printed reason naming FR-U48.
+- FR-U40, artifact pass running when language detection refuses. FR-1.7 is unbuilt.
+The back-port must pick these up and unskip FR-U48.
+
+## Open question for the user
+FR-U14 defaults `artifactNormalizeSpaces` to true, which turns non-breaking spaces
+into ordinary ones and changes line-breaking on `10 km`, `10 %`, `Fig. 3` and French
+guillemet spacing. Defensible for business prose, wrong for typeset work. Unanswered
+at save. Ships as true unless the user says otherwise.
+
 ## Next actions
 0. WAITING: user is running a tester round over the next several days with
    `dist/Patralekhiser-test-build.html`. Packaging revisited only if feedback gives a
    concrete reason (see ADR-0002 triggers).
 1. Write the complete requirement and handover document for Claude Code covering
-   the audit module back-port. The splitting requirement is a standalone piece of
-   it and should be folded in or referenced, not rewritten.
+   the audit module back-port. The splitting requirement and the Unicode artifacts
+   requirement are standalone pieces of it and should be referenced, not rewritten.
+1a. DONE 2026-08-24. `docs/req-unicode-artifacts.md` implemented, engine only. See
+   "Shipped 2026-08-24: invisible Unicode artifacts" above for what changed, what turned
+   out different from the requirement, and what was deferred.
+1b. KNOWN LAG: the tester build `dist/Patralekhiser-test-build.html` is built from
+   `design/index.html`, not from `src/`, so it will still carry all three Unicode
+   defects after 1a lands. Tester reports of stray or missing characters are expected,
+   not new bugs. Do NOT hand-edit `design/index.html` to patch it; two divergent
+   implementations of the classifier is the worse outcome.
 2. Back-port `design/index.html` into `src/engine.js` and `src/template.html`,
-   then `node src/build.js`.
+   then `node src/build.js`. This back-port must also pick up FR-U30 to FR-U36, the
+   artifacts panel, and unskip the FR-U48 score-invariance test, which is written and
+   skipping with a printed reason. Otherwise the artifact feature ships with no UI and
+   nobody remembers why. Rename the "Needs a human" tab in the same pass, and correct
+   `README.md` to match, per `req-sentence-splitting.md` acceptance item 9.
 3. Add tests for the new engine surface, then run `node tests/*.js`.
 4. Vendor pdf.js locally (removes the last CDN dependency).
 5. Ask again for sample Myridius articles to calibrate the humanizer word lists.

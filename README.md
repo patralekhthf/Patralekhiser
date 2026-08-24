@@ -10,7 +10,11 @@ Everything runs in your browser. The one exception is reading an uploaded PDF, w
 
 ## What it fixes automatically
 
-Complex words become plain ones (utilize becomes use, facilitate becomes help). Marketing hype and AI sounding words get safe swaps (seamless becomes smooth, empower becomes help). Wordy phrases shrink (in order to becomes to, due to the fact that becomes because). Stock openers get deleted (It is worth noting that, In today's fast-paced world). Em and en dashes become commas, number ranges become "X to Y". Emojis are removed. Contractions are expanded for formal writing. Protected terms like Myridius and BusinessBook Plus are never touched, and neither are URLs, emails or code.
+Complex words become plain ones (utilize becomes use, facilitate becomes help). Marketing hype and AI sounding words get safe swaps (seamless becomes smooth, empower becomes help). Wordy phrases shrink (in order to becomes to, due to the fact that becomes because). Stock openers get deleted (It is worth noting that, In today's fast-paced world). Em and en dashes become commas, number ranges become "X to Y". Emojis are removed, as whole sequences rather than one piece at a time. Contractions are expanded for formal writing. Protected terms like Myridius and BusinessBook Plus are never touched, and neither are URLs, emails or code.
+
+Invisible characters are removed too, and this one matters more than it sounds. Text pasted from a web page, a PDF or a CMS often carries zero-width spaces, non-breaking spaces, direction controls and other characters you cannot see. They travel into your Word and PDF files, and a single one sitting inside a word stops every rule above from recognising that word, so the article comes back looking processed when nothing ran. They are now removed before anything else happens, and every one is reported so you can see what was there.
+
+Characters that are doing real work are kept, and the tool says why it kept them: the joiners that hold an emoji together, the joiners that Persian and Devanagari spelling depends on, complete flag sequences, and the selectors and fillers used by CJK, Mongolian, Khmer and Hangul. Anything inside a code span is reported and left alone, so an article about invisible characters survives its own subject matter. Finding none of these is not evidence that a text was written by a person, and finding some is not evidence that it was not: they arrive from ordinary copy-paste far more often than from anything deliberate.
 
 ## What it flags for a human
 
