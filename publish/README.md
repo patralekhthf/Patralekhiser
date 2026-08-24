@@ -58,6 +58,23 @@ AI detector and it cannot tell you who wrote something.** Careful, formal busine
 high with no AI involved at all, and so does English written well by someone whose first language
 is not English. Please do not use the number to accuse anyone of anything.
 
+## Invisible characters
+
+Text pasted from a web page, a PDF or a content system often carries characters you cannot see:
+zero-width spaces, direction controls and similar. They end up in your Word and PDF files, and a
+single one sitting inside a word used to stop the tool from recognising that word, so an article
+could come back looking processed when nothing had actually run. The tool now removes them before
+it does anything else, and lists every one it found.
+
+Characters that are doing real work are kept, and it tells you why it kept them: the joiners that
+hold an emoji together, the joiners that Persian and Devanagari spelling depends on, complete flag
+sequences, and the selectors used by Chinese, Japanese, Korean, Mongolian and Khmer. Anything
+inside a code block is reported and left alone.
+
+**Finding none of these is not evidence that a person wrote something, and finding some is not
+evidence that they did not.** They come from ordinary copy-paste far more often than from anything
+deliberate. That is why they are shown next to the score and never counted in it.
+
 ## Things that are not finished yet
 
 This is an early version, so it is worth knowing what is rough:
@@ -68,6 +85,12 @@ This is an early version, so it is worth knowing what is rough:
   deserves. This is the problem most worth telling me about.
 - **The score sometimes will not budge** after you fix something. It measures how often problems
   appear rather than counting them, so one fix in a dense paragraph may not move the bar.
+- **Some documents score lower than they did in an earlier build.** That is the invisible
+  -character fix working, not a regression: those documents were being scored on text the tool had
+  failed to process. A score you wrote down from an older build is not comparable to this one.
+- **Non-breaking spaces become ordinary spaces.** That changes where lines break, so things like
+  `10 km` and `Fig. 3` can now split across two lines. You can turn it off in Configuration if you
+  are working on something typeset.
 - **PDF files come out plainer than Word files.** Bold text inside a paragraph is lost and the
   line breaks are approximate. Use Word if the formatting matters.
 - **Bulleted lists are not formatted.** The dashes come through as plain dashes.

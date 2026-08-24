@@ -16,7 +16,7 @@ set -euo pipefail
 
 REPO="Patralekhiser-Public"
 OWNER="patralekhthf"
-TAG="v1.2.0-preview.4"
+TAG="v1.2.0-preview.5"
 ASSET="Patralekhiser-${TAG}.html"
 DEST="$HOME/Documents/Claude/Projects/$REPO"
 SRC="$(cd "$(dirname "$0")" && pwd)"
@@ -25,7 +25,7 @@ echo "==> checking prerequisites"
 command -v git >/dev/null || { echo "git not found"; exit 1; }
 command -v gh  >/dev/null || { echo "gh not found. See MANUAL FALLBACK in this file."; exit 1; }
 gh auth status >/dev/null 2>&1 || { echo "gh is not logged in. Run: gh auth login"; exit 1; }
-[ -f "$SRC/$ASSET" ] || { echo "missing $SRC/$ASSET. Build it first: python3 build-dist.py $TAG"; exit 1; }
+[ -f "$SRC/$ASSET" ] || { echo "missing $SRC/$ASSET. Build it first: python3 publish/build-dist.py $TAG"; exit 1; }
 
 echo "==> preparing $DEST"
 mkdir -p "$DEST"
@@ -76,7 +76,11 @@ NOTES="Download the .html file at the bottom of this page, then double-click it.
 
 Or use it without downloading: https://$OWNER.github.io/$REPO/
 
-What is new in this build: changed words are shaded green and hovering one shows what it said before, a small orange line marks deletions, and you can click any paragraph on the right to rewrite it yourself. Your edits are what Download produces.
+What is new in this build: the tool now handles invisible characters. Text pasted from a web page, a PDF or a content system often carries zero-width spaces and direction controls you cannot see. They end up in your Word and PDF files, and a single one inside a word used to stop the tool recognising that word, so an article came back looking processed when nothing had actually run. They are now removed first, and a panel lists every one found. Characters that are doing real work are kept and the panel says why, including the joiners that Persian and Devanagari spelling depends on, and anything inside a code block is reported and left alone.
+
+Finding no invisible characters is not evidence that a person wrote something, and finding some is not evidence that they did not. They arrive from ordinary copy-paste far more often than from anything deliberate, so they are reported next to the score and never counted in it.
+
+One consequence worth knowing: some documents score LOWER in this build than they did before, and that is the fix working rather than a regression. Those documents were being scored on text the tool had failed to process. Scores recorded from earlier builds are not comparable to this one.
 
 Please read before relying on it: the score tells you how much the text resembles the way AI models write. It is not an AI detector and cannot tell you who wrote anything. Formal business writing scores high with no AI involved, and so does good English from a writer whose first language is not English. The score bands have not been calibrated yet, so expect them to be off. Full list of rough edges is in the README."
 

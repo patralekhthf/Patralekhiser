@@ -1,16 +1,23 @@
 #!/usr/bin/env python3
-"""Builds the tester distributable from design/index.html.
+"""Builds the tester distributable from app/index.html.
 
 Adds a version marker and a caveat banner. Both are DISTRIBUTION-ONLY and must
 never be back-ported into src/ or design/. Run from the project root:
 
-    python3 publish/build-dist.py v1.2.0-preview.3
+    python3 publish/build-dist.py v1.2.0-preview.5
+
+The source is app/index.html, the real build output of `node src/build.js`.
+It used to be design/index.html, which was correct only while design/ was a
+fork running ahead of src/. Since the back-port that is inverted: src/ is
+ahead, design/ is the design reference, and building the thing people
+actually download from a file nobody builds from would ship a stale app.
+Override with DESIGN_SRC if you ever need the old behaviour.
 """
 import sys, os
 
 VER = sys.argv[1] if len(sys.argv) > 1 else "v0.0.0-dev"
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SRC = os.environ.get("DESIGN_SRC", os.path.join(ROOT, "design", "index.html"))
+SRC = os.environ.get("DESIGN_SRC", os.path.join(ROOT, "app", "index.html"))
 OUT = os.environ.get("DIST_OUT", os.path.join(ROOT, "publish", f"Patralekhiser-{VER}.html"))
 
 CSS = """
@@ -53,12 +60,20 @@ BANNER = """
   English written by a fluent second-language writer. If you use this number to accuse someone
   of anything, you are using it wrong.</p>
 
-  <p><span class="tb-strong">New in {ver}:</span> every word the rules changed is shaded green in
-  the right pane, and hovering one tells you what it was before. A thin orange bar marks where
-  something was deleted. Click any paragraph on the right to edit it by hand, in the Result tab or
-  the Resemblance tab; your text is what Download and Copy produce. Where the rules can work out
-  a safe rewrite they now offer it as a button you can tap, and where they cannot they say so
-  instead of leaving you an empty box.</p>
+  <p><span class="tb-strong">New in {ver}:</span> the tool now handles invisible characters.
+  Text pasted from a web page, a PDF or a CMS often carries zero-width spaces, direction
+  controls and other characters you cannot see. They travel into your Word and PDF files, and
+  a single one sitting inside a word used to stop every rule from recognising that word, so an
+  article came back looking processed when nothing had run. They are removed before anything
+  else happens, and a panel below the audit lists every one that was found.</p>
+
+  <p>Characters that are doing real work are kept, and the panel says why it kept them: the
+  joiners that hold an emoji together, the joiners that Persian and Devanagari spelling depends
+  on, complete flag sequences, and the selectors used by CJK, Mongolian, Khmer and Hangul.
+  Anything inside a code span is reported and left alone. <span class="tb-strong">Finding none
+  is not evidence a person wrote something, and finding some is not evidence they did not.</span>
+  They come from ordinary copy-paste far more often than from anything deliberate, which is why
+  they are reported next to the score and never counted in it.</p>
 
   <details>
     <summary>What would be most useful to test</summary>
@@ -104,6 +119,18 @@ BANNER = """
       <li><span class="tb-strong">The last dimension highlights nothing.</span> "No personal
       voice" is judged by absence, so it shows as a document-level card. Zero highlights is not
       a pass.</li>
+      <li><span class="tb-strong">Scores dropped for some documents in this build,</span> and
+      that is the fix working rather than a regression. A hidden character inside a word used to
+      stop the rules matching it, so those documents were scored on text the tool had failed to
+      process. The old number was wrong, not the new one. If you compare against a score you
+      recorded from an earlier build, they are not comparable.</li>
+      <li><span class="tb-strong">Invisible-character handling is table driven.</span> A format
+      character added to Unicode after these tables were written will be missed. The alternative
+      was deleting characters the tool cannot name, which is worse: a missed one is a line in a
+      panel you can read, a wrongly deleted one is a changed word nobody notices.</li>
+      <li><span class="tb-strong">Non-breaking spaces become ordinary spaces</span> by default.
+      That changes line breaking, so <code>10&nbsp;km</code> and <code>Fig.&nbsp;3</code> can now
+      break across lines. Turn it off in Configuration if you are working on anything typeset.</li>
       <li><span class="tb-strong">PDF export drops inline bold</span> and its line wrapping is
       approximate. Headings are fine. Word export is the accurate one.</li>
       <li><span class="tb-strong">Reading an uploaded PDF needs internet</span> the first time,
