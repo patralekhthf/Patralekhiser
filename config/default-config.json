@@ -927,6 +927,11 @@
     "maxSentenceWords": 28,
     "maxParagraphSentences": 6,
     "flagPassiveVoice": true,
-    "flagSemicolons": true
+    "flagSemicolons": true,
+    "artifactClean": true,
+    "artifactNormalizeSpaces": true,
+    "artifactStripBidiMarks": false,
+    "artifactFoldConfusables": false,
+    "artifactScanCode": false
   }
 }

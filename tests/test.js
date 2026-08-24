@@ -544,6 +544,38 @@ check("fixing D1 makes swaps fire that previously did not", (function () {
   return on.stats.changeCount > off.stats.changeCount;
 })());
 
+/* ---- FR-U27 / FR-U28: config round trip and backwards compatibility -- */
+var fileCfg = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "config", "default-config.json"), "utf8"));
+check("config/default-config.json carries all five artifact keys (FR-U27)",
+  fileCfg.settings.artifactClean === true &&
+  fileCfg.settings.artifactNormalizeSpaces === true &&
+  fileCfg.settings.artifactStripBidiMarks === false &&
+  fileCfg.settings.artifactFoldConfusables === false &&
+  fileCfg.settings.artifactScanCode === false);
+check("the reference config agrees with the engine defaults", (function () {
+  var d = engine.defaultArtifactSettings;
+  for (var k in d) if (fileCfg.settings[k] !== d[k]) return false;
+  return true;
+})());
+check("config export then re-import preserves all five settings", (function () {
+  var cfg = JSON.parse(JSON.stringify(fileCfg));
+  cfg.settings.artifactNormalizeSpaces = false;
+  cfg.settings.artifactFoldConfusables = true;
+  var round = JSON.parse(JSON.stringify(cfg));
+  return round.settings.artifactNormalizeSpaces === false &&
+    round.settings.artifactFoldConfusables === true &&
+    engine.cleanArtifacts("10" + C.NBSP + "km", round).text === "10" + C.NBSP + "km" &&
+    engine.cleanArtifacts("A" + C.CYR_A + "B", round).text === "AaB";
+})());
+check("a config exported before this feature still loads (FR-U28)", (function () {
+  /* strip the five keys, as an older export would not have them */
+  var old = JSON.parse(JSON.stringify(fileCfg));
+  ["artifactClean", "artifactNormalizeSpaces", "artifactStripBidiMarks",
+   "artifactFoldConfusables", "artifactScanCode"].forEach(function (k) { delete old.settings[k]; });
+  var r = engine.process("We util" + C.ZWSP + "ize it.", old);
+  return r.output === "We use it." && r.artifactSummary.total === 1;
+})());
+
 if (process.argv.indexOf("--show") !== -1) {
   console.log("\n--- OUTPUT ---\n" + out);
   console.log("\n--- FLAGS ---");

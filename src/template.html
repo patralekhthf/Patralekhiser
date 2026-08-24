@@ -240,6 +240,32 @@
         <label class="toggle">Flag sentences longer than <input type="number" id="setMaxWords" min="10" max="60"> words</label>
       </div>
       <div class="cfg-section">
+        <h3>Invisible characters</h3>
+        <p>Zero-width spaces, bidi controls, tag characters, noncharacters and
+        private-use codepoints are invisible on screen but defeat every rule
+        below and travel into your exported files. They are always reported.
+        Characters that are doing real work are kept and listed with the
+        reason: emoji joiners, Persian and Devanagari joiners, complete flag
+        sequences, and CJK, Mongolian, Khmer and Hangul selectors and fillers.
+        Anything inside a code span is reported and left alone, so an article
+        about invisible characters survives its own subject matter. Finding
+        none is not evidence that a text was written by a person, and finding
+        some is not evidence that it was not.</p>
+        <label class="toggle"><input type="checkbox" id="setArtifactClean"> Remove invisible characters (off still reports them)</label>
+        <label class="toggle"><input type="checkbox" id="setArtifactSpaces"> Turn non-breaking and exotic spaces into ordinary spaces</label>
+        <p>Space normalisation changes typography, not just bytes: a
+        non-breaking space becoming an ordinary one lets <b>10&nbsp;km</b>,
+        <b>10&nbsp;%</b> and <b>Fig.&nbsp;3</b> break across lines, and changes
+        French spacing around guillemets. On by default because business prose
+        rarely depends on it.</p>
+        <label class="toggle"><input type="checkbox" id="setArtifactBidi"> Also remove direction marks and isolates</label>
+        <label class="toggle"><input type="checkbox" id="setArtifactConfusables"> Fold Cyrillic and fullwidth lookalikes to Latin</label>
+        <p>Folding lookalikes will <b>damage genuine Cyrillic</b>: real Russian
+        containing а, е, о, р, с or х becomes Latin mojibake. Leave it off
+        unless you know the document is English.</p>
+        <label class="toggle"><input type="checkbox" id="setArtifactScanCode"> Clean inside code spans too</label>
+      </div>
+      <div class="cfg-section">
         <h3>Protected terms</h3>
         <p>Never changed by any rule. One per line. Brand and product names belong here.</p>
         <textarea id="cfgProtected"></textarea>
@@ -615,6 +641,19 @@ function renderConfig() {
   document.getElementById("setPassive").checked = config.settings.flagPassiveVoice;
   document.getElementById("setSemicolons").checked = config.settings.flagSemicolons;
   document.getElementById("setMaxWords").value = config.settings.maxSentenceWords;
+  /* Missing keys fall back to the engine defaults, never to undefined, so a
+     config exported before this feature still loads (FR-U28). */
+  var artDefaults = MyridiusEngine.defaultArtifactSettings;
+  document.getElementById("setArtifactClean").checked =
+    config.settings.artifactClean === undefined ? artDefaults.artifactClean : config.settings.artifactClean;
+  document.getElementById("setArtifactSpaces").checked =
+    config.settings.artifactNormalizeSpaces === undefined ? artDefaults.artifactNormalizeSpaces : config.settings.artifactNormalizeSpaces;
+  document.getElementById("setArtifactBidi").checked =
+    config.settings.artifactStripBidiMarks === undefined ? artDefaults.artifactStripBidiMarks : config.settings.artifactStripBidiMarks;
+  document.getElementById("setArtifactConfusables").checked =
+    config.settings.artifactFoldConfusables === undefined ? artDefaults.artifactFoldConfusables : config.settings.artifactFoldConfusables;
+  document.getElementById("setArtifactScanCode").checked =
+    config.settings.artifactScanCode === undefined ? artDefaults.artifactScanCode : config.settings.artifactScanCode;
   document.getElementById("cfgProtected").value = config.protectedTerms.join("\n");
   document.getElementById("cfgSimple").value = pairsToLines(config.simpleSwaps);
   document.getElementById("cfgHype").value = pairsToLines(config.hypeSwaps);
@@ -631,6 +670,11 @@ function applyConfig() {
   config.settings.flagPassiveVoice = document.getElementById("setPassive").checked;
   config.settings.flagSemicolons = document.getElementById("setSemicolons").checked;
   config.settings.maxSentenceWords = parseInt(document.getElementById("setMaxWords").value, 10) || 28;
+  config.settings.artifactClean = document.getElementById("setArtifactClean").checked;
+  config.settings.artifactNormalizeSpaces = document.getElementById("setArtifactSpaces").checked;
+  config.settings.artifactStripBidiMarks = document.getElementById("setArtifactBidi").checked;
+  config.settings.artifactFoldConfusables = document.getElementById("setArtifactConfusables").checked;
+  config.settings.artifactScanCode = document.getElementById("setArtifactScanCode").checked;
   config.protectedTerms = document.getElementById("cfgProtected").value.split("\n").map(function (s) { return s.trim(); }).filter(Boolean);
   config.simpleSwaps = linesToPairs(document.getElementById("cfgSimple").value);
   config.hypeSwaps = linesToPairs(document.getElementById("cfgHype").value);
