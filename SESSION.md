@@ -244,7 +244,10 @@ for a non-technical person who just wants to use the tool.
   makes exactly one request, the page itself, with zero console errors and no
   off-origin traffic.
 
-## PUSH IS BLOCKED FROM BOTH ENVIRONMENTS (verified, not assumed)
+## PUSH IS BLOCKED FROM THE SANDBOX AND THE BRIDGE VM (verified, not assumed)
+
+NOTE 2026-08-24: this section is about the cloud sandbox and the bridge VM. Pushing from
+the user's own Mac works: credential.helper is osxkeychain and gh is authenticated there.
 - Cloud sandbox: can READ github (anonymous clone works) but the git proxy refuses
   writes: "not in this session's authorized repository set, so the proxy will not
   inject a credential". Dry-run pushes to `main` and to a throwaway ref both 403.
@@ -439,6 +442,24 @@ should be rebuilt from `src/` rather than from `design/`. `publish/build-dist.py
 `DESIGN_SRC` from the environment and defaults to `design/index.html`, so it can be pointed
 at `app/index.html` without editing it. `design/index.html` stays as the design reference
 and must still never be hand-edited.
+
+## Published 2026-08-24: v1.2.0-preview.5
+
+Live at https://patralekhthf.github.io/Patralekhiser-Public/ and released as a prerelease
+with the downloadable asset attached. Verified against the LIVE URL, not just the local
+file: version marker correct, all three defects fixed, the code-span carrier kept, five
+artifact rows in the panel and five carets in the left pane.
+
+This is the first public build that contains the audit module from `src/` rather than from
+`design/`, and the first that contains the invisible-character work at all.
+
+`publish/build-dist.py` now defaults to `app/index.html` instead of `design/index.html`.
+That default was correct only while `design/` ran ahead of `src/`; after the back-port it
+would have shipped a stale app. `DESIGN_SRC` still overrides it.
+
+Push works from this Mac: `credential.helper osxkeychain` is set and `gh` is authenticated.
+The older note in this file saying push is blocked from both environments described the
+cloud sandbox and the bridge VM, not this machine.
 
 ## Open threads / blockers
 - Back-port gap: `design/index.html` is a BUILT artifact. The additions must be
