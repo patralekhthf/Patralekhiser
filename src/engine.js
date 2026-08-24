@@ -215,37 +215,37 @@ var MyridiusEngine = (function () {
 
     /* Flagged for a human, never auto changed. word/phrase + why + what to do. */
     flagWords: [
-      { find: "game-changing", reason: "Marketing hype", suggestion: "State the concrete benefit instead" },
-      { find: "game changer", reason: "Marketing hype", suggestion: "State the concrete benefit instead" },
-      { find: "ultimate", reason: "Marketing hype", suggestion: "Remove or replace with a specific claim you can defend" },
-      { find: "unparalleled", reason: "Marketing hype", suggestion: "Replace with a measurable claim" },
-      { find: "world-class", reason: "Marketing hype", suggestion: "Replace with a specific, verifiable strength" },
-      { find: "best-in-class", reason: "Marketing hype", suggestion: "Replace with a specific, verifiable strength" },
-      { find: "industry-leading", reason: "Marketing hype", suggestion: "Only keep if you can defend it with evidence" },
-      { find: "synergy", reason: "Corporate jargon", suggestion: "Say what actually works better together" },
-      { find: "synergies", reason: "Corporate jargon", suggestion: "Say what actually works better together" },
-      { find: "paradigm shift", reason: "Corporate jargon", suggestion: "Describe the actual change" },
-      { find: "transformative", reason: "Marketing hype", suggestion: "Describe what changes and by how much" },
-      { find: "innovative", reason: "Overused claim", suggestion: "Show the innovation instead of labelling it" },
-      { find: "unlock", reason: "AI sounding verb", suggestion: "Say what the reader can now do" },
-      { find: "unlocks", reason: "AI sounding verb", suggestion: "Say what the reader can now do" },
-      { find: "tapestry", reason: "AI sounding word", suggestion: "Rewrite in plain language" },
-      { find: "testament to", reason: "AI sounding phrase", suggestion: "State the fact directly" },
-      { find: "ever-evolving", reason: "AI sounding phrase", suggestion: "Rewrite the opening with a concrete point" },
-      { find: "ever-changing", reason: "AI sounding phrase", suggestion: "Rewrite the opening with a concrete point" },
-      { find: "navigate the complexities", reason: "AI sounding phrase", suggestion: "Name the specific problems" },
-      { find: "in the realm of", reason: "AI sounding phrase", suggestion: "Just name the field" },
-      { find: "landscape", reason: "Often AI filler (e.g. 'the AI landscape')", suggestion: "Name the market, industry or field directly" },
-      { find: "embark", reason: "AI sounding word", suggestion: "Use start or begin" },
-      { find: "journey", reason: "Often vague", suggestion: "Keep only if it is literally a journey; otherwise name the process" },
-      { find: "thereby", reason: "Formal connective, hard for non native readers", suggestion: "Split into two sentences with 'so' or 'this'" },
-      { find: "whereby", reason: "Formal connective, hard for non native readers", suggestion: "Rewrite with 'where' or split the sentence" },
-      { find: "wherein", reason: "Formal connective, hard for non native readers", suggestion: "Rewrite with 'where'" },
-      { find: "aforementioned", reason: "Legalese", suggestion: "Use 'this' or 'these', or repeat the noun" },
-      { find: "in terms of", reason: "Vague connective", suggestion: "Usually removable; restructure the sentence" },
-      { find: "solutions", reason: "Abstract when used alone", suggestion: "Name the product or capability if possible" },
+      { find: "game-changing", reason: "Marketing hype", suggestion: "State the concrete benefit instead", options: ["", "major"] },
+      { find: "game changer", reason: "Marketing hype", suggestion: "State the concrete benefit instead", options: ["a major change", ""] },
+      { find: "ultimate", reason: "Marketing hype", suggestion: "Remove or replace with a specific claim you can defend", options: ["", "best"] },
+      { find: "unparalleled", reason: "Marketing hype", suggestion: "Replace with a measurable claim", options: [""] },
+      { find: "world-class", reason: "Marketing hype", suggestion: "Replace with a specific, verifiable strength", options: ["", "strong"] },
+      { find: "best-in-class", reason: "Marketing hype", suggestion: "Replace with a specific, verifiable strength", options: ["", "strong"] },
+      { find: "industry-leading", reason: "Marketing hype", suggestion: "Only keep if you can defend it with evidence", options: [""] },
+      { find: "synergy", reason: "Corporate jargon", suggestion: "Say what actually works better together", options: ["shared benefit", "cooperation"] },
+      { find: "synergies", reason: "Corporate jargon", suggestion: "Say what actually works better together", options: ["shared benefits", "savings"] },
+      { find: "paradigm shift", reason: "Corporate jargon", suggestion: "Describe the actual change", options: ["big change", "shift"] },
+      { find: "transformative", reason: "Marketing hype", suggestion: "Describe what changes and by how much", options: ["major", ""] },
+      { find: "innovative", reason: "Overused claim", suggestion: "Show the innovation instead of labelling it", options: ["new", ""] },
+      { find: "unlock", reason: "AI sounding verb", suggestion: "Say what the reader can now do", options: ["get", "reach", "open up"] },
+      { find: "unlocks", reason: "AI sounding verb", suggestion: "Say what the reader can now do", options: ["gets", "reaches"] },
+      { find: "tapestry", reason: "AI sounding word", suggestion: "Rewrite in plain language", options: ["mix", "range"] },
+      { find: "testament to", reason: "AI sounding phrase", suggestion: "State the fact directly", options: ["proof of", "a sign of"] },
+      { find: "ever-evolving", reason: "AI sounding phrase", suggestion: "Rewrite the opening with a concrete point", options: ["changing", ""] },
+      { find: "ever-changing", reason: "AI sounding phrase", suggestion: "Rewrite the opening with a concrete point", options: ["changing", ""] },
+      { find: "navigate the complexities", reason: "AI sounding phrase", suggestion: "Name the specific problems", options: ["handle the details", "work through"] },
+      { find: "in the realm of", reason: "AI sounding phrase", suggestion: "Just name the field", options: ["in", "for"] },
+      { find: "landscape", reason: "Often AI filler (e.g. 'the AI landscape')", suggestion: "Name the market, industry or field directly", options: ["market", "field", ""] },
+      { find: "embark", reason: "AI sounding word", suggestion: "Use start or begin", options: ["start", "begin"] },
+      { find: "journey", reason: "Often vague", suggestion: "Keep only if it is literally a journey; otherwise name the process", options: ["process", "work", ""] },
+      { find: "thereby", reason: "Formal connective, hard for non native readers", suggestion: "Split into two sentences with 'so' or 'this'", options: ["so", "which"] },
+      { find: "whereby", reason: "Formal connective, hard for non native readers", suggestion: "Rewrite with 'where' or split the sentence", options: ["where", "in which"] },
+      { find: "wherein", reason: "Formal connective, hard for non native readers", suggestion: "Rewrite with 'where'", options: ["where", "in which"] },
+      { find: "aforementioned", reason: "Legalese", suggestion: "Use 'this' or 'these', or repeat the noun", options: ["this", "that", ""] },
+      { find: "in terms of", reason: "Vague connective", suggestion: "Usually removable; restructure the sentence", dim: "d3", options: ["for", "about", ""] },
+      { find: "solutions", reason: "Abstract when used alone", suggestion: "Name the product or capability if possible", options: ["tools", "products", "services"] },
       { find: "not only", reason: "Complex construction for non native readers", suggestion: "Consider splitting into two plain statements" },
-      { find: "in conclusion", reason: "AI sounding closer", suggestion: "End with the action or outcome instead" }
+      { find: "in conclusion", reason: "AI sounding closer", suggestion: "End with the action or outcome instead", dim: "d1", options: [""] }
     ],
 
     /* Contractions expanded in formal mode. */
@@ -283,6 +283,15 @@ var MyridiusEngine = (function () {
       { find: "I've", replace: "I have" },
       { find: "I'll", replace: "I will" },
       { find: "let's", replace: "let us" }
+    ],
+
+    /* Resemblance dimensions. Weight scales each dimension's share of the score. */
+    dimensions: [
+      { key: "d1", name: "Stock wording", note: "lexical fingerprint", color: "#b45309", weight: 1 },
+      { key: "d2", name: "Sentence rhythm", note: "syntactic rhythm", color: "#1f7a8c", weight: 1 },
+      { key: "d3", name: "Fence-sitting", note: "rhetorical posture", color: "#64748b", weight: 1 },
+      { key: "d4", name: "Missing specifics", note: "informational density", color: "#6d4aa7", weight: 1 },
+      { key: "d5", name: "No personal voice", note: "authorial presence", color: "#2f7a52", weight: 1 }
     ],
 
     settings: {
@@ -1425,6 +1434,452 @@ var MyridiusEngine = (function () {
     }
     return artScan(text, s, true);
   }
+
+  /* ------------------------------------------------------------------ */
+  /* Resemblance analysis: offset aware, so a UI can highlight in place   */
+  /* ------------------------------------------------------------------ */
+
+  var DEFAULT_DIMENSIONS = [
+    { key: "d1", name: "Stock wording", note: "lexical fingerprint", color: "#b45309", weight: 1 },
+    { key: "d2", name: "Sentence rhythm", note: "syntactic rhythm", color: "#1f7a8c", weight: 1 },
+    { key: "d3", name: "Fence-sitting", note: "rhetorical posture", color: "#64748b", weight: 1 },
+    { key: "d4", name: "Missing specifics", note: "informational density", color: "#6d4aa7", weight: 1 },
+    { key: "d5", name: "No personal voice", note: "authorial presence", color: "#2f7a52", weight: 1 }
+  ];
+
+  /* Ranges no rule may touch: code, links, emails, protected terms. */
+  function protectedRanges(text, terms) {
+    var ranges = [];
+    function scan(re) {
+      var m;
+      while ((m = re.exec(text)) !== null) {
+        ranges.push([m.index, m.index + m[0].length]);
+        if (m[0].length === 0) re.lastIndex++;
+      }
+    }
+    scan(/```[\s\S]*?```/g);
+    scan(/`[^`\n]+`/g);
+    scan(/\bhttps?:\/\/[^\s)>\]]+/g);
+    scan(/\b[\w.+-]+@[\w-]+\.[\w.]+\b/g);
+    var list = (terms || []).slice().sort(function (a, b) { return b.length - a.length; });
+    for (var i = 0; i < list.length; i++) {
+      if (!list[i]) continue;
+      scan(new RegExp(escapeRegex(list[i]), "g"));
+    }
+    return ranges;
+  }
+
+  function inRanges(start, end, ranges) {
+    for (var i = 0; i < ranges.length; i++) {
+      if (start < ranges[i][1] && end > ranges[i][0]) return true;
+    }
+    return false;
+  }
+
+  /* Same abbreviation guard as splitSentences, but length preserving,
+     so indices in the guarded string are valid in the original. */
+  function guardText(text) {
+    return text
+      .replace(/\b(e\.g|i\.e|etc|vs|Mr|Mrs|Ms|Dr|Inc|Ltd|St|No|Fig)\./g, "$1\u0001")
+      .replace(/(\d)\.(\d)/g, "$1\u0001$2");
+  }
+
+  function sentenceSpans(text) {
+    var g = guardText(text), out = [], re = /(?<=[.!?])\s+/g, start = 0, m;
+    while ((m = re.exec(g)) !== null) {
+      out.push({ start: start, end: m.index, text: text.slice(start, m.index) });
+      start = m.index + m[0].length;
+    }
+    if (start < text.length) out.push({ start: start, end: text.length, text: text.slice(start) });
+    return out.filter(function (s) { return s.text.trim().length > 0; });
+  }
+
+  function dimForFlagWord(rule) {
+    if (rule.dim) return rule.dim;
+    var r = (rule.reason || "").toLowerCase();
+    if (/hype|overused|jargon|ai sounding|ai filler|closer/.test(r)) return "d1";
+    if (/construction|connective/.test(r)) return "d2";
+    if (/vague|legalese|abstract/.test(r)) return "d3";
+    return "d1";
+  }
+
+  /* Missing specifics: evidence shaped language with no evidence in it. */
+  var SPECIFIC_PATTERNS = [
+    { re: /\b(?:studies|study|research|surveys?|reports?|data)\s+(?:show|shows|showed|suggest|suggests|indicate|indicates|found|finds|reveal|reveals)\b/gi,
+      reason: "Research claim with no source", suggestion: "Name the study, its sample and its year, or cut the claim" },
+    { re: /\b(?:experts?|analysts?|researchers?|specialists?|leaders?)\s+(?:agree|say|believe|suggest|recommend|note|point out)\b/gi,
+      reason: "Appeal to an authority nobody can check", suggestion: "Name the person, or own the judgment in the first person" },
+    { re: /\bup to \d[\d.,]*\s*(?:%|percent|x|times)?/gi,
+      reason: "Unfalsifiable figure: \"up to\" includes zero", suggestion: "Give the measured number and how it was measured" },
+    { re: /\b(?:many|most|several|numerous|countless)\s+(?:organizations|organisations|companies|businesses|teams|enterprises|firms)\b/gi,
+      reason: "Unquantified population", suggestion: "Say how many, or name the ones you mean" },
+    { re: /\baccording to (?:industry|recent|various|multiple|some|several)\b[^.,;]*/gi,
+      reason: "Vague attribution", suggestion: "Cite the specific report and date" },
+    { re: /\b\d[\d.,]*\s*(?:%|percent)\s+(?:more|less|fewer|faster|better|higher|lower|improvement|increase|reduction|growth)\b/gi,
+      reason: "Statistic with no source", suggestion: "Add the source, the period and the measurement method" }
+  ];
+
+  /* Authorial presence: judged by what is absent, so it is document level. */
+  function authorialPresence(text) {
+    var wc = words(text).length || 1;
+    var per = 1000 / Math.max(200, wc);
+    var signals = {
+      firstPerson: (text.match(/\b(?:I|I'm|I've|I'd|we|we're|we've|our|ours|us|my|mine)\b/g) || []).length,
+      dates: (text.match(/\b(?:19|20)\d{2}\b|\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2}\b|\b(?:last|next|this)\s+(?:week|month|quarter|year|Monday|Tuesday|Wednesday|Thursday|Friday)\b|\bQ[1-4]\b/gi) || []).length,
+      figures: (text.match(/[$£€]\s?\d|\b\d[\d.,]*\s?(?:k|m|bn|hours?|days?|weeks?|months?|users?|tables?|people|engineers?|tickets?)\b/gi) || []).length,
+      named: (text.match(/\b[A-Z][a-z]+\s+[A-Z][a-z]+\b/g) || []).length,
+      opinion: (text.match(/\b(?:I think|I'd|I would|in my (?:view|experience)|we decided|we chose|we got it wrong|worth doing|not worth|a mistake|I still think|my guess)\b/gi) || []).length
+    };
+    var present = 0, missing = [];
+    if (signals.firstPerson * per >= 2) present++; else missing.push("no first person");
+    if (signals.dates * per >= 1) present++; else missing.push("no dates");
+    if (signals.figures * per >= 2) present++; else missing.push("no concrete figures");
+    if (signals.opinion * per >= 1 || signals.named * per >= 1) present++; else missing.push("no opinion or named person");
+    return { score: Math.max(0, 4 - present), signals: signals, missing: missing, words: wc };
+  }
+
+  /* All flags inside one paragraph, with offsets into that paragraph. */
+  /* ---- mechanical rewrite options ---------------------------------------- *
+     Every option here is DERIVED from the text, never invented. Splitting a
+     sentence at a joint the author already wrote, or substituting a word from a
+     list a human curated, are both things a rule engine can do honestly. Writing
+     a new clause is not, so nothing here attempts it. Where no option can be
+     derived the flag stays advice and the drawer says so, which is the same
+     posture as the rest of the engine: refuse rather than guess.             */
+
+  var SUBORDINATORS = /^(?:because|since|although|though|while|whereas|unless|until|after|before|if|when|whenever|wherever|as|whether|which|whom|whose|that)\b/i;
+  var SUBJECT_START = /^(?:i|we|you|he|she|it|they|this|that|these|those|there|who|one|someone|everyone|nobody|nothing|the|a|an|its|our|their|his|her|my|your|each|every|both|all|most|some|any|no|another|either|neither)\b/i;
+  var FINITE_VERB = /\b(?:is|are|was|were|be|been|being|am|has|have|had|do|does|did|can|could|will|would|shall|should|may|might|must|'s|'re|'ve|'ll|'d)\b|\b\w+(?:ed|es|s)\b/i;
+
+  /* A clause can stand alone if it opens with a subject and carries a finite
+     verb soon after. Deliberately strict: a missed option costs nothing, a
+     fragment offered as a suggestion costs the user's trust in every option. */
+  function looksIndependent(clause) {
+    var c = String(clause).trim();
+    if (!c) return false;
+    if (SUBORDINATORS.test(c)) return false;
+    var toks = c.split(/\s+/);
+    if (toks.length < 4) return false;
+    var head = toks[0].replace(/[^\w'’-]/g, "");
+    var isSubject = SUBJECT_START.test(head) || /^[A-Z][a-z]/.test(toks[0]);
+    if (!isSubject) return false;
+    /* Only look for the verb before the first subordinator or relative. Without
+       this, "a standing agenda item where staff can propose" passes on the "can"
+       that belongs to the relative clause, and the fragment gets offered as a
+       finished sentence. */
+    var window = toks.slice(1, 9).join(" ");
+    var sub = /\b(?:where|when|which|that|who|whom|whose|because|since|while|if|after|before|until|although)\b/i.exec(window);
+    if (sub) window = window.slice(0, sub.index);
+    return FINITE_VERB.test(window);
+  }
+
+  /* "A, B, and C" is a list, not two clauses. Splitting one produces two
+     fragments that each read like a finished sentence, which is the worst kind
+     of wrong suggestion: it looks plausible. Any comma before the joint is
+     enough to refuse, and refusing costs only a missed option. */
+  function looksLikeList(before) {
+    return /,/.test(before);
+  }
+
+  function capFirst(s) {
+    return s.replace(/^([a-z])/, function (c) { return c.toUpperCase(); });
+  }
+  function wordCount(s) { return (String(s).match(/\S+/g) || []).length; }
+
+  /* Splits a sentence at a joint its author already wrote: a semicolon, or a
+     comma followed by a coordinating conjunction. Returns zero options when no
+     safe joint exists, which is the common case and is correct. */
+  function splitSentenceOptions(sent) {
+    var out = [], m, left, right;
+
+    m = /;\s+/.exec(sent);
+    if (m) {
+      left = sent.slice(0, m.index).replace(/\s+$/, "");
+      right = sent.slice(m.index + m[0].length);
+      /* A colon before the first semicolon means the semicolons are separating
+         list items, not joining clauses. */
+      var colonFirst = sent.indexOf(":") !== -1 && sent.indexOf(":") < m.index;
+      if (!colonFirst && wordCount(left) >= 4 && wordCount(right) >= 4 &&
+          looksIndependent(left) && looksIndependent(right)) {
+        out.push({ label: "Two sentences", text: left + ". " + capFirst(right) });
+        out.push({ label: "Comma and 'and'", text: left + ", and " + right });
+      }
+      return out;
+    }
+
+    m = /,\s+(but|so|yet|and|or)\s+/i.exec(sent);
+    if (m) {
+      left = sent.slice(0, m.index);
+      right = sent.slice(m.index + m[0].length);
+      var conj = m[1].toLowerCase();
+      if (!looksLikeList(left) && wordCount(left) >= 4 && wordCount(right) >= 4 &&
+          looksIndependent(left) && looksIndependent(right)) {
+        if (conj === "but" || conj === "so" || conj === "yet") {
+          out.push({ label: "Two sentences", text: left + ". " + capFirst(conj) + " " + right });
+        } else {
+          out.push({ label: "Two sentences", text: left + ". " + capFirst(right) });
+        }
+      }
+    }
+    return out;
+  }
+
+  /* flag -> [{ label, text, scope }]. scope tells the UI which range the option
+     replaces: "phrase" for the flagged span, "sentence" for its container. */
+  function suggestOptions(flag, paraText) {
+    var out = [];
+    if (!flag || typeof flag.start !== "number" || flag.paragraph === null) return out;
+
+    if (flag.type === "Word choice") {
+      var alts = flag.options || (typeof flag.replace === "string" ? [flag.replace] : []);
+      for (var i = 0; i < alts.length; i++) {
+        if (alts[i] === "") out.push({ label: "delete it", text: "", scope: "phrase" });
+        else out.push({ label: alts[i], text: matchCase(flag.found, alts[i]), scope: "phrase" });
+      }
+      return out;
+    }
+
+    if (flag.type !== "Semicolon" && flag.type !== "Long sentence") return out;
+
+    var sent = null, spans = sentenceSpans(paraText);
+    for (var j = 0; j < spans.length; j++) {
+      if (flag.start >= spans[j].start && flag.start < spans[j].end) { sent = spans[j]; break; }
+    }
+    if (!sent) return out;
+
+    var opts = splitSentenceOptions(sent.text);
+    for (var k = 0; k < opts.length; k++) {
+      out.push({ label: opts[k].label, text: opts[k].text, scope: "sentence" });
+    }
+    return out;
+  }
+  function collectParaFlags(text, config, paraIndex) {
+    var s = config.settings || {};
+    var ranges = protectedRanges(text, config.protectedTerms);
+    var flags = [];
+    var claimed = [];
+    function free(a, b) {
+      if (inRanges(a, b, ranges)) return false;
+      for (var i = 0; i < claimed.length; i++) if (a < claimed[i][1] && b > claimed[i][0]) return false;
+      return true;
+    }
+    function push(f) {
+      f.paragraph = paraIndex;
+      flags.push(f);
+      if (f.kind !== "advice-span") claimed.push([f.start, f.end]);
+    }
+
+    var fw = config.flagWords || [];
+    for (var i = 0; i < fw.length; i++) {
+      if (!fw[i].find) continue;
+      var re = new RegExp("\\b" + escapeRegex(fw[i].find).replace(/'/g, "['\u2019]") + "\\b", "gi");
+      var m;
+      while ((m = re.exec(text)) !== null) {
+        if (!free(m.index, m.index + m[0].length)) continue;
+        push({
+          type: "Word choice", dim: dimForFlagWord(fw[i]),
+          start: m.index, end: m.index + m[0].length,
+          found: m[0], reason: fw[i].reason, suggestion: fw[i].suggestion,
+          kind: typeof fw[i].replace === "string" ? "swap" : "advice",
+          replace: typeof fw[i].replace === "string" ? fw[i].replace : null,
+          options: fw[i].options || (typeof fw[i].replace === "string" ? [fw[i].replace] : null),
+          excerpt: contextSnippet(text, m.index, m[0].length)
+        });
+      }
+    }
+
+    for (var p = 0; p < SPECIFIC_PATTERNS.length; p++) {
+      var sp = SPECIFIC_PATTERNS[p];
+      sp.re.lastIndex = 0;
+      var sm;
+      while ((sm = sp.re.exec(text)) !== null) {
+        if (!sm[0].length) { sp.re.lastIndex++; continue; }
+        if (!free(sm.index, sm.index + sm[0].length)) continue;
+        push({
+          type: "Missing specifics", dim: "d4",
+          start: sm.index, end: sm.index + sm[0].length,
+          found: sm[0], reason: sp.reason, suggestion: sp.suggestion,
+          kind: "advice", replace: null,
+          excerpt: contextSnippet(text, sm.index, sm[0].length)
+        });
+      }
+    }
+
+    var sents = sentenceSpans(text);
+    var maxWords = s.maxSentenceWords || 28;
+    for (var j = 0; j < sents.length; j++) {
+      var sent = sents[j];
+      if (/^#{1,6}\s/.test(sent.text)) continue;
+      var wc = words(sent.text).length;
+
+      if (wc > maxWords) {
+        push({
+          type: "Long sentence", dim: "d2", start: sent.start, end: sent.end,
+          found: wc + " words", reason: "Hard to follow for non native readers",
+          suggestion: "Split into two or three short sentences, one idea each",
+          kind: "advice-span", replace: null, excerpt: sent.text
+        });
+      }
+
+      if (s.flagPassiveVoice) {
+        var pm = /\b(?:am|is|are|was|were|been|being|be)\s+\w+(?:ed|wn|en)\b(?:\s+by\b)?/i.exec(sent.text);
+        var benign = pm && /\b(?:is|are|was|were)\s+(?:based|located|named|called|designed|used|expected|required|needed|allowed|limited|checkpointed|logged)\b/i.test(pm[0]);
+        if (pm && (!benign || /\sby$/.test(pm[0]))) {
+          push({
+            type: "Passive voice", dim: "d3",
+            start: sent.start + pm.index, end: sent.start + pm.index + pm[0].length,
+            found: pm[0], reason: "Passive voice hides who does the action",
+            suggestion: "Rewrite with the actor first: who does what",
+            kind: "advice", replace: null, excerpt: sent.text
+          });
+        }
+      }
+
+      if (s.flagSemicolons) {
+        var semi = sent.text.indexOf(";");
+        if (semi !== -1) {
+          push({
+            type: "Semicolon", dim: "d2",
+            start: sent.start + semi, end: sent.start + semi + 1,
+            found: ";", reason: "Semicolons make sentences feel complex",
+            suggestion: "Split into two sentences, or use a comma with 'and' or 'but'",
+            kind: "advice", replace: null, excerpt: sent.text
+          });
+        }
+      }
+    }
+
+    if (!/^\s*#/.test(text)) {
+      var maxParaSents = s.maxParagraphSentences || 6;
+      if (sents.length > maxParaSents) {
+        push({
+          type: "Long paragraph", dim: "d2", start: 0, end: text.length,
+          found: sents.length + " sentences", reason: "Dense blocks are hard to scan",
+          suggestion: "Break into two paragraphs, or pull key items into a short list",
+          kind: "advice-span", replace: null, excerpt: text.slice(0, 120) + "\u2026"
+        });
+      }
+      var starters = {};
+      for (var q = 0; q < sents.length; q++) {
+        var ww = words(sents[q].text);
+        if (ww.length < 2) continue;
+        var first = (ww[0] + " " + ww[1]).toLowerCase();
+        starters[first] = (starters[first] || 0) + 1;
+      }
+      for (var key in starters) {
+        if (starters[key] >= 3) {
+          push({
+            type: "Repetitive rhythm", dim: "d2", start: 0, end: text.length,
+            found: starters[key] + " sentences start with \"" + key + "\"",
+            reason: "Uniform sentence openings read as machine written",
+            suggestion: "Vary the sentence openings in this paragraph",
+            kind: "advice-span", replace: null, excerpt: text.slice(0, 120) + "\u2026"
+          });
+        }
+      }
+    }
+
+    return flags;
+  }
+
+  /* Whole document checks that no single paragraph can see. */
+  function collectDocFlags(joined, config, presence) {
+    var flags = [];
+    var alsoCount = (joined.match(/(^|[.!?]\s+)(Also|However|So|Moreover|Furthermore|Additionally),?\s/g) || []).length;
+    if (alsoCount >= 3) {
+      flags.push({
+        type: "Repetitive rhythm", dim: "d2", kind: "document", paragraph: null,
+        found: alsoCount + " sentences open with a connective",
+        reason: "Stacked connectives read as machine written",
+        suggestion: "Remove most of them; short direct sentences rarely need one",
+        excerpt: "Also / However / So / Moreover / Furthermore"
+      });
+    }
+    var headings = joined.match(/^#{1,6}\s+.*$/gm) || [];
+    var headFirst = {};
+    for (var h = 0; h < headings.length; h++) {
+      var hw = (words(headings[h].replace(/^#+\s+/, ""))[0] || "").toLowerCase();
+      if (hw) headFirst[hw] = (headFirst[hw] || 0) + 1;
+    }
+    for (var hk in headFirst) {
+      if (headFirst[hk] >= 3) {
+        flags.push({
+          type: "Repetitive headings", dim: "d2", kind: "document", paragraph: null,
+          found: headFirst[hk] + " headings start with \"" + hk + "\"",
+          reason: "Repeated heading patterns look templated",
+          suggestion: "Rewrite headings so each one states its section's point",
+          excerpt: headFirst[hk] + " headings begin with the same word"
+        });
+      }
+    }
+    if (presence.score >= 1.5) {
+      flags.push({
+        type: "No personal voice", dim: "d5", kind: "document", paragraph: null,
+        dimScore: presence.score,
+        found: presence.missing.join(", "),
+        reason: "This dimension is judged by what is absent, so nothing is highlighted",
+        suggestion: "Add one thing only you could have written: a date, a number you measured, or an opinion a colleague could argue with",
+        excerpt: "Across " + presence.words + " words: " + presence.missing.join(", ")
+      });
+    }
+    return flags;
+  }
+
+  function bandScore(count, wordCount) {
+    if (!count) return 0;
+    var per1000 = count * 1000 / Math.max(120, wordCount || 1);
+    var raw = per1000 / 9 * 4;
+    if (raw > 4) raw = 4;
+    return Math.max(0.5, Math.round(raw * 2) / 2);
+  }
+
+  function scoreResemblance(flags, wordCount, config, presence) {
+    var dimDefs = (config && config.dimensions && config.dimensions.length) ? config.dimensions : DEFAULT_DIMENSIONS;
+    var counts = {};
+    for (var i = 0; i < flags.length; i++) {
+      var d = flags[i].dim;
+      if (!d) continue;
+      counts[d] = (counts[d] || 0) + 1;
+    }
+    var dims = dimDefs.map(function (def) {
+      var score = def.key === "d5" ? (presence ? presence.score : 0) : bandScore(counts[def.key] || 0, wordCount);
+      return {
+        key: def.key, name: def.name, note: def.note || "",
+        color: def.color || "#64748b",
+        weight: typeof def.weight === "number" ? def.weight : 1,
+        count: counts[def.key] || 0, score: score
+      };
+    });
+    var wsum = 0, ssum = 0;
+    dims.forEach(function (d) { wsum += d.weight; ssum += d.weight * d.score; });
+    var total = wsum ? 20 * ssum / (4 * wsum) : 0;
+    total = Math.round(total * 10) / 10;
+    var verdict = total >= 15 ? "Heavy resemblance"
+      : total >= 10 ? "Moderate resemblance"
+      : total >= 6 ? "Light resemblance"
+      : total > 0 ? "Low resemblance" : "No markers found";
+    return { dims: dims, total: total, verdict: verdict, words: wordCount, presence: presence };
+  }
+
+  /* Re-analyse a paragraph pair list. Called after every accepted rewrite,
+     so offsets, counts, ease and the score never drift from the text. */
+  function reviewParas(pairs, config) {
+    config = config || DEFAULT_CONFIG;
+    var flags = [], parts = [];
+    for (var i = 0; i < pairs.length; i++) {
+      parts.push(pairs[i].output);
+      flags = flags.concat(collectParaFlags(pairs[i].output, config, i));
+    }
+    var joined = parts.join("\n\n");
+    var after = fleschScore(joined);
+    var presence = authorialPresence(joined);
+    flags = flags.concat(collectDocFlags(joined, config, presence));
+    return {
+      flags: flags, output: joined, after: after,
+      resemblance: scoreResemblance(flags, after.words, config, presence)
+    };
+  }
+
   /* ------------------------------------------------------------------ */
   /* Main entry point                                                     */
   /* ------------------------------------------------------------------ */
@@ -1551,23 +2006,25 @@ var MyridiusEngine = (function () {
       }
       pairs.push({ original: originals[i], output: t.output });
     }
-    var joined = pairs.map(function (x) { return x.output; }).join("\n\n");
-    var flags = analyze(joined, config);
+    /* reviewParas replaces analyze(joined) here: it is offset aware, so the UI
+       can highlight a flag in place, and it carries the resemblance score.
+       Artifacts stay on their own key and reach none of it (FR-U1). */
+    var review = reviewParas(pairs, config);
     var before = fleschScore(normalized);
-    var after = fleschScore(joined);
     return {
       paragraphs: pairs,
-      output: joined,
+      output: review.output,
       changes: changes,
-      flags: flags,
+      flags: review.flags,
+      resemblance: review.resemblance,
       artifacts: artifacts,
       artifactSummary: summarizeArtifacts(artifacts),
       stats: {
         before: before,
-        after: after,
+        after: review.after,
         changeCount: changes.length,
-        flagCount: flags.length,
-        wordsSaved: before.words - after.words
+        flagCount: review.flags.length,
+        wordsSaved: before.words - review.after.words
       }
     };
   }
@@ -1577,6 +2034,10 @@ var MyridiusEngine = (function () {
     processDoc: processDoc,
     transform: transform,
     analyze: analyze,
+    reviewParas: reviewParas,
+    suggestOptions: suggestOptions,
+    authorialPresence: authorialPresence,
+    defaultDimensions: DEFAULT_DIMENSIONS,
     inspectArtifacts: inspectArtifacts,
     cleanArtifacts: cleanArtifacts,
     defaultArtifactSettings: DEFAULT_ARTIFACT_SETTINGS,

@@ -3,6 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Inline icon so the page needs no separate file and requests nothing.
+     Without it a browser asks for /favicon.ico and logs a 404 whenever the
+     page is served over http rather than opened from disk. -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2214%22%20fill%3D%22%231f4e79%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2246%22%20font-family%3D%22Helvetica%2CArial%2Csans-serif%22%20font-size%3D%2242%22%20font-weight%3D%22700%22%20fill%3D%22%23ffffff%22%20text-anchor%3D%22middle%22%3EP%3C%2Ftext%3E%3C%2Fsvg%3E">
 <title>Patralekhiser</title>
 <style>
   :root {
@@ -89,7 +93,7 @@
   #workspace.solo #leftPane { display: none; }
   .pane {
     background: var(--card); border: 1px solid var(--line); border-radius: 10px;
-    display: flex; flex-direction: column; min-height: 0; overflow: hidden;
+    display: flex; flex-direction: column; min-height: 0; overflow: hidden; position: relative;
   }
   .pane-head {
     padding: 8px 16px; border-bottom: 1px solid var(--line); font-size: 12px;
@@ -113,7 +117,24 @@
   .para.h2 { font-size: 17px; font-weight: 700; }
   .para.h3 { font-size: 15.5px; font-weight: 700; }
   .para.hl { background: var(--accent-soft); }
+/* ---- change highlighting and inline paragraph editing ---- */
+  mark.chg { background: var(--fix-bg); border-radius: 3px; padding: 0 1px;
+             box-shadow: inset 0 -0.28em 0 #cbe7d6; }
+  .para .del { display: inline-block; width: 0; height: 0.95em; margin: 0 2px;
+               border-left: 2px solid var(--warn); vertical-align: -0.15em; cursor: help; }
+  .para.r.editable { cursor: text; }
+  .para.r.editable:hover { box-shadow: inset 0 0 0 1px var(--line); }
+  .para.r.edited { box-shadow: inset 2px 0 0 var(--accent); }
+  .para-edit { display: block; width: 100%; box-sizing: border-box; font: inherit;
+               line-height: 1.65; color: var(--ink); background: var(--card);
+               border: 1px solid var(--accent); border-radius: 6px;
+               padding: 6px 10px; margin: 0 -10px 10px; resize: vertical;
+               min-height: 2.8em; overflow: hidden; }
+  .para-edit:focus { outline: none; box-shadow: 0 0 0 3px var(--accent-soft); }
+  .switch + .switch { margin-left: 14px; }
+  .meta-sub { color: var(--ink-soft); }
   .placeholder { color: var(--ink-soft); padding: 30px 10px; text-align: center; font-size: 14px; }
+
 
   .item { border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; font-size: 13.5px; }
   .item.fix { background: var(--fix-bg); border-color: #cbe7d6; }
@@ -144,6 +165,69 @@
   .note { font-size: 12.5px; color: var(--ink-soft); }
   .hidden { display: none !important; }
   .empty { color: var(--ink-soft); font-size: 13.5px; padding: 20px 0; text-align: center; }
+
+
+  /* ---------- resemblance panel ---------- */
+  .res-score { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; background: #fbfcfe; }
+  .res-top { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .res-num { font-size: 26px; font-weight: 700; color: var(--accent); line-height: 1; }
+  .res-num span { font-size: 13px; font-weight: 500; color: var(--ink-soft); }
+  .res-verdict { font-size: 14px; font-weight: 600; }
+  .res-sub { font-size: 12px; color: var(--ink-soft); margin-left: auto; }
+  .res-dims { display: grid; gap: 6px; margin-top: 11px; }
+  .res-dim { display: grid; grid-template-columns: 140px 1fr 40px; gap: 9px; align-items: center; font-size: 12px; color: var(--ink-soft); }
+  .res-bar { height: 6px; border-radius: 4px; background: #e9edf3; overflow: hidden; }
+  .res-bar i { display: block; height: 100%; border-radius: 4px; transition: width 0.2s; }
+  .res-dim b { color: var(--ink); font-variant-numeric: tabular-nums; text-align: right; font-weight: 600; }
+  .res-filters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; align-items: center; }
+  .res-chip { border: 1px solid var(--line); background: var(--card); border-radius: 14px; padding: 3px 10px; font-size: 11.5px; cursor: pointer; color: var(--ink-soft); display: inline-flex; gap: 6px; align-items: center; }
+  .res-chip:hover { border-color: var(--ink-soft); }
+  .res-chip i { opacity: 0.3; }
+  .res-chip.on { color: var(--accent); background: var(--accent-soft); border-color: var(--accent); font-weight: 600; }
+  .res-chip.on i { opacity: 1; }
+  .res-chip i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .res-note { font-size: 12px; color: var(--ink-soft); margin: 0 0 10px; }
+  .res-doc { padding-bottom: 30px; }
+  mark.rz { background: transparent; color: inherit; cursor: pointer; border-radius: 3px; padding: 0 1px;
+    box-shadow: inset 0 -0.3em 0 var(--rz); -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+  mark.rz.sel { box-shadow: inset 0 -0.3em 0 var(--rz), 0 0 0 2px var(--accent); }
+  mark.rz.done { box-shadow: inset 0 -0.16em 0 #58a578; }
+  mark.rz.rev { opacity: 0.5; box-shadow: inset 0 -0.16em 0 #c7d0da; }
+  .res-drawer { position: absolute; left: 0; right: 0; bottom: 0; background: var(--card);
+    border-top: 1px solid var(--line); box-shadow: 0 -8px 24px rgba(20,35,60,0.10); padding: 11px 16px 13px; z-index: 20;
+    max-height: 48%; overflow-y: auto; }
+  .res-drawer .res-why { max-height: 3.2em; overflow: hidden; }
+  .res-drawer .res-edit { min-height: 40px; }
+  .res-d-head { display: flex; align-items: center; gap: 8px; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--ink-soft); margin-bottom: 5px; }
+  .res-d-head i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .res-d-head .spacer { flex: 1; }
+  .res-d-head button { border: none; background: none; color: var(--ink-soft); cursor: pointer; font-size: 15px; line-height: 1; padding: 0 2px; }
+  .res-quote { font-size: 13.5px; font-weight: 600; margin: 0 0 3px; }
+  .res-why { font-size: 12.5px; color: var(--ink-soft); margin: 0 0 8px; }
+  .res-edit { width: 100%; min-height: 46px; border: 1px solid var(--line); border-radius: 7px; padding: 7px 9px;
+    font: 13px/1.5 inherit; color: var(--ink); background: #fcfdfe; resize: vertical; }
+  .res-edit:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+  .res-edit-label { font-size: 11.5px; color: var(--warn); margin: 0 0 3px; }
+  .res-scope { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 5px; }
+  .res-scope .res-edit-label { margin: 0 0 0 4px; }
+  .res-d-actions { display: flex; align-items: center; gap: 8px; margin-top: 9px; flex-wrap: wrap; }
+  .res-d-actions .pos { font-size: 12px; color: var(--ink-soft); margin-left: auto; }
+  .res-d-actions .step { border: 1px solid var(--line); background: var(--card); color: var(--accent); border-radius: 6px; padding: 4px 9px; font-size: 12px; cursor: pointer; }
+  /* ---- suggested rewrite options ---- */
+  .res-opts { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 2px 0 8px; }
+  .res-opts .lbl { font-size: 12px; color: var(--ink-soft); margin-right: 2px; }
+  .res-opt { font: inherit; font-size: 12.5px; line-height: 1.3; padding: 4px 10px;
+             border: 1px solid #cbe7d6; background: var(--fix-bg); color: var(--ink);
+             border-radius: 13px; cursor: pointer; max-width: 100%; text-align: left;
+             overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .res-opt:hover { border-color: var(--accent); }
+  .res-opt.on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); font-weight: 600; }
+  .res-opt .kind { color: var(--ink-soft); font-style: italic; }
+  .res-none { font-size: 12px; color: var(--ink-soft); margin: 2px 0 8px; }
+  .res-applied { background: var(--fix-bg); border: 1px solid #cbe7d6; border-radius: 7px; padding: 7px 9px; font-size: 12.5px; }
+  .res-doclevel { border: 1px solid #f0dcb4; background: var(--warn-bg); border-radius: 8px; padding: 9px 12px; margin-bottom: 8px; font-size: 12.5px; }
+  .res-doclevel .head { font-weight: 600; margin-bottom: 2px; }
+  .res-doclevel .sug { color: var(--warn); margin-top: 3px; }
 </style>
 </head>
 <body>
@@ -176,7 +260,7 @@
   <div class="tabs">
     <button id="tabResult" class="active" onclick="showTab('result')">Result</button>
     <button id="tabChanges" onclick="showTab('changes')">Changes <span id="changeCount" class="count-badge hidden"></span></button>
-    <button id="tabFlags" onclick="showTab('flags')">Needs a human <span id="flagCount" class="count-badge hidden"></span></button>
+    <button id="tabFlags" onclick="showTab('flags')">Resemblance <span id="flagCount" class="count-badge hidden"></span></button>
   </div>
 
   <span id="statusMsg"></span>
@@ -184,6 +268,10 @@
   <label class="switch" title="Hide the original and show only the Patralekhised text">
     <input type="checkbox" id="showOriginal" checked onchange="toggleOriginal()">
     Show original
+  </label>
+  <label class="switch" title="Shade every word the rules changed. Hover a highlight to see what it was before.">
+    <input type="checkbox" id="showHighlights" checked onchange="toggleHighlights()">
+    Highlight changes
   </label>
   <span id="miniStats"></span>
 </div>
@@ -210,6 +298,7 @@
     <div class="pane-body" id="rightBody">
       <div class="placeholder">The Patralekhised version appears here, paragraph by paragraph, in sync with the original.</div>
     </div>
+    <div id="resDrawer" class="res-drawer hidden"></div>
   </div>
 </div>
 
@@ -226,6 +315,12 @@
       <button class="btn secondary" onclick="resetConfig()">Reset to defaults</button>
       <span id="cfgMsg" class="note"></span>
     </div>
+  </div>
+
+  <div class="card" style="max-width:1240px;margin:0 auto 20px;">
+    <h2>Resemblance scoring</h2>
+    <p class="note" style="margin-top:0;">Each dimension scores 0 to 4 from how many flags appear per thousand words. Weight sets how much it contributes to the score out of 20. "No personal voice" is judged by what is absent, so it never highlights anything in the text.</p>
+    <div id="cfgDims" class="toolbar-row" style="margin-top:12px;"></div>
   </div>
 
   <div class="cfg-grid">
@@ -272,7 +367,7 @@
       </div>
       <div class="cfg-section">
         <h3>Blocked words and phrases (flag only)</h3>
-        <p>Flagged for a human, never auto changed. Format: <b>word | reason | suggestion</b></p>
+        <p>Flagged for a human, never auto changed. Format: <b>word | reason | suggestion | dimension | replacement</b>. Dimension is d1 to d5; a replacement makes the flag acceptable in one click.</p>
         <textarea id="cfgFlagWords" style="min-height:200px;"></textarea>
       </div>
     </div>
@@ -341,7 +436,11 @@ function showTab(t) {
     document.getElementById("tab" + k.charAt(0).toUpperCase() + k.slice(1)).classList.toggle("active", k === t);
   });
   document.getElementById("rightTitle").textContent =
-    t === "result" ? "Patralekhised" : t === "changes" ? "Automatic changes" : "Needs a human";
+    t === "result" ? "Patralekhised" : t === "changes" ? "Automatic changes" : "Resemblance audit";
+  /* The drawer is docked inside the right pane, so leaving the audit tab must
+     close it. Otherwise it sits on top of the Result pane and blocks the
+     paragraphs underneath from being clicked and edited. */
+  if (t !== "flags") { review.sel = null; hideDrawer(); }
   renderRight();
 }
 
@@ -365,20 +464,24 @@ function run() {
   if (ta) rawInput = ta.value;
   if (!rawInput.trim()) { status("Paste an article or upload a file first."); return; }
 
+  var hadManual = manualEditCount();
   lastResult = MyridiusEngine.processDoc(rawInput, config);
 
   renderOriginalParas();
   renderRight();
   renderStats();
 
+  resetReview();
+
   var cc = document.getElementById("changeCount");
   cc.textContent = lastResult.changes.length; cc.classList.remove("hidden");
   var fc = document.getElementById("flagCount");
-  fc.textContent = lastResult.flags.length; fc.classList.remove("hidden");
+  fc.textContent = lastResult.resemblance.total.toFixed(1); fc.classList.remove("hidden");
   document.getElementById("dlBtn").disabled = false;
   document.getElementById("copyBtn").disabled = false;
   document.getElementById("editBtn").classList.remove("hidden");
   showTab("result");
+  if (hadManual) status("Re-ran from the original, so your " + hadManual + " manual paragraph edit(s) were replaced.");
 }
 
 function renderOriginalParas() {
@@ -393,21 +496,200 @@ function renderOriginalParas() {
   attachParaEvents(body);
 }
 
+/* ---------- change highlighting ----------------------------------------- *
+   Highlights are derived by diffing each paragraph's original against its
+   output rather than from the change log. The log records what each rule did
+   but not where, and the rules run in sequence so any position recorded during
+   a pass is stale by the end of it. Diffing the finished text is independent of
+   the pipeline, and it also catches deletions, dash fixes and emoji removal,
+   which have no "after" string to search for.                              */
+
+var highlightChanges = true;
+var DIFF_CAP = 800;
+
+function diffTokenize(s) {
+  return String(s).match(/\s+|[^\s]+/g) || [];
+}
+
+/* Longest common subsequence over tokens, returned as a list of
+   { op: "keep" | "add" | "del", text: "..." } in output order. */
+function diffOps(aTok, bTok) {
+  var n = aTok.length, m = bTok.length;
+  if (n > DIFF_CAP || m > DIFF_CAP) return null;
+
+  var rows = new Array(n + 1);
+  for (var i = 0; i <= n; i++) rows[i] = new Int32Array(m + 1);
+  for (i = n - 1; i >= 0; i--) {
+    for (var j = m - 1; j >= 0; j--) {
+      rows[i][j] = aTok[i] === bTok[j]
+        ? rows[i + 1][j + 1] + 1
+        : Math.max(rows[i + 1][j], rows[i][j + 1]);
+    }
+  }
+  var ops = [];
+  i = 0; j = 0;
+  while (i < n && j < m) {
+    if (aTok[i] === bTok[j]) { ops.push({ op: "keep", text: bTok[j] }); i++; j++; }
+    else if (rows[i + 1][j] >= rows[i][j + 1]) { ops.push({ op: "del", text: aTok[i] }); i++; }
+    else { ops.push({ op: "add", text: bTok[j] }); j++; }
+  }
+  while (i < n) { ops.push({ op: "del", text: aTok[i] }); i++; }
+  while (j < m) { ops.push({ op: "add", text: bTok[j] }); j++; }
+  return ops;
+}
+
+/* Groups runs of add/del that sit next to each other so one swap reads as one
+   highlight instead of one per token. Whitespace-only edits are folded into the
+   surrounding text: they are real but not worth a mark of their own. */
+function annotateChanges(original, output) {
+  var ops = diffOps(diffTokenize(original), diffTokenize(output));
+  if (!ops) return { html: esc(output), count: 0 };
+
+  var html = "", count = 0, k = 0;
+  while (k < ops.length) {
+    if (ops[k].op === "keep") { html += esc(ops[k].text); k++; continue; }
+
+    var added = "", removed = "";
+    while (k < ops.length && ops[k].op !== "keep") {
+      if (ops[k].op === "add") added += ops[k].text; else removed += ops[k].text;
+      k++;
+    }
+    if (!added.trim() && !removed.trim()) { html += esc(added); continue; }
+
+    count++;
+    var lead = added.match(/^\s*/)[0], tail = added.match(/\s*$/)[0];
+    var core = added.slice(lead.length, added.length - tail.length);
+    html += esc(lead);
+    if (core) {
+      var title = removed.trim()
+        ? "was: " + removed.trim()
+        : "added";
+      html += '<mark class="chg" title="' + esc(title) + '">' + esc(core) + "</mark>";
+    } else {
+      html += '<span class="del" title="' + esc("removed: " + removed.trim()) + '"></span>';
+    }
+    html += esc(tail);
+  }
+  return { html: html, count: count };
+}
+
+function toggleHighlights() {
+  highlightChanges = document.getElementById("showHighlights").checked;
+  renderRight();
+}
+
+/* ---------- inline paragraph editing ------------------------------------ *
+   Click any paragraph on the right to edit it. The edit is committed to
+   lastResult.paragraphs[i].output, which is what Download and Copy read, so
+   what you see is what you get. Paragraph parity between the two panes is
+   preserved deliberately: internal blank lines are collapsed on commit,
+   because the scroll pairing, the flag offsets and the review baseline are all
+   indexed by paragraph.                                                     */
+
+var manualEdited = {};
+
+function autoGrow(ta) {
+  ta.style.height = "auto";
+  ta.style.height = (ta.scrollHeight + 2) + "px";
+}
+
+function beginParaEdit(el) {
+  if (!lastResult || (activeTab !== "result" && activeTab !== "flags")) return;
+  var i = parseInt(el.dataset.i, 10);
+  /* The drawer is docked over the bottom of this pane, so it has to go before
+     the box opens, or it covers the text being edited. Dropping the selection
+     also avoids re-opening it against offsets the edit is about to move. */
+  if (activeTab === "flags") { review.sel = null; review.opt = null; hideDrawer(); }
+  var ta = document.createElement("textarea");
+  ta.className = "para-edit";
+  ta.id = "paraEdit";
+  ta.value = lastResult.paragraphs[i].output;
+  ta.setAttribute("data-i", i);
+  el.parentNode.replaceChild(ta, el);
+  autoGrow(ta);
+  ta.focus();
+  ta.selectionStart = ta.selectionEnd = ta.value.length;
+  ta.addEventListener("input", function () { autoGrow(ta); });
+  ta.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") { e.preventDefault(); ta.value = lastResult.paragraphs[i].output; ta.blur(); }
+    else if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); ta.blur(); }
+  });
+  ta.addEventListener("blur", function () { commitParaEdit(ta); });
+  status("Editing paragraph " + (i + 1) + ". Click away or press Cmd+Enter to keep it, Esc to discard.");
+}
+
+function commitParaEdit(ta) {
+  var i = parseInt(ta.getAttribute("data-i"), 10);
+  var before = lastResult.paragraphs[i].output;
+  var next = ta.value.replace(/\r\n/g, "\n").replace(/\n[ \t]*\n+/g, "\n").replace(/[ \t]+$/gm, "");
+
+  if (!next.trim()) { status("A paragraph cannot be emptied, so that edit was discarded."); renderRight(); return; }
+  if (next === before) { renderRight(); return; }
+
+  lastResult.paragraphs[i].output = next;
+
+  /* A manual edit supersedes the accept/revert history for this paragraph:
+     those edits are recorded as from/to strings that may no longer exist. */
+  review.base[i] = next;
+  review.edits = review.edits.filter(function (e) { return e.paragraph !== i; });
+  Object.keys(review.reviewed).forEach(function (key) {
+    if (key.indexOf(i + "|") === 0) delete review.reviewed[key];
+  });
+  review.sel = null;
+  manualEdited[i] = true;
+
+  recompute();
+  status("Paragraph " + (i + 1) + " saved. Download and Copy now use your version.");
+}
+
+/* Re-derives everything downstream of the paragraph texts. Shared by the
+   review loop and by manual editing so the two can never disagree. */
+function recompute() {
+  var res = MyridiusEngine.reviewParas(lastResult.paragraphs, config);
+  lastResult.flags = res.flags;
+  lastResult.output = res.output;
+  lastResult.resemblance = res.resemblance;
+  lastResult.stats.after = res.after;
+  lastResult.stats.flagCount = res.flags.length;
+  lastResult.stats.wordsSaved = lastResult.stats.before.words - res.after.words;
+  document.getElementById("flagCount").textContent = res.resemblance.total.toFixed(1);
+  renderRight();
+  renderStats();
+}
+
+function manualEditCount() {
+  return Object.keys(manualEdited).length;
+}
+
 function renderRight() {
   var body = document.getElementById("rightBody");
   if (!lastResult) return;
   if (activeTab === "result") {
-    var html = "";
+    var html = "", marked = 0;
     lastResult.paragraphs.forEach(function (p, i) {
-      html += '<div class="para r' + headingClass(p.output) + '" data-i="' + i + '">' + esc(p.output) + "</div>";
+      var inner, cls = "para r" + headingClass(p.output) + " editable";
+      if (manualEdited[i]) cls += " edited";
+      if (highlightChanges && !manualEdited[i]) {
+        var ann = annotateChanges(p.original, p.output);
+        inner = ann.html; marked += ann.count;
+      } else {
+        inner = esc(p.output);
+      }
+      html += '<div class="' + cls + '" data-i="' + i + '" title="Click to edit this paragraph">' + inner + "</div>";
     });
     body.innerHTML = html || '<div class="empty">Nothing to show.</div>';
-    document.getElementById("outputMeta").textContent = lastResult.stats.after.words + " words";
+    var meta = lastResult.stats.after.words + " words";
+    if (highlightChanges && marked) meta += ' <span class="meta-sub">&middot; ' + marked + " highlighted</span>";
+    if (manualEditCount()) meta += ' <span class="meta-sub">&middot; ' + manualEditCount() + " edited by you</span>";
+    document.getElementById("outputMeta").innerHTML = meta;
     attachParaEvents(body);
+    body.querySelectorAll(".para.r.editable").forEach(function (el) {
+      el.addEventListener("click", function () { beginParaEdit(el); });
+    });
   } else if (activeTab === "changes") {
     renderChanges(body);
   } else {
-    renderFlags(body);
+    renderResemblance(body);
   }
 }
 
@@ -427,24 +709,398 @@ function renderChanges(pane) {
   pane.innerHTML = html;
 }
 
-function renderFlags(pane) {
-  var flags = lastResult.flags;
-  if (!flags.length) { pane.innerHTML = '<div class="empty">Nothing needs human attention. Ship it.</div>'; return; }
-  var html = '<p class="note" style="margin-top:0;">These spots need a human rewrite. Rule based tools cannot rephrase safely, so they point instead of guess.</p>';
-  flags.forEach(function (f) {
-    html += '<div class="item flag"><div class="head"><span class="pill">' + esc(f.type) + "</span>" + esc(f.found) + "</div>"
-          + '<div class="ctx">' + esc(f.excerpt) + "</div>"
-          + '<div class="sug">' + esc(f.reason) + ". " + esc(f.suggestion) + ".</div></div>";
+/* ================== resemblance review panel ================== */
+
+var review = { base: [], edits: [], reviewed: {}, sel: null, filter: {}, scope: "phrase" };
+
+function resetReview() {
+  manualEdited = {};
+  review = {
+    base: lastResult.paragraphs.map(function (p) { return p.output; }),
+    edits: [], reviewed: {}, sel: null, filter: {}, scope: "phrase", opt: null
+  };
+  hideDrawer();
+}
+
+function flagKey(f) {
+  return (f.paragraph === null || f.paragraph === undefined ? "doc" : f.paragraph)
+    + "|" + f.type + "|" + f.found + "|" + (f.start || 0);
+}
+function dimIndex() {
+  var m = {};
+  (lastResult.resemblance.dims || []).forEach(function (d) { m[d.key] = d; });
+  return m;
+}
+function dimColor(key) {
+  var d = dimIndex()[key];
+  return d ? d.color : "#64748b";
+}
+function visibleFlag(f) { return !review.filter[f.dim]; }
+function reviewList() {
+  return lastResult.flags.filter(function (f) {
+    return visibleFlag(f) && !review.reviewed[flagKey(f)];
   });
+}
+function findFlag(key) {
+  for (var i = 0; i < lastResult.flags.length; i++) {
+    if (flagKey(lastResult.flags[i]) === key) return lastResult.flags[i];
+  }
+  return null;
+}
+
+function renderResemblance(pane) {
+  var r = lastResult.resemblance;
+  var dm = dimIndex();
+  var open = reviewList().length;
+  var html = "";
+
+  html += '<div class="res-score"><div class="res-top">'
+    + '<span class="res-num">' + r.total.toFixed(1) + "<span>/20</span></span>"
+    + '<span class="res-verdict">' + esc(r.verdict) + "</span>"
+    + '<span class="res-sub">' + open + " open &middot; " + review.edits.length + " rewritten &middot; "
+    + Object.keys(review.reviewed).length + ' reviewed</span></div><div class="res-dims">';
+  r.dims.forEach(function (d) {
+    html += '<div class="res-dim"><span>' + esc(d.name) + "</span>"
+      + '<span class="res-bar"><i style="width:' + (d.score / 4 * 100) + "%;background:" + d.color + '"></i></span>'
+      + "<b>" + d.score + "/4</b></div>";
+  });
+  html += "</div></div>";
+
+  html += '<p class="res-note">This measures how closely the text resembles the default register of model output. It cannot establish authorship: formal business writing and second language writing both score high without any model involved.'
+    + (r.words < 400 ? " At " + r.words + " words this sits under the 400 word mark where sentence length statistics settle, so the reading leans on phrase density rather than rhythm." : "")
+    + "</p>";
+
+  html += '<div class="res-filters">';
+  r.dims.forEach(function (d) {
+    html += '<button class="res-chip' + (review.filter[d.key] ? "" : " on") + '" data-dim="' + d.key + '">'
+      + '<i style="background:' + d.color + '"></i>' + esc(d.name) + " " + d.count + "</button>";
+  });
+  html += "</div>";
+
+  if (review.edits.length) {
+    html += '<div class="res-applied">' + review.edits.length + " rewrite" + (review.edits.length > 1 ? "s" : "") + " applied to the output. ";
+    review.edits.forEach(function (e, i) {
+      html += '<div style="margin-top:5px;">' + esc(e.from) + " &rarr; " + (e.to.trim() ? esc(e.to) : "<i>(removed)</i>")
+        + ' <button class="step" data-revert="' + i + '">Revert to original</button></div>';
+    });
+    html += "</div>";
+  }
+
+  var docFlags = lastResult.flags.filter(function (f) { return f.kind === "document" && visibleFlag(f); });
+  docFlags.forEach(function (f) {
+    var k = flagKey(f);
+    html += '<div class="res-doclevel" data-key="' + esc(k) + '"><div class="head">' + esc(f.type) + ": " + esc(f.found) + "</div>"
+      + '<div>' + esc(f.excerpt) + "</div>"
+      + '<div class="sug">' + esc(f.suggestion) + ".</div></div>";
+  });
+
+  html += '<div class="res-doc">';
+  lastResult.paragraphs.forEach(function (p, i) {
+    var inline = lastResult.flags.filter(function (f) {
+      return f.paragraph === i && (f.kind === "swap" || f.kind === "advice") && visibleFlag(f);
+    });
+    var spanNotes = lastResult.flags.filter(function (f) {
+      return f.paragraph === i && f.kind === "advice-span" && visibleFlag(f);
+    });
+    html += '<div class="para r' + headingClass(p.output) + ' editable'
+          + (manualEdited[i] ? " edited" : "") + '" data-i="' + i + '"'
+          + ' title="Click the text to edit this paragraph. Click a highlight to review it.">'
+          + annotate(p.output, inline, dm) + "</div>";
+    if (spanNotes.length) {
+      html += '<div style="margin:-4px 0 12px;display:flex;gap:6px;flex-wrap:wrap;">';
+      spanNotes.forEach(function (f) {
+        var k = flagKey(f);
+        html += '<button class="res-chip' + (review.sel === k ? " on" : "") + '" data-key="' + esc(k) + '">'
+          + '<i style="background:' + dimColor(f.dim) + '"></i>' + esc(f.type) + " &middot; " + esc(f.found) + "</button>";
+      });
+      html += "</div>";
+    }
+  });
+  html += "</div>";
+
+  if (!lastResult.flags.length) {
+    html += '<div class="empty">No resemblance markers left. Ship it.</div>';
+  }
+
   pane.innerHTML = html;
+  var meta = lastResult.stats.after.words + " words";
+  if (manualEditCount()) meta += ' <span class="meta-sub">&middot; ' + manualEditCount() + " edited by you</span>";
+  document.getElementById("outputMeta").innerHTML = meta;
+  attachParaEvents(pane);
+  bindResemblanceEvents(pane);
+  /* Marks, paragraph chips and Revert all stopPropagation, so a click that
+     reaches the paragraph is a click on ordinary text and means "edit me". */
+  pane.querySelectorAll(".para.r.editable").forEach(function (el) {
+    el.addEventListener("click", function () { beginParaEdit(el); });
+  });
+  renderDrawer();
+}
+
+function annotate(text, flags, dm) {
+  var spans = flags.slice().sort(function (a, b) { return a.start - b.start; });
+  var out = "", pos = 0;
+  spans.forEach(function (f) {
+    if (f.start < pos) return;
+    out += esc(text.slice(pos, f.start));
+    var k = flagKey(f);
+    var cls = "rz" + (review.sel === k ? " sel" : "") + (review.reviewed[k] ? " rev" : "");
+    var color = dm[f.dim] ? dm[f.dim].color : "#64748b";
+    out += '<mark class="' + cls + '" data-key="' + esc(k) + '" style="--rz:' + color + '">'
+      + esc(text.slice(f.start, f.end)) + "</mark>";
+    pos = f.end;
+  });
+  out += esc(text.slice(pos));
+  return out;
+}
+
+function bindResemblanceEvents(pane) {
+  pane.querySelectorAll("[data-dim]").forEach(function (el) {
+    el.addEventListener("click", function () {
+      var k = el.getAttribute("data-dim");
+      review.filter[k] = !review.filter[k];
+      review.sel = null;
+      renderRight();
+    });
+  });
+  pane.querySelectorAll("[data-key]").forEach(function (el) {
+    el.addEventListener("click", function (ev) {
+      ev.stopPropagation();
+      selectFlag(el.getAttribute("data-key"));
+    });
+  });
+  pane.querySelectorAll("[data-revert]").forEach(function (el) {
+    el.addEventListener("click", function (ev) {
+      ev.stopPropagation();
+      revertEdit(parseInt(el.getAttribute("data-revert"), 10));
+    });
+  });
+}
+
+function selectFlag(key) {
+  review.sel = review.sel === key ? null : key;
+  review.opt = null;   /* a new flag starts with no option chosen */
+  renderRight();
+  revealSelection();
+}
+
+/* Bring the selected highlight into the strip of pane still visible above
+   the drawer. Never scrollIntoView: that would move the whole app. */
+function revealSelection() {
+  if (!review.sel) return;
+  var body = document.getElementById("rightBody");
+  if (!body) return;
+  var el = body.querySelector('[data-key="' + (window.CSS && CSS.escape ? CSS.escape(review.sel) : review.sel) + '"]');
+  if (!el) {
+    var all = body.querySelectorAll("[data-key]");
+    for (var i = 0; i < all.length; i++) {
+      if (all[i].getAttribute("data-key") === review.sel) { el = all[i]; break; }
+    }
+  }
+  if (!el) return;
+  var drawer = document.getElementById("resDrawer");
+  var drawerH = drawer && !drawer.classList.contains("hidden") ? drawer.offsetHeight : 0;
+  var band = Math.max(60, body.clientHeight - drawerH);
+  var top = el.getBoundingClientRect().top - body.getBoundingClientRect().top + body.scrollTop;
+  var target = top - Math.max(24, (band - el.offsetHeight) / 2);
+  var max = body.scrollHeight - body.clientHeight;
+  body.scrollTop = Math.min(Math.max(0, target), Math.max(0, max));
+}
+
+function stepFlag(dir) {
+  var list = reviewList();
+  if (!list.length) return;
+  var keys = list.map(flagKey);
+  var i = keys.indexOf(review.sel);
+  var n = i < 0 ? (dir > 0 ? 0 : keys.length - 1) : (i + dir + keys.length) % keys.length;
+  review.sel = keys[n];
+  renderRight();
+  revealSelection();
+}
+
+function hideDrawer() {
+  var d = document.getElementById("resDrawer");
+  if (d) { d.classList.add("hidden"); d.innerHTML = ""; }
+}
+
+function renderDrawer() {
+  var d = document.getElementById("resDrawer");
+  if (!d) return;
+  if (activeTab !== "flags" || !review.sel) { hideDrawer(); return; }
+  var f = findFlag(review.sel);
+  if (!f) { hideDrawer(); return; }
+  var dm = dimIndex();
+  var name = dm[f.dim] ? dm[f.dim].name : f.type;
+  var list = reviewList();
+  var pos = list.map(flagKey).indexOf(review.sel);
+  var canApply = f.kind === "swap" || f.kind === "advice" || f.kind === "advice-span";
+  var rng = editRange(f);
+  var spanText = rng ? lastResult.paragraphs[f.paragraph].output.slice(rng.start, rng.end) : "";
+  var prefill = (f.kind === "swap" && review.scope === "phrase") ? (f.replace || "") : spanText;
+  if (!rng) canApply = false;
+
+  var html = '<div class="res-d-head"><i style="background:' + dimColor(f.dim) + '"></i>' + esc(name)
+    + (f.type === name ? "" : " &middot; " + esc(f.type)) + '<span class="spacer"></span>'
+    + '<button id="resClose" title="Close">&times;</button></div>';
+  html += '<p class="res-quote">' + esc(f.found) + "</p>";
+  html += '<p class="res-why">' + esc(f.reason) + ". " + esc(f.suggestion) + ".</p>";
+  if (canApply) {
+    html += '<div class="res-scope">'
+      + '<button class="res-chip' + (review.scope === "phrase" ? " on" : "") + '" data-scope="phrase">Rewrite the phrase</button>'
+      + '<button class="res-chip' + (review.scope === "sentence" ? " on" : "") + '" data-scope="sentence">Rewrite the whole sentence</button>'
+      + '<span class="res-edit-label">' + (f.kind === "swap" && review.scope === "phrase"
+        ? "Suggested replacement, edit before accepting" : "Pick an option or write your own, then accept") + "</span></div>";
+    var opts = MyridiusEngine.suggestOptions(f, lastResult.paragraphs[f.paragraph].output);
+    if (opts.length) {
+      html += '<div class="res-opts"><span class="lbl">Suggested:</span>';
+      for (var oi = 0; oi < opts.length; oi++) {
+        var shown = opts[oi].text === ""
+          ? '<span class="kind">delete it</span>'
+          : esc(opts[oi].label.length > 46 ? opts[oi].label.slice(0, 46) + "\u2026" : opts[oi].label);
+        html += '<button class="res-opt' + (review.opt === oi ? " on" : "") + '" data-opt="' + oi
+              + '" title="' + esc(opts[oi].text || "(removes the words)") + '">' + shown + "</button>";
+      }
+      html += "</div>";
+    } else if (f.kind !== "swap") {
+      html += '<p class="res-none">No option can be derived from the text here, so this one is yours to write.</p>';
+    }
+    html += '<textarea class="res-edit" id="resEdit">' + esc(prefill) + "</textarea>";
+  }
+  html += '<div class="res-d-actions">';
+  if (canApply) html += '<button class="btn" id="resAccept">Accept changes</button>';
+  html += '<button class="btn secondary" id="resReviewed">Mark reviewed</button>'
+    + '<span class="pos">' + (pos >= 0 ? (pos + 1) + " of " + list.length : "reviewed") + "</span>"
+    + '<button class="step" id="resPrev">&larr; Previous</button>'
+    + '<button class="step" id="resNext">Next &rarr;</button></div>';
+  d.innerHTML = html;
+  d.classList.remove("hidden");
+
+  document.getElementById("resClose").addEventListener("click", function () { review.sel = null; renderRight(); });
+  document.getElementById("resPrev").addEventListener("click", function () { stepFlag(-1); });
+  document.getElementById("resNext").addEventListener("click", function () { stepFlag(1); });
+  document.getElementById("resReviewed").addEventListener("click", function () {
+    review.reviewed[review.sel] = true;
+    stepFlag(1);
+  });
+  d.querySelectorAll("[data-scope]").forEach(function (el) {
+    el.addEventListener("click", function () {
+      review.scope = el.getAttribute("data-scope");
+      renderDrawer();
+    });
+  });
+  d.querySelectorAll("[data-opt]").forEach(function (el) {
+    el.addEventListener("click", function () {
+      var oi = parseInt(el.getAttribute("data-opt"), 10);
+      var list = MyridiusEngine.suggestOptions(f, lastResult.paragraphs[f.paragraph].output);
+      var o = list[oi];
+      if (!o) return;
+      review.opt = oi;
+      /* A split rewrites the whole sentence, a word swap only the span. Switch
+         scope to match, then re-render so the edit box shows the right range.  */
+      if (o.scope !== review.scope && f.kind !== "advice-span") {
+        review.scope = o.scope;
+        renderDrawer();
+      }
+      var box = document.getElementById("resEdit");
+      if (box) { box.value = o.text; box.focus(); }
+      d.querySelectorAll("[data-opt]").forEach(function (b) {
+        b.classList.toggle("on", b === el);
+      });
+    });
+  });
+  var acc = document.getElementById("resAccept");
+  if (acc) acc.addEventListener("click", acceptSelected);
+}
+
+/* The sentence a flagged span sits inside. Word level flags are often too
+   narrow to rewrite grammatically, so the drawer can widen to this. */
+function sentenceRange(text, start, end) {
+  var a = 0, b = text.length;
+  var re = /[.!?]["')\]]?\s+/g, m;
+  while ((m = re.exec(text)) !== null) {
+    var cut = m.index + m[0].length;
+    if (cut <= start) a = cut;
+    else { b = m.index + 1; break; }
+  }
+  if (b < end) b = end;
+  return { start: a, end: b };
+}
+
+function editRange(f) {
+  if (f.paragraph === null || f.paragraph === undefined || typeof f.start !== "number") return null;
+  var text = lastResult.paragraphs[f.paragraph].output;
+  if (review.scope === "sentence" && f.kind !== "advice-span") return sentenceRange(text, f.start, f.end);
+  return { start: f.start, end: f.end };
+}
+
+function occurrenceIndex(text, sub, before) {
+  var n = 0, i = 0;
+  if (!sub) return 0;
+  while ((i = text.indexOf(sub, i)) !== -1 && i < before) { n++; i += sub.length; }
+  return n;
+}
+
+function replaceNth(text, from, to, nth) {
+  var i = -1, n = -1;
+  while (n < nth) {
+    i = text.indexOf(from, i + 1);
+    if (i === -1) return text;
+    n++;
+  }
+  var out = text.slice(0, i) + to + text.slice(i + from.length);
+  if (!to.trim()) {
+    out = out.replace(/ {2,}/g, " ").replace(/\s+([.,;:!?])/g, "$1").replace(/^\s+/, "");
+    out = out.charAt(0).toUpperCase() + out.slice(1);
+  }
+  return out;
+}
+
+function acceptSelected() {
+  var f = findFlag(review.sel);
+  if (!f || f.paragraph === null || f.paragraph === undefined) return;
+  var ta = document.getElementById("resEdit");
+  var to = ta ? ta.value : "";
+  var current = lastResult.paragraphs[f.paragraph].output;
+  var rng = editRange(f);
+  if (!rng) return;
+  var from = current.slice(rng.start, rng.end);
+  if (to === from) { review.reviewed[review.sel] = true; stepFlag(1); return; }
+  review.edits.push({
+    paragraph: f.paragraph, from: from, to: to,
+    nth: occurrenceIndex(current, from, rng.start), dim: f.dim, type: f.type
+  });
+  review.sel = null;
+  rebuild();
+  status("Rewrite applied to the output.");
+}
+
+function revertEdit(i) {
+  review.edits.splice(i, 1);
+  review.sel = null;
+  rebuild();
+  status("Reverted to the original wording.");
+}
+
+/* Rebuild every paragraph from the engine output, then re-apply the accepted
+   rewrites in order, then re-analyse so offsets, ease and the score all agree. */
+function rebuild() {
+  lastResult.paragraphs.forEach(function (p, i) { p.output = review.base[i]; });
+  review.edits.forEach(function (e) {
+    var p = lastResult.paragraphs[e.paragraph];
+    p.output = replaceNth(p.output, e.from, e.to, e.nth);
+  });
+  recompute();
+  revealSelection();
 }
 
 function renderStats() {
   var s = lastResult.stats;
+  var r = lastResult.resemblance;
   document.getElementById("miniStats").innerHTML =
     "<b>" + s.before.words + " &rarr; " + s.after.words + "</b> words &middot; " +
     "ease <b>" + s.before.score + " &rarr; " + s.after.score + "</b> &middot; " +
-    "<b>" + s.changeCount + "</b> fixes &middot; <b>" + s.flagCount + "</b> for review";
+    "<b>" + s.changeCount + "</b> fixes &middot; resemblance <b>" + r.total.toFixed(1) + "/20</b> " +
+    esc(r.verdict.toLowerCase()) +
+    (manualEditCount() ? " &middot; <b>" + manualEditCount() + "</b> edited by you" : "");
 }
 
 /* ------- edit original ------- */
@@ -486,22 +1142,28 @@ function pairHighlight(i, on) {
 function syncFrom(srcId, dstId) {
   var src = document.getElementById(srcId);
   var dst = document.getElementById(dstId);
-  if (syncing || activeTab !== "result") return;
+  if (syncing || (activeTab !== "result" && activeTab !== "flags")) return;
   if (document.getElementById("workspace").classList.contains("solo")) return;
   var sParas = src.querySelectorAll(".para");
   var dParas = dst.querySelectorAll(".para");
   if (!sParas.length || !dParas.length) return;
   syncing = true;
+  /* True offset inside the scrolling container, so a pane may carry chrome
+     (the resemblance score card, filters, document level cards) above its
+     first paragraph without throwing the pairing off by that height. */
+  function contentTop(container, el) {
+    return el.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop;
+  }
   var sTop = src.scrollTop;
   var i = 0;
-  var base = sParas[0].offsetTop;
-  while (i < sParas.length - 1 && (sParas[i + 1].offsetTop - base) <= sTop) i++;
+  while (i < sParas.length - 1 && contentTop(src, sParas[i + 1]) <= sTop) i++;
   var p = sParas[i];
-  var frac = Math.min(1, Math.max(0, (sTop - (p.offsetTop - base)) / Math.max(1, p.offsetHeight)));
-  var j = Math.min(i, dParas.length - 1);
-  var q = dParas[j];
-  var dBase = dParas[0].offsetTop;
-  dst.scrollTop = (q.offsetTop - dBase) + frac * q.offsetHeight;
+  var pTop = contentTop(src, p);
+  var frac = Math.min(1, Math.max(0, (sTop - pTop) / Math.max(1, p.offsetHeight)));
+  var q = dParas[Math.min(i, dParas.length - 1)];
+  var target = contentTop(dst, q) + frac * q.offsetHeight;
+  var max = dst.scrollHeight - dst.clientHeight;
+  dst.scrollTop = Math.min(Math.max(0, target), Math.max(0, max));
   requestAnimationFrame(function () { syncing = false; });
 }
 
@@ -621,17 +1283,44 @@ function linesToPairs(text) {
   return out;
 }
 function flagsToLines(list) {
-  return list.map(function (r) { return r.find + " | " + r.reason + " | " + r.suggestion; }).join("\n");
+  return list.map(function (r) {
+    var line = r.find + " | " + r.reason + " | " + r.suggestion;
+    var hasOpts = (r.options && r.options.length) || typeof r.replace === "string";
+    if (r.dim || hasOpts) line += " | " + (r.dim || "");
+    /* field 5 holds one or more replacements, separated by semicolons. One
+       value behaves exactly as before, so older config files still load. */
+    if (r.options && r.options.length) line += " | " + r.options.join("; ");
+    else if (typeof r.replace === "string") line += " | " + r.replace;
+    return line;
+  }).join("\n");
 }
 function linesToFlags(text) {
   var out = [];
   text.split("\n").forEach(function (line) {
     var p = line.split("|");
     if (p[0] && p[0].trim()) {
-      out.push({ find: p[0].trim(), reason: (p[1] || "Blocked word").trim(), suggestion: (p[2] || "Rewrite this").trim() });
+      var rule = { find: p[0].trim(), reason: (p[1] || "Blocked word").trim(), suggestion: (p[2] || "Rewrite this").trim() };
+      if (p[3] && p[3].trim()) rule.dim = p[3].trim();
+      if (p.length > 4) {
+        var raw = p.slice(4).join("|");
+        var opts = raw.split(";").map(function (x) { return x.trim(); });
+        if (opts.length > 1) { rule.options = opts; rule.replace = opts[0]; }
+        else rule.replace = raw.trim();
+      }
+      out.push(rule);
     }
   });
   return out;
+}
+function renderDimConfig() {
+  var host = document.getElementById("cfgDims");
+  if (!host) return;
+  var dims = config.dimensions || MyridiusEngine.defaultDimensions;
+  host.innerHTML = dims.map(function (d, i) {
+    return '<label class="toggle" style="margin:0 14px 0 0;">'
+      + '<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:' + d.color + ';"></span>'
+      + esc(d.name) + ' <input type="number" min="0" max="5" step="0.5" data-dimw="' + i + '" value="' + d.weight + '"></label>';
+  }).join("");
 }
 
 function renderConfig() {
@@ -661,6 +1350,7 @@ function renderConfig() {
   document.getElementById("cfgStartDeletes").value = config.sentenceStartDeletes.join("\n");
   document.getElementById("cfgMidDeletes").value = config.midSentenceDeletes.join("\n");
   document.getElementById("cfgFlagWords").value = flagsToLines(config.flagWords);
+  renderDimConfig();
 }
 
 function applyConfig() {
@@ -682,6 +1372,13 @@ function applyConfig() {
   config.sentenceStartDeletes = document.getElementById("cfgStartDeletes").value.split("\n").map(function (s) { return s.trim(); }).filter(Boolean);
   config.midSentenceDeletes = document.getElementById("cfgMidDeletes").value.split("\n").map(function (s) { return s.trim(); }).filter(Boolean);
   config.flagWords = linesToFlags(document.getElementById("cfgFlagWords").value);
+  var dims = config.dimensions || MyridiusEngine.defaultDimensions.slice();
+  document.querySelectorAll("[data-dimw]").forEach(function (el) {
+    var i = parseInt(el.getAttribute("data-dimw"), 10);
+    if (dims[i]) dims[i].weight = parseFloat(el.value) || 0;
+  });
+  config.dimensions = dims;
+  if (lastResult) rebuild();
   cfgNote("Applied. Rules are active for the next run.");
 }
 

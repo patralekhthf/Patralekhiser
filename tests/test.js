@@ -512,24 +512,50 @@ check("a control between vault sentinels does not mis-substitute", (function () 
   return r.output === "Use Myridius0 and BusinessBook.";
 })());
 
-/* ---- FR-U48: score invariance, DEFERRED ------------------------------ */
-/* reviewParas and the resemblance object live in design/index.html and have
-   not been back-ported into src/engine.js yet, so the assertion FR-U1 needs
-   cannot run here. The test is written rather than omitted, because a
-   skipped test with a reason survives a back-port and a missing one does
-   not. The back-port must unskip this. */
-if (typeof engine.reviewParas === "function") {
-  check("FR-U48: artifacts do not move the resemblance score", (function () {
-    var plain = "We utilize the platform. It is a robust solution that empowers teams.";
-    var laced = "We utilize the plat" + C.ZWSP + "form. It is a robust solution that empowers teams.";
-    var a = engine.reviewParas([{ original: plain, output: plain }], engine.defaultConfig);
-    var b = engine.reviewParas([{ original: laced, output: laced }], engine.defaultConfig);
-    return JSON.stringify(a.resemblance) === JSON.stringify(b.resemblance);
-  })());
-} else {
-  console.log("SKIP  FR-U48: score invariance needs reviewParas, which is still only in " +
-              "design/index.html. Unskip with the design back-port.");
-}
+/* ---- FR-U48: score invariance ---------------------------------------- */
+/* FR-U1 says an artifact must never move score.weighted, any dimension, the
+   band or the confidence. The assertion has to run END TO END through
+   processDoc, because that is where the artifact pass and the scorer meet:
+   reviewParas scores pairs[].output, which transform has already cleaned, so
+   a carrier is gone before the rubric ever sees the text.
+
+   Feeding reviewParas raw laced text directly instead would construct a state
+   the pipeline cannot produce, and it would fail for the D1 reason rather
+   than because artifacts feed the score. FR-U48 says "inserted at word
+   boundaries" for the same reason. */
+check("artifacts do not move the resemblance score (FR-U48, FR-U1)", (function () {
+  var plain = [
+    "We utilize the platform to facilitate growth in today's fast-paced world.",
+    "",
+    "It is a robust solution that empowers teams and delivers game-changing value.",
+    "",
+    "In conclusion, this paradigm shift is a testament to innovative thinking."
+  ].join("\n");
+
+  /* one of every kind, all at word boundaries */
+  var carriers = [C.ZWSP, C.ZWNJ, C.WJ, C.BOM, C.RLM, C.LRE + C.POPDF, C.RLO + C.POPDF,
+                  C.TAG_A, C.VS1, C.NONCHAR, C.RESERVED, C.PUA, C.PUA_ASTRAL,
+                  C.SHY, C.CGJ, C.NBSP, C.NNBSP, C.NUL, C.VT];
+  var words = plain.split(" ");
+  var laced = words.map(function (w, i) {
+    return i > 0 && i <= carriers.length ? carriers[i - 1] + w : w;
+  }).join(" ");
+
+  var a = engine.processDoc(plain, engine.defaultConfig);
+  var b = engine.processDoc(laced, engine.defaultConfig);
+  if (b.artifactSummary.total === 0) return false;      /* the fixture must actually carry them */
+  return JSON.stringify(a.resemblance) === JSON.stringify(b.resemblance) &&
+         a.stats.flagCount === b.stats.flagCount;
+})());
+
+check("a kept artifact does not move the score either", (function () {
+  var plain = "It is a robust solution that empowers teams and delivers game-changing value.";
+  var laced = "It is a robust" + C.RLM + " solution that empowers teams and delivers game-changing value.";
+  var a = engine.processDoc(plain, engine.defaultConfig);
+  var b = engine.processDoc(laced, engine.defaultConfig);
+  return b.artifactSummary.kept > 0 &&
+    JSON.stringify(a.resemblance) === JSON.stringify(b.resemblance);
+})());
 
 /* ---- FR-U38: the indirect effect, recorded rather than hidden -------- */
 check("fixing D1 makes swaps fire that previously did not", (function () {
