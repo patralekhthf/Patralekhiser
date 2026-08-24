@@ -2,7 +2,7 @@
 
 **Repo:** https://github.com/guillaumemeyer/watermarks-remover
 **Author:** Guillaume Meyer · **License:** MIT · **Language:** Python (stdlib-only core)
-**Version analysed:** v0.5.0 (+ an "Unreleased" changelog section), from local `watermarks-remover-main.zip`
+**Version analysed:** v0.5.0 (+ an "Unreleased" changelog section), from a source archive of the repo above. The archive is not kept in this repo: re-download it from GitHub if a table needs re-checking
 **GitHub signals at time of review:** ~15.6k stars, ~1.8k forks, ~10 open issues
 **Analysed:** 2026-08-24
 
