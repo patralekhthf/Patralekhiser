@@ -13,6 +13,8 @@ function check(name, cond) {
 }
 
 var out = result.output;
+/* Frozen so FR-U49 can prove the pass is inert when switched off. */
+var baselineOutput = result.output;
 
 /* Auto fix assertions */
 check("em dash removed", out.indexOf("—") === -1);
@@ -419,6 +421,128 @@ check("missing settings fall back to defaults, never undefined (FR-U28)", (funct
 
 check("the artifact tables carry a dated Unicode version (FR-U13)",
   /^unicode-\d+\.\d+\/\d{4}-\d{2}-\d{2}$/.test(engine.artifactTableVersion));
+
+/* ---- FR-U41 to FR-U43: the three defect regressions ----------------- */
+
+/* D1: one zero-width space defeated every swap and flag rule, because they
+   are all word-boundary regexes over the raw string. */
+var d1 = engine.process("We util" + C.ZWSP + "ize the platform to facil" + C.ZWSP + "itate growth.");
+check("D1: a carrier no longer blocks the swaps (FR-U41)",
+  d1.output === "We use the platform to help growth.");
+check("D1: the swaps are logged as Simpler word",
+  d1.changes.filter(function (c) { return c.category === "Simpler word"; }).length === 2);
+check("D1: the carriers are reported as artifacts",
+  d1.artifactSummary.total === 2 && d1.artifactSummary.removed === 2);
+
+/* D2: bidi overrides and tag characters reached every export unflagged. */
+var d2 = engine.process("Total: " + C.RLO + "100" + C.POPDF + " dollars. Cost is 10 USD" + C.TAG_A + C.TAG_B + ".");
+check("D2: no bidi or tag character survives into the output (FR-U42)",
+  d2.output.indexOf(C.RLO) === -1 && d2.output.indexOf(C.POPDF) === -1 &&
+  d2.output.indexOf(C.TAG_A) === -1 && d2.output.indexOf(C.TAG_B) === -1);
+check("D2: each is reported as a confirmed artifact",
+  d2.artifacts.length === 4 &&
+  d2.artifacts.every(function (a) { return a.confidence === "confirmed" && a.action === "strip"; }));
+
+/* D3: removeEmojis deleted the orthographic joiner in Devanagari clusters
+   and logged it as "Emoji removal". */
+var d3in = "The form " + FIX.devanagari + " appears.";
+var d3 = engine.process(d3in);
+check("D3: the Devanagari cluster is byte-identical (FR-U43)", d3.output === d3in);
+check("D3: nothing is logged as Emoji removal",
+  d3.changes.every(function (c) { return c.category !== "Emoji removal"; }));
+check("D3: Persian ZWNJ also survives", (function () {
+  var t = "Word " + FIX.persian + " here.";
+  return engine.process(t).output === t;
+})());
+
+/* ---- FR-U24 / FR-U24a: emoji sequences, and disjoint ownership ------ */
+check("whole emoji sequences are removed, not codepoints", (function () {
+  var t = "Ship " + FIX.familyEmoji + " it \u{1f680} now";
+  var r = engine.transform(t);
+  return r.output === "Ship it now" &&
+    r.output.indexOf(C.ZWJ) === -1 && r.output.indexOf("\u{1f468}") === -1;
+})());
+check("a keycap is removed as one unit",
+  engine.transform("Press 5" + C.VS16 + "⃣ now").output === "Press now");
+check("removeEmojis never deletes a lone invisible character (FR-U24a)", (function () {
+  /* Every codepoint the artifact pass treats as a carrier must survive
+     removeEmojis when it stands alone, or the two functions are contending
+     for the same character, which is how D3 happened. */
+  var probes = [C.ZWSP, C.ZWNJ, C.ZWJ, C.WJ, C.BOM, C.VS1, C.VS16, C.SHY, C.CGJ,
+                C.LRM, C.RLM, C.LRE, C.RLE, C.POPDF, C.LRO, C.RLO,
+                C.NBSP, C.NNBSP, C.IDSP, C.TAG_A, C.NONCHAR, C.RESERVED, C.PUA];
+  var bad = 0;
+  probes.forEach(function (ch) {
+    var log = [];
+    /* call the emoji pass alone by disabling every other transform rule */
+    var cfg = JSON.parse(JSON.stringify(engine.defaultConfig));
+    cfg.simpleSwaps = []; cfg.hypeSwaps = []; cfg.fillerPhrases = [];
+    cfg.contractions = []; cfg.sentenceStartDeletes = []; cfg.midSentenceDeletes = [];
+    cfg.flagWords = [];
+    cfg.settings.fixDashes = false;
+    cfg.settings.artifactClean = false;   /* artifact pass off: emoji pass only */
+    var out = engine.transform("a" + ch + "b", cfg).output;
+    if (out.indexOf(ch) === -1) bad++;
+  });
+  return bad === 0;
+})());
+
+/* ---- FR-U49: disabled is inert -------------------------------------- */
+check("artifactClean false leaves the sample article byte-identical (FR-U49)", (function () {
+  var cfg = JSON.parse(JSON.stringify(engine.defaultConfig));
+  cfg.settings.artifactClean = false;
+  var off = engine.process(input, cfg);
+  return off.output === baselineOutput &&
+    off.changes.every(function (c) { return c.category !== "Invisible character"; });
+})());
+check("the sample article carries no carriers either way",
+  result.artifactSummary.total === 0 && result.output === baselineOutput);
+
+/* ---- FR-U50: the sentinel hazard is closed --------------------------- */
+check("a literal control cannot corrupt the protect vault (FR-U50)", (function () {
+  var t = "Myridius" + C.NUL + " builds BusinessBook Plus" + C.SOH + " for clients.";
+  var r = engine.process(t);
+  return r.output.indexOf("Myridius") !== -1 &&
+    r.output.indexOf("BusinessBook Plus") !== -1 &&
+    r.output.indexOf(C.NUL) === -1 && r.output.indexOf(C.SOH) === -1;
+})());
+check("a control between vault sentinels does not mis-substitute", (function () {
+  var t = "Use Myridius" + C.NUL + "0" + C.NUL + " and BusinessBook.";
+  var r = engine.process(t);
+  return r.output === "Use Myridius0 and BusinessBook.";
+})());
+
+/* ---- FR-U48: score invariance, DEFERRED ------------------------------ */
+/* reviewParas and the resemblance object live in design/index.html and have
+   not been back-ported into src/engine.js yet, so the assertion FR-U1 needs
+   cannot run here. The test is written rather than omitted, because a
+   skipped test with a reason survives a back-port and a missing one does
+   not. The back-port must unskip this. */
+if (typeof engine.reviewParas === "function") {
+  check("FR-U48: artifacts do not move the resemblance score", (function () {
+    var plain = "We utilize the platform. It is a robust solution that empowers teams.";
+    var laced = "We utilize the plat" + C.ZWSP + "form. It is a robust solution that empowers teams.";
+    var a = engine.reviewParas([{ original: plain, output: plain }], engine.defaultConfig);
+    var b = engine.reviewParas([{ original: laced, output: laced }], engine.defaultConfig);
+    return JSON.stringify(a.resemblance) === JSON.stringify(b.resemblance);
+  })());
+} else {
+  console.log("SKIP  FR-U48: score invariance needs reviewParas, which is still only in " +
+              "design/index.html. Unskip with the design back-port.");
+}
+
+/* ---- FR-U38: the indirect effect, recorded rather than hidden -------- */
+check("fixing D1 makes swaps fire that previously did not", (function () {
+  /* The same document scored differently before this landed, because the
+     swaps silently failed to match. The old number was wrong, not the new
+     one. This asserts the direction so the change cannot regress quietly. */
+  var laced = "We util" + C.ZWSP + "ize it. We leverage it. We facil" + C.ZWSP + "itate it.";
+  var cfgOff = JSON.parse(JSON.stringify(engine.defaultConfig));
+  cfgOff.settings.artifactClean = false;
+  var on = engine.process(laced);
+  var off = engine.process(laced, cfgOff);
+  return on.stats.changeCount > off.stats.changeCount;
+})());
 
 if (process.argv.indexOf("--show") !== -1) {
   console.log("\n--- OUTPUT ---\n" + out);

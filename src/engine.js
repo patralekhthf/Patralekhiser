@@ -532,16 +532,77 @@ var MyridiusEngine = (function () {
     return text;
   }
 
+  /* A visible pictographic character: something a reader can see. Digits,
+     "#" and "*" are keycap bases and are deliberately NOT here, because they
+     are only emoji when a keycap follows them. */
+  function isPictographic(cp) {
+    return (cp >= 0x1f000 && cp <= 0x1faff) ||
+      (cp >= 0x2600 && cp <= 0x27bf) ||
+      (cp >= 0x2b00 && cp <= 0x2bff);
+  }
+
+  /* Length in codepoints of the emoji sequence starting at index i, or 0.
+     A sequence is a visible base plus everything bound to it: presentation
+     selectors, skin-tone modifiers, keycaps, tag runs, and ZWJ links to
+     further visible bases. */
+  function emojiSequenceLength(cps, i) {
+    var j;
+    /* keycap: digit or # or *, an optional VS16, then the enclosing keycap */
+    if ((cps[i] >= 0x30 && cps[i] <= 0x39) || cps[i] === 0x23 || cps[i] === 0x2a) {
+      j = i + 1;
+      if (cps[j] === 0xfe0f) j++;
+      return cps[j] === 0x20e3 ? j + 1 - i : 0;
+    }
+    if (!isPictographic(cps[i])) return 0;
+    j = i + 1;
+    for (;;) {
+      var c = cps[j];
+      if (c === undefined) break;
+      if (c === 0xfe0e || c === 0xfe0f || c === 0x20e3) { j++; continue; }
+      if (c >= 0xe0020 && c <= 0xe007f) { j++; continue; }
+      if (c === 0x200d && isPictographic(cps[j + 1])) { j += 2; continue; }
+      break;
+    }
+    return j - i;
+  }
+
+  /* Remove whole emoji sequences, never individual codepoints (FR-U24).
+     The old implementation matched U+200D and U+FE0F as bare characters,
+     which deleted the orthographic joiner out of Devanagari clusters such as
+     ka + virama + ZWJ + ssa and logged it as "Emoji removal" (defect D3).
+     Matching sequences is a correctness dependency of the artifact pass, not
+     tidy-up: once that pass preserves emoji glue, a removeEmojis that still
+     deleted joiners one at a time would either strand them or go on
+     destroying Devanagari. This function owns visible emoji; the artifact
+     pass owns invisible carriers; neither claims a codepoint alone that the
+     other would claim (FR-U24a). */
   function removeEmojis(text, changes) {
-    var re = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{1F1E6}-\u{1F1FF}\u{FE0F}\u{200D}\u{2764}]/gu;
+    var cps = [];
+    var offs = [];
+    for (var i = 0; i < text.length; ) {
+      var cp = text.codePointAt(i);
+      cps.push(cp);
+      offs.push(i);
+      i += cp > 0xffff ? 2 : 1;
+    }
+    var out = "";
     var count = 0;
-    text = text.replace(re, function () { count++; return ""; });
+    var n = 0;
+    while (n < cps.length) {
+      var len = emojiSequenceLength(cps, n);
+      if (len > 0) {
+        count++;
+        n += len;
+        continue;
+      }
+      out += String.fromCodePoint(cps[n]);
+      n++;
+    }
     if (count > 0) {
       changes.push({ category: "Emoji removal", before: count + " emoji(s)", after: "(removed)", context: "" });
     }
     /* tidy space left behind */
-    text = text.replace(/ {2,}/g, " ").replace(/ +([.,;:!?])/g, "$1");
-    return text;
+    return out.replace(/ {2,}/g, " ").replace(/ +([.,;:!?])/g, "$1");
   }
 
   /* ------------------------------------------------------------------ */
@@ -1320,6 +1381,36 @@ var MyridiusEngine = (function () {
     return artScan(text, artifactSettings(settings), false).artifacts;
   }
 
+  /* Counts for the report header and the panel. Never scored: FR-U1 forbids
+     an artifact from moving score.weighted, any dimension, the band or the
+     confidence, by a point or a fraction. An invisible character says
+     something about a file's history, not about how the prose reads, and a
+     rubric that responds to one pasted codepoint is measuring clipboards.
+     Keeping the two adjacent and unweighted is what lets the report say
+     "here is one thing we can prove, and separately, here is an estimate"
+     instead of quietly becoming a detector. */
+  function summarizeArtifacts(artifacts) {
+    var kinds = {};
+    var confirmed = 0, kept = 0, removed = 0, replaced = 0;
+    for (var i = 0; i < artifacts.length; i++) {
+      var a = artifacts[i];
+      kinds[a.kind] = (kinds[a.kind] || 0) + 1;
+      if (a.confidence === "confirmed") confirmed++;
+      if (a.action === "keep") kept++;
+      else if (a.action === "strip") removed++;
+      else replaced++;
+    }
+    return {
+      total: artifacts.length,
+      confirmed: confirmed,
+      kept: kept,
+      removed: removed,
+      replaced: replaced,
+      kinds: kinds,
+      tableVersion: ARTIFACT_TABLE_VERSION
+    };
+  }
+
   /* Report and apply. Strips and replaces only: never inserts, never
      reorders, never re-cases, never collapses whitespace (FR-U11). */
   function cleanArtifacts(text, settings) {
@@ -1344,7 +1435,43 @@ var MyridiusEngine = (function () {
     var settings = config.settings || {};
     var changes = [];
 
-    var p = protect(input, config.protectedTerms);
+    /* The invisible-Unicode pass runs at the very front, ahead of protect()
+       and of every swap and delete list (FR-U23). The placement IS the fix:
+       every dictionary in this engine is a word-boundary regex over the raw
+       string, so a single U+200B inside "utilize" made the word unmatchable
+       and the document came out looking processed while nothing had run
+       (defect D1). Stripping controls here also closes a standing hazard,
+       because protect() stashes spans as NUL + index + NUL and guardText
+       marks abbreviations with U+0001, so a literal control in the input
+       could corrupt a vault restore (FR-U16).
+
+       This is the inverse of the ordering sentence splitting needs, and the
+       two do not conflict: splitting runs late because it must see
+       transformed text, this runs early because everything downstream must
+       see clean text.
+
+       Artifacts are reported against the ORIGINAL text offsets (FR-U25),
+       because the point of an artifact is where it was before removal. */
+    var art = cleanArtifacts(input, config);
+    var artifacts = art.artifacts;
+    if (art.removed > 0) {
+      changes.push({
+        category: "Invisible character",
+        before: art.removed + " invisible character(s)",
+        after: "(removed)",
+        context: ""
+      });
+    }
+    if (art.replaced > 0) {
+      changes.push({
+        category: "Invisible character",
+        before: art.replaced + " non-standard space(s)",
+        after: "(ordinary space)",
+        context: ""
+      });
+    }
+
+    var p = protect(art.text, config.protectedTerms);
     var text = p.text;
 
     if (settings.removeEmojis) text = removeEmojis(text, changes);
@@ -1366,7 +1493,7 @@ var MyridiusEngine = (function () {
     for (var c = 0; c < changes.length; c++) {
       changes[c].context = restore(changes[c].context || "", p.vault);
     }
-    return { output: text, changes: changes };
+    return { output: text, changes: changes, artifacts: artifacts };
   }
 
   /* Collect flags for human review on (usually already transformed) text. */
@@ -1390,6 +1517,8 @@ var MyridiusEngine = (function () {
       output: t.output,
       changes: t.changes,
       flags: flags,
+      artifacts: t.artifacts,
+      artifactSummary: summarizeArtifacts(t.artifacts),
       stats: {
         before: before,
         after: after,
@@ -1407,11 +1536,18 @@ var MyridiusEngine = (function () {
     var originals = normalized ? normalized.split(/\n\n/) : [];
     var pairs = [];
     var changes = [];
+    var artifacts = [];
     for (var i = 0; i < originals.length; i++) {
       var t = transform(originals[i], config);
       for (var c = 0; c < t.changes.length; c++) {
         t.changes[c].paragraph = i;
         changes.push(t.changes[c]);
+      }
+      /* Offsets stay relative to this paragraph's ORIGINAL text, so the
+         panel anchors to the left-hand pane (FR-U25). */
+      for (var a = 0; a < t.artifacts.length; a++) {
+        t.artifacts[a].paragraph = i;
+        artifacts.push(t.artifacts[a]);
       }
       pairs.push({ original: originals[i], output: t.output });
     }
@@ -1424,6 +1560,8 @@ var MyridiusEngine = (function () {
       output: joined,
       changes: changes,
       flags: flags,
+      artifacts: artifacts,
+      artifactSummary: summarizeArtifacts(artifacts),
       stats: {
         before: before,
         after: after,
