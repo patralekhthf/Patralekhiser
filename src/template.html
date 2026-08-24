@@ -228,6 +228,37 @@
   .res-doclevel { border: 1px solid #f0dcb4; background: var(--warn-bg); border-radius: 8px; padding: 9px 12px; margin-bottom: 8px; font-size: 12.5px; }
   .res-doclevel .head { font-weight: 600; margin-bottom: 2px; }
   .res-doclevel .sug { color: var(--warn); margin-top: 3px; }
+
+/* ---- artifacts panel: evidence, not a score ----
+   Reuses --warn on --warn-bg, which already means "look at this, it is not a
+   score". No new token, and deliberately no bar and no chip, because an
+   artifact is not a sixth dimension. */
+  .art-panel { border: 1px solid #f0dcb4; background: var(--warn-bg); border-radius: 10px;
+               padding: 12px 14px; margin: 18px 0 12px; }
+  .art-panel h4 { margin: 0 0 3px; font-size: 13.5px; color: var(--warn); }
+  .art-panel .art-caveat { margin: 0 0 10px; font-size: 12px; color: var(--ink-soft); }
+  .art-sub { font-size: 12px; font-weight: 600; color: var(--ink-soft);
+             margin: 10px 0 5px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .art-row { display: flex; gap: 8px; align-items: baseline; font-size: 12.5px;
+             padding: 4px 0; border-top: 1px solid #f0dcb4; }
+  .art-row:first-of-type { border-top: none; }
+  .art-row .cp { font-family: ui-monospace, Menlo, Consolas, monospace; color: var(--warn); white-space: nowrap; }
+  .art-row .why { color: var(--ink-soft); }
+  .art-row .ctx { font-family: ui-monospace, Menlo, Consolas, monospace;
+                  color: var(--ink-soft); margin-left: auto; white-space: nowrap;
+                  overflow: hidden; text-overflow: ellipsis; max-width: 42%; }
+  /* Informational rows sit at the same 50% the design uses for reviewed spans. */
+  .art-row.info { opacity: 0.5; }
+  .art-row .more { background: none; border: none; color: var(--accent);
+                   font: inherit; font-size: 12px; cursor: pointer; padding: 0; text-decoration: underline; }
+  .art-offsets { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11.5px;
+                 color: var(--ink-soft); padding: 2px 0 6px; word-break: break-all; }
+/* A zero-width character has zero width, so it gets a caret at the offset
+   rather than an underline. Inset box-shadow, so it cannot collide with
+   .para.hl, which paints its own. */
+  .para .art { display: inline-block; width: 0; height: 0.95em; margin: 0 1px;
+               border-left: 2px solid var(--warn); vertical-align: -0.15em; cursor: help; }
+  .para .art.info { opacity: 0.5; }
 </style>
 </head>
 <body>
@@ -489,11 +520,150 @@ function renderOriginalParas() {
   body.classList.remove("editing");
   var html = "";
   lastResult.paragraphs.forEach(function (p, i) {
-    html += '<div class="para o' + headingClass(p.original) + '" data-i="' + i + '">' + esc(p.original) + "</div>";
+    html += '<div class="para o' + headingClass(p.original) + '" data-i="' + i + '">'
+          + markArtifacts(p.original, i) + "</div>";
   });
   body.innerHTML = html;
   document.getElementById("inputMeta").textContent = lastResult.stats.before.words + " words";
   attachParaEvents(body);
+}
+
+/* ---------- invisible-character artifacts -------------------------------- *
+   Reported next to the resemblance panel and never inside it. An artifact is
+   the only thing this module can state as fact rather than estimate, and the
+   moment a verifiable codepoint feeds a banded score, the report has quietly
+   become a detector. So: no bar, no chip, no dimension, no contribution to
+   the number (FR-U1, FR-U30).                                              */
+
+function artifactsFor(i) {
+  return (lastResult.artifacts || []).filter(function (a) { return a.paragraph === i; });
+}
+
+/* Plain-words reason a load-bearing invisible was left alone (FR-U34). */
+var ART_KEEP_REASON = {
+  "emoji-glue": "part of an emoji sequence",
+  "script-joiner": "orthographic in this script, the spelling depends on it",
+  "flag-sequence": "part of a complete flag sequence",
+  "same-script-base": "a selector or filler belonging to the character before it",
+  "paired-bidi": "a balanced direction change, legitimate in mixed-direction text",
+  "orthographic": "normal orthography, not a carrier",
+  "layout-control": "it governs how its own script renders",
+  "in-code": "inside a code span, so it is reported and left alone"
+};
+
+/* A run reads better as its kind than as a pluralised codepoint name:
+   "40 tag characters", not "40 tag \"a\"s" (FR-U33). */
+var ART_KIND_PLURAL = {
+  zwj_family: "zero-width characters", bidi: "direction controls",
+  tag_chars: "tag characters", variation_selector: "variation selectors",
+  noncharacter: "noncharacters", reserved_ignorable: "reserved characters",
+  private_use: "private-use characters", format: "format characters",
+  space: "non-standard spaces", confusable: "lookalike letters",
+  control: "control characters"
+};
+function artRunLabel(r) {
+  return r.count > 1
+    ? r.count + " " + (ART_KIND_PLURAL[r.kind] || "invisible characters")
+    : r.label;
+}
+
+/* Marks in the LEFT pane only, because an artifact is reported where it was
+   before removal, and the right pane no longer contains it (FR-U25, FR-U32).
+   Runs of the same codepoint collapse to one caret (FR-U33). */
+function markArtifacts(text, i) {
+  var list = artifactsFor(i);
+  if (!list.length) return esc(text);
+  var runs = collapseArtifacts(list);
+  var out = "", at = 0;
+  runs.forEach(function (run) {
+    if (run.start < at) return;
+    out += esc(text.slice(at, run.start));
+    var what = run.action === "keep"
+      ? " — kept: " + (ART_KEEP_REASON[run.keptBecause] || "load-bearing")
+      : run.action === "replace" ? " — replaced with an ordinary space" : " — removed";
+    out += '<span class="art' + (run.confidence === "confirmed" ? "" : " info") + '" title="'
+        + esc(artRunLabel(run) + what) + '"></span>';
+    /* A kept carrier is still in the text and must still be emitted. */
+    out += esc(text.slice(run.start, run.action === "keep" ? run.end : run.start));
+    at = run.action === "keep" ? run.end : run.start;
+  });
+  out += esc(text.slice(at));
+  return out;
+}
+
+/* Forty consecutive tag characters are forty artifacts in the data and one
+   row on screen. Collapsing is a display decision; the evidence is kept. */
+function collapseArtifacts(list) {
+  var runs = [];
+  list.forEach(function (a) {
+    var last = runs[runs.length - 1];
+    if (last && last.cp === a.cp && last.action === a.action &&
+        last.keptBecause === a.keptBecause && last.end === a.start) {
+      last.end = a.end; last.count++; last.offsets.push(a.start);
+      return;
+    }
+    runs.push({ cp: a.cp, label: a.label, kind: a.kind, action: a.action,
+                keptBecause: a.keptBecause, confidence: a.confidence,
+                context: a.context, start: a.start, end: a.end,
+                count: 1, offsets: [a.start], paragraph: a.paragraph });
+  });
+  return runs;
+}
+
+function cpHex(cp) {
+  var h = cp.toString(16).toUpperCase();
+  while (h.length < 4) h = "0" + h;
+  return "U+" + h;
+}
+
+/* Rendered even when there is nothing to report, because an absent panel
+   reads as an absent check (FR-U35). */
+function renderArtifactsPanel() {
+  var all = lastResult.artifacts || [];
+  var sum = lastResult.artifactSummary || { total: 0, confirmed: 0, kept: 0, removed: 0, replaced: 0 };
+  var caveat = "Finding no invisible characters is not evidence that a person wrote this, "
+             + "and finding some is not evidence that one did not. They arrive from web pages, "
+             + "PDFs, CMS exports and ordinary copy-paste far more often than from anything deliberate. "
+             + "This is reported next to the score and never counted in it.";
+
+  var html = '<div class="art-panel"><h4>Invisible characters</h4>';
+  if (!all.length) {
+    html += '<p class="art-caveat">None found in this document. ' + esc(caveat) + "</p></div>";
+    return html;
+  }
+  html += '<p class="art-caveat">' + sum.removed + " removed, " + sum.replaced + " replaced, "
+        + sum.kept + " kept. " + esc(caveat) + "</p>";
+
+  var runs = collapseArtifacts(all.slice().sort(function (a, b) {
+    return (a.paragraph - b.paragraph) || (a.start - b.start);
+  }));
+  var changed = runs.filter(function (r) { return r.action !== "keep"; });
+  var kept = runs.filter(function (r) { return r.action === "keep"; });
+
+  if (changed.length) {
+    html += '<div class="art-sub">Removed</div>';
+    changed.forEach(function (r, idx) {
+      html += '<div class="art-row' + (r.confidence === "confirmed" ? "" : " info") + '">'
+        + '<span class="cp">' + cpHex(r.cp) + "</span>"
+        + "<span>" + esc(artRunLabel(r)) + "</span>"
+        + '<span class="why">' + (r.action === "replace" ? "replaced with an ordinary space" : "removed")
+        + " &middot; " + esc(r.confidence) + "</span>"
+        + (r.count > 1 ? ' <button class="more" data-art="' + idx + '">show ' + r.count + " offsets</button>" : "")
+        + '<span class="ctx">' + esc(r.context) + "</span></div>"
+        + '<div class="art-offsets hidden" id="artOff' + idx + '">' + r.offsets.join(", ") + "</div>";
+    });
+  }
+  if (kept.length) {
+    html += '<div class="art-sub">Kept, and why</div>';
+    kept.forEach(function (r) {
+      html += '<div class="art-row info">'
+        + '<span class="cp">' + cpHex(r.cp) + "</span>"
+        + "<span>" + esc(artRunLabel(r)) + "</span>"
+        + '<span class="why">kept: ' + esc(ART_KEEP_REASON[r.keptBecause] || "load-bearing") + "</span>"
+        + '<span class="ctx">' + esc(r.context) + "</span></div>";
+    });
+  }
+  return html + "</div>";
 }
 
 /* ---------- change highlighting ----------------------------------------- *
@@ -818,6 +988,10 @@ function renderResemblance(pane) {
   });
   html += "</div>";
 
+  /* Adjacent to the resemblance panel and visually separated from it, which
+     is the whole point: one thing we can prove, and separately, an estimate. */
+  html += renderArtifactsPanel();
+
   if (!lastResult.flags.length) {
     html += '<div class="empty">No resemblance markers left. Ship it.</div>';
   }
@@ -854,6 +1028,17 @@ function annotate(text, flags, dm) {
 }
 
 function bindResemblanceEvents(pane) {
+  /* FR-U33: a collapsed run expands to its full offset list on request. The
+     evidence was never discarded, only folded. */
+  pane.querySelectorAll("button.more").forEach(function (b) {
+    b.addEventListener("click", function (ev) {
+      ev.stopPropagation();
+      var row = document.getElementById("artOff" + b.getAttribute("data-art"));
+      if (!row) return;
+      var open = row.classList.toggle("hidden");
+      b.textContent = open ? "show " + row.textContent.split(",").length + " offsets" : "hide offsets";
+    });
+  });
   pane.querySelectorAll("[data-dim]").forEach(function (el) {
     el.addEventListener("click", function () {
       var k = el.getAttribute("data-dim");
