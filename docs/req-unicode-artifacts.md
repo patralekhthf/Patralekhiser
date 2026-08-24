@@ -1,6 +1,9 @@
 # Requirement: Invisible Unicode Artifacts
 
-**Status:** ready to implement. Not started.
+**Status:** IMPLEMENTED 2026-08-24. Engine, configuration, tests and the artifacts panel
+are all built and in `src/`. The one requirement still open is FR-U40, which depends on
+FR-1.7 language detection and therefore has nothing to hook into yet. See SESSION.md for
+the six places this document turned out different once built.
 **Owner of the work:** Claude Code.
 **Target files:** `src/engine.js`, `src/template.html`, `config/default-config.json`,
 `tests/test.js`. Never `app/index.html` directly, it is build output.

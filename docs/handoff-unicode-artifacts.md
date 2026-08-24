@@ -3,7 +3,10 @@
 **To:** Claude Code
 **From:** Cowork session, 2026-08-24
 **Requirement:** `docs/req-unicode-artifacts.md` (57 numbered requirements, FR-U1 to FR-U54)
-**Status:** nothing built. No code written. This is a clean start.
+**Status:** DONE 2026-08-24. All six stages passed their gates in order. The `design/`
+back-port that section 5 fenced off was then done as a separate piece of work, which
+closed the three items section 7 deferred (all but FR-U40, which has nothing to hook into
+until FR-1.7 exists). Kept as the record of how the work was sequenced.
 
 Read this document first, then the requirement. This one tells you the order, the gates and
 the traps. The requirement tells you what to build. Where they disagree, the requirement

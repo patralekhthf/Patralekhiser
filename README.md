@@ -4,7 +4,7 @@ A tool that takes any article and returns a version written in the Myridius hous
 
 ## How to use it
 
-Open `app/index.html` in any browser. Paste an article on the left (or press Upload to load a .docx, .pdf, .md or .txt file), then press Patralekhise. The Patralekhised version appears on the right, paragraph by paragraph. The two panes scroll in sync at paragraph level, in both directions, and hovering a paragraph highlights its pair. The Show original switch hides the left pane when you want only the result. Download the output as Word, PDF, Markdown or plain text, or Copy it to the clipboard. The Changes tab logs every automatic fix and the Needs a human tab lists spots that need a real rewrite, each with a reason and a suggestion.
+Open `app/index.html` in any browser. Paste an article on the left (or press Upload to load a .docx, .pdf, .md or .txt file), then press Patralekhise. The Patralekhised version appears on the right, paragraph by paragraph. The two panes scroll in sync at paragraph level, in both directions, and hovering a paragraph highlights its pair. The Show original switch hides the left pane when you want only the result. Download the output as Word, PDF, Markdown or plain text, or Copy it to the clipboard. The Changes tab logs every automatic fix. The Resemblance tab scores how closely the text still reads like model output, across five dimensions, and lists the spots that need a real rewrite with a reason and a suggestion for each. It also reports any invisible characters found, separately from the score.
 
 Everything runs in your browser. The one exception is reading an uploaded PDF, which loads the standard pdf.js library from a CDN the first time you use it in a session; every other feature, including writing PDFs and Word files, works fully offline.
 
@@ -19,6 +19,12 @@ Characters that are doing real work are kept, and the tool says why it kept them
 ## What it flags for a human
 
 Rule based tools cannot rephrase safely, so anything that needs judgment is flagged instead of guessed: hype claims (game-changing, ultimate, world-class), long sentences, passive voice, semicolons, long paragraphs, repetitive sentence openings, and templated headings. Each flag says why it matters and what to do.
+
+## The resemblance score
+
+The Resemblance tab gives a score out of 20 across five dimensions: stock wording, sentence rhythm, fence-sitting, missing specifics, and no personal voice. Click any highlight to see why it was flagged, accept a rewrite where one can be derived, or edit the paragraph yourself.
+
+Read the number as an estimate, not a verdict. It measures how closely the text resembles the default register of model output, and it cannot establish who wrote something. Formal business writing scores high by convention, and English written by a second-language speaker scores high through no fault of the writer. The bands are not calibrated against a corpus yet. Invisible characters are reported next to the score and deliberately never counted in it, because a number that moves on one pasted codepoint would be measuring your clipboard rather than your prose.
 
 ## Changing the style
 
@@ -66,4 +72,4 @@ node src/build.js          # rebuild app/index.html
 
 ## Known limits
 
-This is a surface level transformer. It cannot restructure an argument, invent an analogy, or rewrite a clunky paragraph into fluent prose. That is by design: anything requiring judgment goes to the Needs a human tab rather than being guessed at.
+This is a surface level transformer. It cannot restructure an argument, invent an analogy, or rewrite a clunky paragraph into fluent prose. That is by design: anything requiring judgment goes to the Resemblance tab rather than being guessed at.

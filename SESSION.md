@@ -376,20 +376,69 @@ new engines produce byte-identical output for it and
 - Boundary proved by grep, per acceptance item 9: no artifact reaches `flags`, and the
   only mention of the score in the artifact code is a comment explaining why it must not.
 
-### Deferred, and why
+### Deferred at first, all but one now closed by the back-port below
 
-- FR-U30 to FR-U36, the artifacts panel. No resemblance UI exists in `src/template.html`.
-- FR-U48, score invariance. `reviewParas` does not exist in `src/engine.js`. The test is
-  WRITTEN and skips with a printed reason naming FR-U48. The back-port must unskip it.
-- FR-U40, the artifact pass running when language detection refuses. FR-1.7 is unbuilt, so
-  this is recorded in the spec amendment only.
+- FR-U30 to FR-U36, the artifacts panel. BUILT. See the back-port section.
+- FR-U48, score invariance. BUILT and passing end to end.
+- FR-U40, the artifact pass running when language detection refuses. Still open, and
+  correctly so: FR-1.7 language detection does not exist yet, so there is nothing to
+  refuse. Recorded in the spec amendment only.
 
-### Tester build lag, expected and not a new bug
+## Shipped 2026-08-24: the design back-port, and the artifacts panel
 
-`dist/Patralekhiser-test-build.html` is built from `design/index.html`, not from `src/`, so
-it still carries all three defects. Tester reports of stray or missing characters during
-the current round are KNOWN. Do not hand-edit `design/index.html` to patch it: two
-divergent implementations of this classifier is the worse outcome.
+`design/index.html` was a fork of the built app running ahead of `src/`, so the audit
+module existed only in a build artifact. It is now split back into source, which closes
+SESSION.md next action 2 and unblocks everything that depended on it.
+
+- Engine: the audit block lands verbatim before the main entry point. `DEFAULT_CONFIG`
+  gains `dimensions`, `flagWords` moves to the five-field format, exports gain
+  `reviewParas`, `suggestOptions`, `authorialPresence`, `defaultDimensions`.
+- Template: the resemblance CSS layer, change-highlighting and inline-editing CSS, the
+  docked drawer, the dimension weights card, the highlight-changes switch, the inline
+  favicon, and the tab renamed to "Resemblance". Script 3 taken from `design/` wholesale,
+  because `renderFlags` was replaced there rather than edited.
+- Two real merges, where the audit work and the Unicode work had both changed the same
+  code: `processDoc` (now calls `reviewParas`, keeps per-paragraph artifact collection)
+  and the exports.
+- `src/fileio.js` needed nothing. The diff against `design/` is empty, as INTEGRATION.md
+  said it would be.
+
+**FR-U48 unskipped itself and failed, and the test was wrong, not the code.** It fed
+`reviewParas` raw laced text directly, which constructs a state the pipeline cannot
+produce, so it failed for the D1 reason. `reviewParas` scores `pairs[].output`, which
+`transform` has already cleaned. It now runs end to end through `processDoc` with one of
+every artifact kind inserted at word boundaries, which is what FR-U48 actually specifies,
+plus a second case for a KEPT artifact, which does survive into the scored text. Both pass.
+
+**The artifacts panel is built**, FR-U30 to FR-U36: below the annotated document where
+FR-8.5 puts it, no bar and no chip and no dimension, `--warn` on `--warn-bg` with no new
+token, informational rows at 50% opacity, 2px carets in the LEFT pane only, runs collapsed
+to one row and one caret with the offsets expandable, a "Kept, and why" subsection in plain
+words, and an explicit empty state carrying the caveat. Scroll pairing was checked at four
+positions in both tabs and pairs exactly, which is the FR-U36 hazard.
+
+Note for whoever tests the UI next: `requestAnimationFrame` does not fire while the
+browser pane is hidden, and `syncFrom` clears its `syncing` guard inside a rAF. A scroll
+-sync test in a hidden pane will look broken when it is not. Clear the guard by hand or
+foreground the pane.
+
+Not covered by tests: the panel is view code in `src/template.html` and the project has no
+DOM test harness. It was verified in a browser instead, which is the same standard the rest
+of the view layer is held to.
+
+### Tester build lag, now closable
+
+`dist/Patralekhiser-test-build.html` and `publish/Patralekhiser-v1.2.0-preview.4.html` are
+both built from `design/index.html` and therefore still carry all three defects. Verified,
+not assumed: the published asset was loaded in a browser and D1, D2 and D3 all reproduce in
+it. Tester reports of stray or missing characters from the round that used those builds are
+KNOWN and are not new bugs.
+
+Now that the back-port has landed, `src/` is ahead of `design/` and the distributables
+should be rebuilt from `src/` rather than from `design/`. `publish/build-dist.py` reads
+`DESIGN_SRC` from the environment and defaults to `design/index.html`, so it can be pointed
+at `app/index.html` without editing it. `design/index.html` stays as the design reference
+and must still never be hand-edited.
 
 ## Open threads / blockers
 - Back-port gap: `design/index.html` is a BUILT artifact. The additions must be
@@ -543,12 +592,9 @@ at save. Ships as true unless the user says otherwise.
    defects after 1a lands. Tester reports of stray or missing characters are expected,
    not new bugs. Do NOT hand-edit `design/index.html` to patch it; two divergent
    implementations of the classifier is the worse outcome.
-2. Back-port `design/index.html` into `src/engine.js` and `src/template.html`,
-   then `node src/build.js`. This back-port must also pick up FR-U30 to FR-U36, the
-   artifacts panel, and unskip the FR-U48 score-invariance test, which is written and
-   skipping with a printed reason. Otherwise the artifact feature ships with no UI and
-   nobody remembers why. Rename the "Needs a human" tab in the same pass, and correct
-   `README.md` to match, per `req-sentence-splitting.md` acceptance item 9.
+2. DONE 2026-08-24. `design/index.html` back-ported into `src/engine.js` and
+   `src/template.html`, FR-U30 to FR-U36 built, FR-U48 unskipped and passing. The tab is
+   now called "Resemblance" in `src/`, so `README.md` was corrected to match.
 3. Add tests for the new engine surface, then run `node tests/*.js`.
 4. Vendor pdf.js locally (removes the last CDN dependency).
 5. Ask again for sample Myridius articles to calibrate the humanizer word lists.
