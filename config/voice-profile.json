@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "name": "Satyam Patralekh, personal voice",
+    "version": "1.0",
+    "measuredFrom": "10 long-form articles, 19052 words, Articles/ as of 2026-10-16",
+    "description": "Deltas against the house style in default-config.json. Everything not listed here is inherited, so there is one set of dictionaries and this file only records where the author's own voice differs from them."
+  },
+
+  "notes": {
+    "expandContractions": "Measured, not assumed. The author writes 73 contractions across the corpus. The house style expands them for formal business writing; doing that here would rewrite his natural voice into someone else's, so it is off.",
+    "maxSentenceWords": "His sentence length: median 15, p75 23, p90 31, longest 61. The house default of 28 would flag roughly a tenth of his normal sentences as too long. 32 flags the genuine outliers and leaves his rhythm alone.",
+    "vocabulary": "No swap exceptions are hard-coded here. He already avoids 99 of the 109 built-in swap targets, and the ten he does use are his call, not this file's. If he wants to keep one, it belongs in his rules file as always: word, where he can see it and change it.",
+    "hyphens": "His own rule 3 bans en dashes, em dashes and hyphens. He already writes zero en and em dashes, but 305 hyphenated words. Hyphens are flagged rather than removed, because joining or splitting a compound changes meaning and needs a human."
+  },
+
+  "settings": {
+    "expandContractions": false,
+    "removeEmojis": true,
+    "fixDashes": true,
+    "maxSentenceWords": 32,
+    "maxParagraphSentences": 6,
+    "flagPassiveVoice": true,
+    "flagSemicolons": true,
+    "artifactClean": true,
+    "artifactNormalizeSpaces": true,
+    "artifactStripBidiMarks": false,
+    "artifactFoldConfusables": false,
+    "artifactScanCode": false
+  },
+
+  "protectedTerms": [
+    "Patralekh",
+    "Satyam Patralekh",
+    "Finextra",
+    "BankThink",
+    "The Financial Brand",
+    "Mastercard",
+    "Microsoft",
+    "Cambridge"
+  ],
+
+  "addSimpleSwaps": [
+    { "find": "20 years", "replace": "over two decades" },
+    { "find": "20+ years", "replace": "over two decades" },
+    { "find": "twenty years", "replace": "over two decades" },
+    { "find": "two decades of experience", "replace": "over two decades of experience" }
+  ],
+
+  "addFlagWords": [
+    { "find": "-", "reason": "Hyphen", "suggestion": "Your rule 3: restructure with commas, a colon, parentheses or a new sentence. Keep it only if the word cannot be written any other way." }
+  ]
+}

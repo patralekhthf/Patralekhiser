@@ -1,0 +1,66 @@
+# Builds the Svara installers for macOS and Windows.
+#
+# A Mac cannot cross-compile a Windows installer and a Windows machine cannot
+# produce a signed .dmg, so both are built on their own runner. Triggered by
+# hand, and on a tag starting with svara-v.
+name: Svara desktop
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["svara-v*"]
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            label: macos-apple-silicon
+          - os: macos-13
+            target: x86_64-apple-darwin
+            label: macos-intel
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            label: windows
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: desktop/src-tauri
+
+      # The app is built from source here rather than committed, so an
+      # installer can never ship a stale copy of the engine.
+      - name: Build the app and run its tests
+        run: |
+          node src/build.js
+          node tests/test.js
+          node tests/fileio.test.js
+
+      - name: Install the Tauri CLI
+        working-directory: desktop
+        run: npm install
+
+      - name: Build the installer
+        working-directory: desktop
+        run: npx tauri build --target ${{ matrix.target }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: svara-${{ matrix.label }}
+          path: |
+            desktop/src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg
+            desktop/src-tauri/target/${{ matrix.target }}/release/bundle/nsis/*.exe
+          if-no-files-found: error

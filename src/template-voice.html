@@ -1,0 +1,1871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Inline icon so the page needs no separate file and requests nothing.
+     Without it a browser asks for /favicon.ico and logs a 404 whenever the
+     page is served over http rather than opened from disk. -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2214%22%20fill%3D%22%231f4e79%22%2F%3E%3Ctext%20x%3D%2232%22%20y%3D%2246%22%20font-family%3D%22Helvetica%2CArial%2Csans-serif%22%20font-size%3D%2242%22%20font-weight%3D%22700%22%20fill%3D%22%23ffffff%22%20text-anchor%3D%22middle%22%3EP%3C%2Ftext%3E%3C%2Fsvg%3E">
+<title>Svara</title>
+<style>
+  :root {
+    --ink: #1a2433;
+    --ink-soft: #4a5568;
+    --line: #dde3ea;
+    --bg: #f5f7fa;
+    --card: #ffffff;
+    --accent: #1f4e79;
+    --accent-soft: #e8f0f8;
+    --warn: #9a5b00;
+    --warn-bg: #fdf4e3;
+    --fix-bg: #e9f6ee;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    display: flex; flex-direction: column;
+  }
+  header {
+    background: var(--card); border-bottom: 1px solid var(--line);
+    padding: 10px 22px; display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; flex: 0 0 auto;
+  }
+  header h1 { font-size: 19px; margin: 0; color: var(--accent); }
+  header p { margin: 0; color: var(--ink-soft); font-size: 12.5px; }
+  nav { margin-left: auto; display: flex; gap: 6px; }
+  nav > button {
+    border: 1px solid var(--line); background: var(--card); color: var(--ink-soft);
+    padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px;
+  }
+  nav > button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  .btn {
+    background: var(--accent); color: #fff; border: none; border-radius: 7px;
+    padding: 8px 18px; font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+  .btn:hover { background: #163a5c; }
+  .btn.secondary { background: var(--card); color: var(--accent); border: 1px solid var(--accent); font-weight: 500; padding: 7px 14px; font-size: 13px; }
+  .btn:disabled { opacity: 0.45; cursor: default; }
+
+  /* ---------- editor toolbar ---------- */
+  #toolbar {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 9px 22px; background: var(--card); border-bottom: 1px solid var(--line); flex: 0 0 auto;
+  }
+  .tabs { display: flex; gap: 2px; margin-left: 6px; }
+  .tabs button {
+    border: none; background: none; padding: 7px 12px; cursor: pointer; font-size: 13.5px;
+    color: var(--ink-soft); border-bottom: 2px solid transparent;
+  }
+  .tabs button.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+  .count-badge { background: var(--warn-bg); color: var(--warn); border-radius: 10px; padding: 0 7px; font-size: 11.5px; margin-left: 3px; }
+  .switch { display: flex; align-items: center; gap: 7px; font-size: 13.5px; color: var(--ink-soft); cursor: pointer; margin-left: auto; user-select: none; }
+  .switch input { width: 34px; height: 18px; appearance: none; background: #c7d0da; border-radius: 10px; position: relative; cursor: pointer; transition: background 0.15s; }
+  .switch input:checked { background: var(--accent); }
+  .switch input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; background: #fff; border-radius: 50%; transition: left 0.15s; }
+  .switch input:checked::after { left: 18px; }
+  #statusMsg { font-size: 12.5px; color: var(--ink-soft); }
+  #miniStats { font-size: 12.5px; color: var(--ink-soft); white-space: nowrap; }
+  #miniStats b { color: var(--accent); }
+
+  /* download menu */
+  .menu { position: relative; }
+  .menu-list {
+    position: absolute; top: calc(100% + 4px); left: 0; background: var(--card);
+    border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 6px 20px rgba(20,35,60,0.12);
+    min-width: 190px; z-index: 50; padding: 4px; display: none;
+  }
+  .menu.open .menu-list { display: block; }
+  .menu-list button {
+    display: block; width: 100%; text-align: left; border: none; background: none;
+    padding: 8px 12px; font-size: 13.5px; cursor: pointer; border-radius: 6px; color: var(--ink);
+  }
+  .menu-list button:hover { background: var(--accent-soft); }
+
+  /* ---------- split workspace ---------- */
+  #workspace {
+    flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 1fr 1fr;
+    gap: 14px; padding: 14px 22px 16px;
+  }
+  #workspace.solo { grid-template-columns: 1fr; }
+  #workspace.solo #leftPane { display: none; }
+  .pane {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    display: flex; flex-direction: column; min-height: 0; overflow: hidden; position: relative;
+  }
+  .pane-head {
+    padding: 8px 16px; border-bottom: 1px solid var(--line); font-size: 12px;
+    text-transform: uppercase; letter-spacing: 0.6px; color: var(--ink-soft);
+    display: flex; align-items: center; gap: 10px; flex: 0 0 auto;
+  }
+  .pane-head .spacer { flex: 1; }
+  .pane-head button { border: 1px solid var(--line); background: var(--card); color: var(--accent); border-radius: 6px; padding: 3px 10px; font-size: 12px; cursor: pointer; text-transform: none; letter-spacing: 0; }
+  .pane-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 16px 20px; }
+  .pane-body.editing { padding: 0; }
+  #inputText {
+    width: 100%; height: 100%; border: none; resize: none; padding: 16px 20px;
+    font: 14px/1.65 ui-monospace, "SF Mono", Consolas, Menlo, monospace; color: var(--ink);
+    background: #fcfdfe; outline: none;
+  }
+  .para {
+    padding: 6px 10px; margin: 0 -10px 10px; border-radius: 6px;
+    white-space: pre-wrap; overflow-wrap: break-word; line-height: 1.65;
+  }
+  .para.h1 { font-size: 21px; font-weight: 700; }
+  .para.h2 { font-size: 17px; font-weight: 700; }
+  .para.h3 { font-size: 15.5px; font-weight: 700; }
+  .para.hl { background: var(--accent-soft); }
+/* ---- change highlighting and inline paragraph editing ---- */
+  mark.chg { background: var(--fix-bg); border-radius: 3px; padding: 0 1px;
+             box-shadow: inset 0 -0.28em 0 #cbe7d6; }
+  .para .del { display: inline-block; width: 0; height: 0.95em; margin: 0 2px;
+               border-left: 2px solid var(--warn); vertical-align: -0.15em; cursor: help; }
+  .para.r.editable { cursor: text; }
+  .para.r.editable:hover { box-shadow: inset 0 0 0 1px var(--line); }
+  .para.r.edited { box-shadow: inset 2px 0 0 var(--accent); }
+  .para-edit { display: block; width: 100%; box-sizing: border-box; font: inherit;
+               line-height: 1.65; color: var(--ink); background: var(--card);
+               border: 1px solid var(--accent); border-radius: 6px;
+               padding: 6px 10px; margin: 0 -10px 10px; resize: vertical;
+               min-height: 2.8em; overflow: hidden; }
+  .para-edit:focus { outline: none; box-shadow: 0 0 0 3px var(--accent-soft); }
+  .switch + .switch { margin-left: 14px; }
+  .meta-sub { color: var(--ink-soft); }
+  .placeholder { color: var(--ink-soft); padding: 30px 10px; text-align: center; font-size: 14px; }
+
+
+  .item { border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; font-size: 13.5px; }
+  .item.fix { background: var(--fix-bg); border-color: #cbe7d6; }
+  .item.flag { background: var(--warn-bg); border-color: #f0dcb4; }
+  .item .head { font-weight: 600; margin-bottom: 3px; }
+  .item .ctx { color: var(--ink-soft); font-size: 12.5px; }
+  .item .sug { color: var(--warn); font-size: 12.5px; margin-top: 3px; }
+  .pill { display: inline-block; font-size: 11px; padding: 1px 8px; border-radius: 10px; background: var(--accent-soft); color: var(--accent); margin-right: 8px; }
+  .group-title { margin: 12px 0 6px; font-weight: 600; font-size: 13.5px; }
+
+  /* ---------- config view ---------- */
+  #viewConfig { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 20px 22px 60px; }
+  .cfg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 1240px; margin: 0 auto; }
+  @media (max-width: 900px) { .cfg-grid { grid-template-columns: 1fr; } }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; }
+  .card h2 { font-size: 14px; margin: 0 0 10px; text-transform: uppercase; letter-spacing: 0.6px; }
+  .cfg-section { margin-bottom: 22px; }
+  .cfg-section h3 { font-size: 14px; margin: 0 0 4px; }
+  .cfg-section p { margin: 0 0 8px; font-size: 12.5px; color: var(--ink-soft); }
+  .cfg-section textarea {
+    width: 100%; min-height: 110px; border: 1px solid var(--line); border-radius: 8px; padding: 12px;
+    font: 13.5px/1.6 ui-monospace, "SF Mono", Consolas, Menlo, monospace; color: var(--ink);
+    resize: vertical; background: #fcfdfe;
+  }
+  label.toggle { display: flex; align-items: center; gap: 8px; font-size: 14px; margin-bottom: 8px; }
+  input[type=number] { width: 70px; padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; }
+  .toolbar-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .note { font-size: 12.5px; color: var(--ink-soft); }
+  .hidden { display: none !important; }
+  .empty { color: var(--ink-soft); font-size: 13.5px; padding: 20px 0; text-align: center; }
+
+
+  /* ---------- resemblance panel ---------- */
+  .res-score { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; background: #fbfcfe; }
+  .res-top { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .res-num { font-size: 26px; font-weight: 700; color: var(--accent); line-height: 1; }
+  .res-num span { font-size: 13px; font-weight: 500; color: var(--ink-soft); }
+  .res-verdict { font-size: 14px; font-weight: 600; }
+  .res-sub { font-size: 12px; color: var(--ink-soft); margin-left: auto; }
+  .res-dims { display: grid; gap: 6px; margin-top: 11px; }
+  .res-dim { display: grid; grid-template-columns: 140px 1fr 40px; gap: 9px; align-items: center; font-size: 12px; color: var(--ink-soft); }
+  .res-bar { height: 6px; border-radius: 4px; background: #e9edf3; overflow: hidden; }
+  .res-bar i { display: block; height: 100%; border-radius: 4px; transition: width 0.2s; }
+  .res-dim b { color: var(--ink); font-variant-numeric: tabular-nums; text-align: right; font-weight: 600; }
+  .res-filters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; align-items: center; }
+  .res-chip { border: 1px solid var(--line); background: var(--card); border-radius: 14px; padding: 3px 10px; font-size: 11.5px; cursor: pointer; color: var(--ink-soft); display: inline-flex; gap: 6px; align-items: center; }
+  .res-chip:hover { border-color: var(--ink-soft); }
+  .res-chip i { opacity: 0.3; }
+  .res-chip.on { color: var(--accent); background: var(--accent-soft); border-color: var(--accent); font-weight: 600; }
+  .res-chip.on i { opacity: 1; }
+  .res-chip i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .res-note { font-size: 12px; color: var(--ink-soft); margin: 0 0 10px; }
+  .res-doc { padding-bottom: 30px; }
+  mark.rz { background: transparent; color: inherit; cursor: pointer; border-radius: 3px; padding: 0 1px;
+    box-shadow: inset 0 -0.3em 0 var(--rz); -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+  mark.rz.sel { box-shadow: inset 0 -0.3em 0 var(--rz), 0 0 0 2px var(--accent); }
+  mark.rz.done { box-shadow: inset 0 -0.16em 0 #58a578; }
+  mark.rz.rev { opacity: 0.5; box-shadow: inset 0 -0.16em 0 #c7d0da; }
+  .res-drawer { position: absolute; left: 0; right: 0; bottom: 0; background: var(--card);
+    border-top: 1px solid var(--line); box-shadow: 0 -8px 24px rgba(20,35,60,0.10); padding: 11px 16px 13px; z-index: 20;
+    max-height: 48%; overflow-y: auto; }
+  .res-drawer .res-why { max-height: 3.2em; overflow: hidden; }
+  .res-drawer .res-edit { min-height: 40px; }
+  .res-d-head { display: flex; align-items: center; gap: 8px; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--ink-soft); margin-bottom: 5px; }
+  .res-d-head i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .res-d-head .spacer { flex: 1; }
+  .res-d-head button { border: none; background: none; color: var(--ink-soft); cursor: pointer; font-size: 15px; line-height: 1; padding: 0 2px; }
+  .res-quote { font-size: 13.5px; font-weight: 600; margin: 0 0 3px; }
+  .res-why { font-size: 12.5px; color: var(--ink-soft); margin: 0 0 8px; }
+  .res-edit { width: 100%; min-height: 46px; border: 1px solid var(--line); border-radius: 7px; padding: 7px 9px;
+    font: 13px/1.5 inherit; color: var(--ink); background: #fcfdfe; resize: vertical; }
+  .res-edit:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+  .res-edit-label { font-size: 11.5px; color: var(--warn); margin: 0 0 3px; }
+  .res-scope { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 5px; }
+  .res-scope .res-edit-label { margin: 0 0 0 4px; }
+  .res-d-actions { display: flex; align-items: center; gap: 8px; margin-top: 9px; flex-wrap: wrap; }
+  .res-d-actions .pos { font-size: 12px; color: var(--ink-soft); margin-left: auto; }
+  .res-d-actions .step { border: 1px solid var(--line); background: var(--card); color: var(--accent); border-radius: 6px; padding: 4px 9px; font-size: 12px; cursor: pointer; }
+  /* ---- suggested rewrite options ---- */
+  .res-opts { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 2px 0 8px; }
+  .res-opts .lbl { font-size: 12px; color: var(--ink-soft); margin-right: 2px; }
+  .res-opt { font: inherit; font-size: 12.5px; line-height: 1.3; padding: 4px 10px;
+             border: 1px solid #cbe7d6; background: var(--fix-bg); color: var(--ink);
+             border-radius: 13px; cursor: pointer; max-width: 100%; text-align: left;
+             overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .res-opt:hover { border-color: var(--accent); }
+  .res-opt.on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); font-weight: 600; }
+  .res-opt .kind { color: var(--ink-soft); font-style: italic; }
+  .res-none { font-size: 12px; color: var(--ink-soft); margin: 2px 0 8px; }
+  .res-applied { background: var(--fix-bg); border: 1px solid #cbe7d6; border-radius: 7px; padding: 7px 9px; font-size: 12.5px; }
+  .res-doclevel { border: 1px solid #f0dcb4; background: var(--warn-bg); border-radius: 8px; padding: 9px 12px; margin-bottom: 8px; font-size: 12.5px; }
+  .res-doclevel .head { font-weight: 600; margin-bottom: 2px; }
+  .res-doclevel .sug { color: var(--warn); margin-top: 3px; }
+
+/* ---- artifacts panel: evidence, not a score ----
+   Reuses --warn on --warn-bg, which already means "look at this, it is not a
+   score". No new token, and deliberately no bar and no chip, because an
+   artifact is not a sixth dimension. */
+/* ---- LinkedIn pane ---- */
+  .li-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+  .li-count { font-size: 12.5px; color: var(--ink-soft); margin-left: auto; }
+  .li-count.over { color: var(--warn); font-weight: 600; }
+  .li-out { border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px;
+            background: var(--card); white-space: pre-wrap; word-wrap: break-word;
+            font-size: 14.5px; line-height: 1.6; min-height: 120px; }
+  .li-fold { border-top: 1px dashed var(--warn); margin: 0; position: relative; }
+  .li-fold span { position: absolute; right: 0; top: -9px; background: var(--card);
+                  padding: 0 6px; font-size: 11px; color: var(--warn); }
+  .li-warn { border: 1px solid #f0dcb4; background: var(--warn-bg); border-radius: 8px;
+             padding: 10px 13px; font-size: 12.5px; line-height: 1.55; margin-bottom: 12px; }
+  .li-warn b { color: var(--warn); }
+/* ---- rules pane ---- */
+  .rules-ed { width: 100%; box-sizing: border-box; min-height: 300px; font-family: ui-monospace, Menlo, Consolas, monospace;
+              font-size: 13px; line-height: 1.6; padding: 12px; border: 1px solid var(--line);
+              border-radius: 8px; background: var(--card); color: var(--ink); resize: vertical; }
+  .rules-ed:focus { outline: none; box-shadow: 0 0 0 3px var(--accent-soft); border-color: var(--accent); }
+  .rules-msg { font-size: 12.5px; margin-top: 10px; }
+  .rules-err { border-left: 3px solid var(--warn); background: var(--warn-bg); padding: 7px 11px;
+               border-radius: 0 6px 6px 0; margin-bottom: 6px; }
+  .rules-err b { color: var(--warn); }
+  .rules-ok { color: var(--ink-soft); }
+  .art-panel { border: 1px solid #f0dcb4; background: var(--warn-bg); border-radius: 10px;
+               padding: 12px 14px; margin: 18px 0 12px; }
+  .art-panel h4 { margin: 0 0 3px; font-size: 13.5px; color: var(--warn); }
+  .art-panel .art-caveat { margin: 0 0 10px; font-size: 12px; color: var(--ink-soft); }
+  .art-sub { font-size: 12px; font-weight: 600; color: var(--ink-soft);
+             margin: 10px 0 5px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .art-row { display: flex; gap: 8px; align-items: baseline; font-size: 12.5px;
+             padding: 4px 0; border-top: 1px solid #f0dcb4; }
+  .art-row:first-of-type { border-top: none; }
+  .art-row .cp { font-family: ui-monospace, Menlo, Consolas, monospace; color: var(--warn); white-space: nowrap; }
+  .art-row .why { color: var(--ink-soft); }
+  .art-row .ctx { font-family: ui-monospace, Menlo, Consolas, monospace;
+                  color: var(--ink-soft); margin-left: auto; white-space: nowrap;
+                  overflow: hidden; text-overflow: ellipsis; max-width: 42%; }
+  /* Informational rows sit at the same 50% the design uses for reviewed spans. */
+  .art-row.info { opacity: 0.5; }
+  .art-row .more { background: none; border: none; color: var(--accent);
+                   font: inherit; font-size: 12px; cursor: pointer; padding: 0; text-decoration: underline; }
+  .art-offsets { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11.5px;
+                 color: var(--ink-soft); padding: 2px 0 6px; word-break: break-all; }
+/* A zero-width character has zero width, so it gets a caret at the offset
+   rather than an underline. Inset box-shadow, so it cannot collide with
+   .para.hl, which paints its own. */
+  .para .art { display: inline-block; width: 0; height: 0.95em; margin: 0 1px;
+               border-left: 2px solid var(--warn); vertical-align: -0.15em; cursor: help; }
+  .para .art.info { opacity: 0.5; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Patralekhiser</h1>
+  <p>Clear enough for a customer, precise enough for a technologist, concise enough for an executive. No AI involved.</p>
+  <nav>
+    <button id="navEditor" class="active" onclick="showView('editor')">Editor</button>
+    <button id="navConfig" onclick="showView('config')">Configuration</button>
+  </nav>
+</header>
+
+<!-- ================= EDITOR VIEW ================= -->
+<div id="toolbar">
+  <button class="btn" id="runBtn" onclick="run()">Patralekhise</button>
+  <button class="btn secondary" onclick="document.getElementById('uploadFile').click()">Upload</button>
+  <input type="file" id="uploadFile" accept=".md,.markdown,.txt,.docx,.pdf" class="hidden" onchange="handleUpload(event)">
+  <div class="menu" id="dlMenu">
+    <button class="btn secondary" id="dlBtn" onclick="toggleMenu(event)" disabled>Download</button>
+    <div class="menu-list">
+      <button onclick="download('docx')">Word (.docx)</button>
+      <button onclick="download('pdf')">PDF (.pdf)</button>
+      <button onclick="download('md')">Markdown (.md)</button>
+      <button onclick="download('txt')">Plain text (.txt)</button>
+    </div>
+  </div>
+  <button class="btn secondary" id="copyBtn" onclick="copyResult()" disabled>Copy</button>
+
+  <div class="tabs">
+    <button id="tabResult" class="active" onclick="showTab('result')">Result</button>
+    <button id="tabChanges" onclick="showTab('changes')">Changes <span id="changeCount" class="count-badge hidden"></span></button>
+    <button id="tabFlags" onclick="showTab('flags')">Resemblance <span id="flagCount" class="count-badge hidden"></span></button>
+    <button id="tabLinkedin" onclick="showTab('linkedin')">LinkedIn</button>
+    <button id="tabRules" onclick="showTab('rules')">My rules <span id="rulesCount" class="count-badge hidden"></span></button>
+  </div>
+
+  <span id="statusMsg"></span>
+
+  <label class="switch" title="Hide the original and show only the Patralekhised text">
+    <input type="checkbox" id="showOriginal" checked onchange="toggleOriginal()">
+    Show original
+  </label>
+  <label class="switch" title="Shade every word the rules changed. Hover a highlight to see what it was before.">
+    <input type="checkbox" id="showHighlights" checked onchange="toggleHighlights()">
+    Highlight changes
+  </label>
+  <span id="miniStats"></span>
+</div>
+
+<div id="workspace">
+  <div class="pane" id="leftPane">
+    <div class="pane-head">
+      Original
+      <span class="spacer"></span>
+      <span id="inputMeta"></span>
+      <button id="editBtn" class="hidden" onclick="editOriginal()">Edit</button>
+    </div>
+    <div class="pane-body editing" id="leftBody">
+      <textarea id="inputText" placeholder="Paste your article here (plain text or Markdown), or use Upload for a Word, PDF or Markdown file."></textarea>
+    </div>
+  </div>
+
+  <div class="pane" id="rightPane">
+    <div class="pane-head">
+      <span id="rightTitle">Patralekhised</span>
+      <span class="spacer"></span>
+      <span id="outputMeta"></span>
+    </div>
+    <div class="pane-body" id="rightBody">
+      <div class="placeholder">The Patralekhised version appears here, paragraph by paragraph, in sync with the original.</div>
+    </div>
+    <div id="resDrawer" class="res-drawer hidden"></div>
+  </div>
+</div>
+
+<!-- ================= CONFIG VIEW ================= -->
+<div id="viewConfig" class="hidden">
+  <div class="card" style="max-width:1240px;margin:0 auto 20px;">
+    <h2>Style configuration</h2>
+    <p class="note" style="margin-top:0;">These rules define the Myridius voice. Edit them below, then press Apply. Use Export to save your configuration as a file and Import to load it back later. This page keeps nothing after you close it, so export after making changes.</p>
+    <div class="toolbar-row" style="margin-top:10px;">
+      <button class="btn" onclick="applyConfig()">Apply changes</button>
+      <button class="btn secondary" onclick="exportConfig()">Export config</button>
+      <button class="btn secondary" onclick="document.getElementById('importFile').click()">Import config</button>
+      <input type="file" id="importFile" accept=".json" class="hidden" onchange="importConfig(event)">
+      <button class="btn secondary" onclick="resetConfig()">Reset to defaults</button>
+      <span id="cfgMsg" class="note"></span>
+    </div>
+  </div>
+
+  <div class="card" style="max-width:1240px;margin:0 auto 20px;">
+    <h2>Resemblance scoring</h2>
+    <p class="note" style="margin-top:0;">Each dimension scores 0 to 4 from how many flags appear per thousand words. Weight sets how much it contributes to the score out of 20. "No personal voice" is judged by what is absent, so it never highlights anything in the text.</p>
+    <div id="cfgDims" class="toolbar-row" style="margin-top:12px;"></div>
+  </div>
+
+  <div class="cfg-grid">
+    <div class="card">
+      <div class="cfg-section">
+        <h3>Behaviour</h3>
+        <label class="toggle"><input type="checkbox" id="setContractions"> Expand contractions (formal writing)</label>
+        <label class="toggle"><input type="checkbox" id="setEmojis"> Remove emojis and decorative icons</label>
+        <label class="toggle"><input type="checkbox" id="setDashes"> Replace em and en dashes</label>
+        <label class="toggle"><input type="checkbox" id="setPassive"> Flag passive voice</label>
+        <label class="toggle"><input type="checkbox" id="setSemicolons"> Flag semicolons</label>
+        <label class="toggle">Flag sentences longer than <input type="number" id="setMaxWords" min="10" max="60"> words</label>
+      </div>
+      <div class="cfg-section">
+        <h3>Invisible characters</h3>
+        <p>Zero-width spaces, bidi controls, tag characters, noncharacters and
+        private-use codepoints are invisible on screen but defeat every rule
+        below and travel into your exported files. They are always reported.
+        Characters that are doing real work are kept and listed with the
+        reason: emoji joiners, Persian and Devanagari joiners, complete flag
+        sequences, and CJK, Mongolian, Khmer and Hangul selectors and fillers.
+        Anything inside a code span is reported and left alone, so an article
+        about invisible characters survives its own subject matter. Finding
+        none is not evidence that a text was written by a person, and finding
+        some is not evidence that it was not.</p>
+        <label class="toggle"><input type="checkbox" id="setArtifactClean"> Remove invisible characters (off still reports them)</label>
+        <label class="toggle"><input type="checkbox" id="setArtifactSpaces"> Turn non-breaking and exotic spaces into ordinary spaces</label>
+        <p>Space normalisation changes typography, not just bytes: a
+        non-breaking space becoming an ordinary one lets <b>10&nbsp;km</b>,
+        <b>10&nbsp;%</b> and <b>Fig.&nbsp;3</b> break across lines, and changes
+        French spacing around guillemets. On by default because business prose
+        rarely depends on it.</p>
+        <label class="toggle"><input type="checkbox" id="setArtifactBidi"> Also remove direction marks and isolates</label>
+        <label class="toggle"><input type="checkbox" id="setArtifactConfusables"> Fold Cyrillic and fullwidth lookalikes to Latin</label>
+        <p>Folding lookalikes will <b>damage genuine Cyrillic</b>: real Russian
+        containing а, е, о, р, с or х becomes Latin mojibake. Leave it off
+        unless you know the document is English.</p>
+        <label class="toggle"><input type="checkbox" id="setArtifactScanCode"> Clean inside code spans too</label>
+      </div>
+      <div class="cfg-section">
+        <h3>Protected terms</h3>
+        <p>Never changed by any rule. One per line. Brand and product names belong here.</p>
+        <textarea id="cfgProtected"></textarea>
+      </div>
+      <div class="cfg-section">
+        <h3>Blocked words and phrases (flag only)</h3>
+        <p>Flagged for a human, never auto changed. Format: <b>word | reason | suggestion | dimension | replacement</b>. Dimension is d1 to d5; a replacement makes the flag acceptable in one click.</p>
+        <textarea id="cfgFlagWords" style="min-height:200px;"></textarea>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="cfg-section">
+        <h3>Simpler word swaps</h3>
+        <p>Complex word to plain word. Format: <b>find =&gt; replace</b>, one per line. Add <b>| verbOnly</b> to a line when the word is also a noun with a different meaning, and the swap will only fire where the surrounding words make the verb sense certain. That is why <i>harness the power of X</i> becomes <i>use</i> while <i>an eval harness</i> is left alone.</p>
+        <textarea id="cfgSimple" style="min-height:170px;"></textarea>
+      </div>
+      <div class="cfg-section">
+        <h3>Hype and AI wording swaps</h3>
+        <p>Marketing and AI sounding words with a safe plain replacement.</p>
+        <textarea id="cfgHype" style="min-height:140px;"></textarea>
+      </div>
+      <div class="cfg-section">
+        <h3>Wordy phrase cleanups</h3>
+        <p>Format: <b>find =&gt; replace</b></p>
+        <textarea id="cfgFiller" style="min-height:140px;"></textarea>
+      </div>
+      <div class="cfg-section">
+        <h3>Sentence openers to delete</h3>
+        <p>Removed when a sentence starts with them. One per line.</p>
+        <textarea id="cfgStartDeletes"></textarea>
+      </div>
+      <div class="cfg-section">
+        <h3>Filler to delete anywhere</h3>
+        <p>One per line.</p>
+        <textarea id="cfgMidDeletes"></textarea>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/*__RULES__*/
+/*__LINKEDIN__*/
+/*__ENGINE__*/
+</script>
+<script>
+/*__FILEIO__*/
+</script>
+
+<script>
+"use strict";
+
+/* ------- state ------- */
+/* The voice profile is a DELTA against the shared house-style dictionaries,
+   not a second copy of them. One set of rules, one engine; this file only
+   records where the author's measured voice differs. Every value in it was
+   derived from his own 19,052-word corpus rather than assumed. */
+var VOICE_PROFILE = {
+  "meta": {
+    "name": "Satyam Patralekh, personal voice",
+    "version": "1.0",
+    "measuredFrom": "10 long-form articles, 19052 words, Articles/ as of 2026-10-16",
+    "description": "Deltas against the house style in default-config.json. Everything not listed here is inherited, so there is one set of dictionaries and this file only records where the author's own voice differs from them."
+  },
+  "notes": {
+    "expandContractions": "Measured, not assumed. The author writes 73 contractions across the corpus. The house style expands them for formal business writing; doing that here would rewrite his natural voice into someone else's, so it is off.",
+    "maxSentenceWords": "His sentence length: median 15, p75 23, p90 31, longest 61. The house default of 28 would flag roughly a tenth of his normal sentences as too long. 32 flags the genuine outliers and leaves his rhythm alone.",
+    "vocabulary": "No swap exceptions are hard-coded here. He already avoids 99 of the 109 built-in swap targets, and the ten he does use are his call, not this file's. If he wants to keep one, it belongs in his rules file as always: word, where he can see it and change it.",
+    "hyphens": "His own rule 3 bans en dashes, em dashes and hyphens. He already writes zero en and em dashes, but 305 hyphenated words. Hyphens are flagged rather than removed, because joining or splitting a compound changes meaning and needs a human."
+  },
+  "settings": {
+    "expandContractions": false,
+    "removeEmojis": true,
+    "fixDashes": true,
+    "maxSentenceWords": 32,
+    "maxParagraphSentences": 6,
+    "flagPassiveVoice": true,
+    "flagSemicolons": true,
+    "artifactClean": true,
+    "artifactNormalizeSpaces": true,
+    "artifactStripBidiMarks": false,
+    "artifactFoldConfusables": false,
+    "artifactScanCode": false
+  },
+  "protectedTerms": [
+    "Patralekh",
+    "Satyam Patralekh",
+    "Finextra",
+    "BankThink",
+    "The Financial Brand",
+    "Mastercard",
+    "Microsoft",
+    "Cambridge"
+  ],
+  "addSimpleSwaps": [
+    {
+      "find": "20 years",
+      "replace": "over two decades"
+    },
+    {
+      "find": "20+ years",
+      "replace": "over two decades"
+    },
+    {
+      "find": "twenty years",
+      "replace": "over two decades"
+    },
+    {
+      "find": "two decades of experience",
+      "replace": "over two decades of experience"
+    }
+  ],
+  "addFlagWords": [
+    {
+      "find": "-",
+      "reason": "Hyphen",
+      "suggestion": "Your rule 3: restructure with commas, a colon, parentheses or a new sentence. Keep it only if the word cannot be written any other way."
+    }
+  ]
+};
+
+function applyVoiceProfile(base, profile) {
+  var cfg = JSON.parse(JSON.stringify(base));
+  cfg.meta = profile.meta;
+  Object.keys(profile.settings || {}).forEach(function (k) { cfg.settings[k] = profile.settings[k]; });
+  /* The author's own names replace the company's, rather than joining them:
+     this is his personal tool, not the house one. */
+  cfg.protectedTerms = (profile.protectedTerms || []).slice();
+  (profile.addSimpleSwaps || []).forEach(function (r) { cfg.simpleSwaps.unshift(r); });
+  (profile.addFlagWords || []).forEach(function (r) { cfg.flagWords.push(r); });
+  return cfg;
+}
+
+var config = applyVoiceProfile(MyridiusEngine.defaultConfig, VOICE_PROFILE);
+var lastResult = null;
+var rawInput = "";
+var activeTab = "result";
+var syncing = false;
+
+/* ------- view switching ------- */
+function showView(v) {
+  var editor = v === "editor";
+  document.getElementById("toolbar").classList.toggle("hidden", !editor);
+  document.getElementById("workspace").classList.toggle("hidden", !editor);
+  document.getElementById("viewConfig").classList.toggle("hidden", editor);
+  document.getElementById("navEditor").classList.toggle("active", editor);
+  document.getElementById("navConfig").classList.toggle("active", !editor);
+  if (!editor) renderConfig();
+}
+
+function showTab(t) {
+  activeTab = t;
+  ["result", "changes", "flags", "linkedin", "rules"].forEach(function (k) {
+    document.getElementById("tab" + k.charAt(0).toUpperCase() + k.slice(1)).classList.toggle("active", k === t);
+  });
+  document.getElementById("rightTitle").textContent =
+    t === "result" ? "Simplified" : t === "changes" ? "Automatic changes"
+    : t === "flags" ? "Resemblance audit" : t === "linkedin" ? "LinkedIn post" : "My rules";
+  /* The drawer is docked inside the right pane, so leaving the audit tab must
+     close it. Otherwise it sits on top of the Result pane and blocks the
+     paragraphs underneath from being clicked and edited. */
+  if (t !== "flags") { review.sel = null; hideDrawer(); }
+  renderRight();
+}
+
+/* ------- helpers ------- */
+function esc(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+function status(msg, sticky) {
+  var el = document.getElementById("statusMsg");
+  el.textContent = msg || "";
+  if (!sticky && msg) setTimeout(function () { if (el.textContent === msg) el.textContent = ""; }, 4000);
+}
+function headingClass(text) {
+  var m = text.match(/^(#{1,3})\s/);
+  return m ? " h" + m[1].length : "";
+}
+
+/* ------- run ------- */
+function run() {
+  var ta = document.getElementById("inputText");
+  if (ta) rawInput = ta.value;
+  if (!rawInput.trim()) { status("Paste an article or upload a file first."); return; }
+
+  var hadManual = manualEditCount();
+  lastResult = MyridiusEngine.processDoc(rawInput, config);
+
+  renderOriginalParas();
+  renderRight();
+  renderStats();
+
+  resetReview();
+
+  var cc = document.getElementById("changeCount");
+  cc.textContent = lastResult.changes.length; cc.classList.remove("hidden");
+  var fc = document.getElementById("flagCount");
+  fc.textContent = lastResult.resemblance.total.toFixed(1); fc.classList.remove("hidden");
+  document.getElementById("dlBtn").disabled = false;
+  document.getElementById("copyBtn").disabled = false;
+  document.getElementById("editBtn").classList.remove("hidden");
+  showTab("result");
+  if (hadManual) status("Re-ran from the original, so your " + hadManual + " manual paragraph edit(s) were replaced.");
+}
+
+function renderOriginalParas() {
+  var body = document.getElementById("leftBody");
+  body.classList.remove("editing");
+  var html = "";
+  lastResult.paragraphs.forEach(function (p, i) {
+    html += '<div class="para o' + headingClass(p.original) + '" data-i="' + i + '">'
+          + markArtifacts(p.original, i) + "</div>";
+  });
+  body.innerHTML = html;
+  document.getElementById("inputMeta").textContent = lastResult.stats.before.words + " words";
+  attachParaEvents(body);
+}
+
+/* ---------- LinkedIn pane ----------------------------------------------- *
+   LinkedIn carries no formatting, so "bold" is a substitution of Unicode
+   Mathematical Sans-Serif letters that most fonts draw as bold. They are not
+   bold letters, they are different characters that look like them, and the
+   cost of that is stated in the pane rather than buried: a screen reader
+   cannot read them, and neither LinkedIn search nor browser find-in-page
+   will match them. The plain toggle is one click away for that reason.    */
+
+var liStyled = true;
+
+function linkedInSource() {
+  /* Built from the simplified output, so the post inherits every rule,
+     including the author's own overrides. */
+  return lastResult.paragraphs.map(function (p) { return p.output; }).join("\n\n");
+}
+
+function renderLinkedIn(pane) {
+  var md = linkedInSource();
+  var text = MyridiusLinkedIn.render(md, { plain: !liStyled });
+  var st = MyridiusLinkedIn.stats(text);
+  window.liText = text;
+
+  var html = '<div class="li-warn"><b>Before you paste this.</b> The bold and italic here are not formatting. '
+    + 'They are substitute Unicode characters that look like bold. A screen reader cannot read them, and they '
+    + 'will not match LinkedIn search or a reader\'s find-in-page. Use styling on short lines only, or switch to '
+    + 'plain text below. Links, hashtags, @mentions and emails are never converted, because converting them '
+    + 'would quietly stop them working.</div>';
+
+  html += '<div class="li-bar">'
+    + '<button class="btn" onclick="copyLinkedIn(this)">Copy post</button>'
+    + '<label class="switch" style="margin-left:0;"><input type="checkbox" id="liStyled"' + (liStyled ? " checked" : "")
+    + ' onchange="liStyled=this.checked;renderRight();"> Styled</label>'
+    + '<span class="li-count' + (st.over ? " over" : "") + '">'
+    + st.chars + " / " + st.limit + " characters"
+    + (st.over ? ", " + st.over + " over the limit" : "")
+    + (st.styledCount ? " &middot; " + st.styledCount + " styled" : "")
+    + "</span></div>";
+
+  /* Show where LinkedIn folds the post behind "see more", because the first
+     line is the only part most people will ever read. */
+  var head = esc(st.preview), tail = esc(Array.from(text).slice(st.foldAt).join(""));
+  html += '<div class="li-out">' + head
+    + (st.hidden ? '<p class="li-fold"><span>see more, ' + st.hidden + " characters hidden</span></p>" + tail : "")
+    + "</div>";
+
+  if (st.urlsInBody.length) {
+    html += '<p class="note" style="margin-top:10px;">' + st.urlsInBody.length
+      + ' link' + (st.urlsInBody.length > 1 ? "s" : "") + ' in the body. You normally put links in the first comment instead.</p>';
+  }
+  pane.innerHTML = html;
+}
+
+function copyLinkedIn(btn) {
+  var text = window.liText || "";
+  function done(ok) {
+    btn.textContent = ok ? "Copied" : "Press Cmd+C";
+    setTimeout(function () { btn.textContent = "Copy post"; }, 1600);
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function () { done(true); }, function () { fallback(); });
+  } else { fallback(); }
+  function fallback() {
+    /* file:// pages do not always get clipboard permission, so select the
+       text and let the author press the shortcut rather than failing. */
+    var ta = document.createElement("textarea");
+    ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    var ok = false;
+    try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    done(ok);
+  }
+}
+
+/* ---------- my rules ----------------------------------------------------- *
+   The override layer, edited in the app rather than in a file the author has
+   to go and find. Applied on every run, and it outranks every dictionary.  */
+
+var rulesText = "";
+
+function renderRules(pane) {
+  var parsed = MyridiusRules.parse(rulesText);
+  var conf = MyridiusRules.conflicts(parsed, config);
+
+  var html = '<p class="note" style="margin-top:0;">One rule per line. These win over everything else the tool does, '
+    + "including its own dictionaries.</p>"
+    + '<p class="note"><b>never: Excellent -&gt; Good</b> swap it. '
+    + '<b>never: delve</b> ban it with no substitute, and it gets flagged for you rather than guessed at. '
+    + '<b>always: over two decades</b> keep this wording whatever the rules say. '
+    + '<b>protect: Patralekh</b> never touch it at all. Lines starting with # are notes.</p>'
+    + '<textarea class="rules-ed" id="rulesEd" spellcheck="false" placeholder="# My rules&#10;never: Excellent -&gt; Good">'
+    + esc(rulesText) + "</textarea>"
+    + '<div class="li-bar" style="margin-top:10px;">'
+    + '<button class="btn" onclick="applyRules()">Apply</button>'
+    + '<button class="btn secondary" onclick="saveRules()">Save to file</button>'
+    + '<button class="btn secondary" onclick="document.getElementById(\'rulesFile\').click()">Load from file</button>'
+    + '<input type="file" id="rulesFile" accept=".txt,.md,.rules" class="hidden" onchange="loadRules(event)">'
+    + "</div><div class='rules-msg' id='rulesMsg'></div>";
+  pane.innerHTML = html;
+  showRuleMessages(parsed, conf);
+  document.getElementById("rulesEd").addEventListener("input", function () { rulesText = this.value; });
+}
+
+function showRuleMessages(parsed, conf) {
+  var el = document.getElementById("rulesMsg");
+  if (!el) return;
+  var html = "";
+  parsed.errors.forEach(function (e) {
+    html += '<div class="rules-err"><b>Line ' + e.line + "</b> " + esc(e.message)
+          + '<div style="font-family:ui-monospace,Menlo,monospace;margin-top:3px;">' + esc(e.text) + "</div></div>";
+  });
+  conf.forEach(function (c) { html += '<div class="rules-err">' + esc(c.message) + "</div>"; });
+  var count = parsed.never.length + parsed.always.length + parsed.protect.length;
+  html += '<div class="rules-ok">' + count + " rule" + (count === 1 ? "" : "s") + " active"
+       + (parsed.errors.length ? ", " + parsed.errors.length + " line" + (parsed.errors.length === 1 ? "" : "s") + " ignored" : "")
+       + ". They are applied last, so they also catch words the built-in rules introduced.</div>";
+  el.innerHTML = html;
+
+  var badge = document.getElementById("rulesCount");
+  if (count) { badge.textContent = count; badge.classList.remove("hidden"); }
+  else badge.classList.add("hidden");
+}
+
+function applyRules() {
+  var ed = document.getElementById("rulesEd");
+  if (ed) rulesText = ed.value;
+  config.userRules = MyridiusRules.parse(rulesText);
+  if (lastResult) { run(); showTab("rules"); }
+  else renderRight();
+  status("Rules applied.");
+}
+
+function saveRules() {
+  var ed = document.getElementById("rulesEd");
+  if (ed) rulesText = ed.value;
+  saveBlob(rulesText, "text/plain", "my-rules.txt");
+}
+
+function loadRules(ev) {
+  var f = ev.target.files && ev.target.files[0];
+  if (!f) return;
+  var r = new FileReader();
+  r.onload = function () {
+    rulesText = String(r.result || "");
+    config.userRules = MyridiusRules.parse(rulesText);
+    renderRight();
+    status("Rules loaded from " + f.name + ".");
+  };
+  r.readAsText(f);
+  ev.target.value = "";
+}
+
+/* ---------- invisible-character artifacts -------------------------------- *
+   Reported next to the resemblance panel and never inside it. An artifact is
+   the only thing this module can state as fact rather than estimate, and the
+   moment a verifiable codepoint feeds a banded score, the report has quietly
+   become a detector. So: no bar, no chip, no dimension, no contribution to
+   the number (FR-U1, FR-U30).                                              */
+
+function artifactsFor(i) {
+  return (lastResult.artifacts || []).filter(function (a) { return a.paragraph === i; });
+}
+
+/* Plain-words reason a load-bearing invisible was left alone (FR-U34). */
+var ART_KEEP_REASON = {
+  "emoji-glue": "part of an emoji sequence",
+  "script-joiner": "orthographic in this script, the spelling depends on it",
+  "flag-sequence": "part of a complete flag sequence",
+  "same-script-base": "a selector or filler belonging to the character before it",
+  "paired-bidi": "a balanced direction change, legitimate in mixed-direction text",
+  "orthographic": "normal orthography, not a carrier",
+  "layout-control": "it governs how its own script renders",
+  "in-code": "inside a code span, so it is reported and left alone"
+};
+
+/* A run reads better as its kind than as a pluralised codepoint name:
+   "40 tag characters", not "40 tag \"a\"s" (FR-U33). */
+var ART_KIND_PLURAL = {
+  zwj_family: "zero-width characters", bidi: "direction controls",
+  tag_chars: "tag characters", variation_selector: "variation selectors",
+  noncharacter: "noncharacters", reserved_ignorable: "reserved characters",
+  private_use: "private-use characters", format: "format characters",
+  space: "non-standard spaces", confusable: "lookalike letters",
+  control: "control characters"
+};
+function artRunLabel(r) {
+  return r.count > 1
+    ? r.count + " " + (ART_KIND_PLURAL[r.kind] || "invisible characters")
+    : r.label;
+}
+
+/* Marks in the LEFT pane only, because an artifact is reported where it was
+   before removal, and the right pane no longer contains it (FR-U25, FR-U32).
+   Runs of the same codepoint collapse to one caret (FR-U33). */
+function markArtifacts(text, i) {
+  var list = artifactsFor(i);
+  if (!list.length) return esc(text);
+  var runs = collapseArtifacts(list);
+  var out = "", at = 0;
+  runs.forEach(function (run) {
+    if (run.start < at) return;
+    out += esc(text.slice(at, run.start));
+    var what = run.action === "keep"
+      ? " — kept: " + (ART_KEEP_REASON[run.keptBecause] || "load-bearing")
+      : run.action === "replace" ? " — replaced with an ordinary space" : " — removed";
+    out += '<span class="art' + (run.confidence === "confirmed" ? "" : " info") + '" title="'
+        + esc(artRunLabel(run) + what) + '"></span>';
+    /* A kept carrier is still in the text and must still be emitted. */
+    out += esc(text.slice(run.start, run.action === "keep" ? run.end : run.start));
+    at = run.action === "keep" ? run.end : run.start;
+  });
+  out += esc(text.slice(at));
+  return out;
+}
+
+/* Forty consecutive tag characters are forty artifacts in the data and one
+   row on screen. Collapsing is a display decision; the evidence is kept. */
+function collapseArtifacts(list) {
+  var runs = [];
+  list.forEach(function (a) {
+    var last = runs[runs.length - 1];
+    if (last && last.cp === a.cp && last.action === a.action &&
+        last.keptBecause === a.keptBecause && last.end === a.start) {
+      last.end = a.end; last.count++; last.offsets.push(a.start);
+      return;
+    }
+    runs.push({ cp: a.cp, label: a.label, kind: a.kind, action: a.action,
+                keptBecause: a.keptBecause, confidence: a.confidence,
+                context: a.context, start: a.start, end: a.end,
+                count: 1, offsets: [a.start], paragraph: a.paragraph });
+  });
+  return runs;
+}
+
+function cpHex(cp) {
+  var h = cp.toString(16).toUpperCase();
+  while (h.length < 4) h = "0" + h;
+  return "U+" + h;
+}
+
+/* Rendered even when there is nothing to report, because an absent panel
+   reads as an absent check (FR-U35). */
+function renderArtifactsPanel() {
+  var all = lastResult.artifacts || [];
+  var sum = lastResult.artifactSummary || { total: 0, confirmed: 0, kept: 0, removed: 0, replaced: 0 };
+  var caveat = "Finding no invisible characters is not evidence that a person wrote this, "
+             + "and finding some is not evidence that one did not. They arrive from web pages, "
+             + "PDFs, CMS exports and ordinary copy-paste far more often than from anything deliberate. "
+             + "This is reported next to the score and never counted in it.";
+
+  var html = '<div class="art-panel"><h4>Invisible characters</h4>';
+  if (!all.length) {
+    html += '<p class="art-caveat">None found in this document. ' + esc(caveat) + "</p></div>";
+    return html;
+  }
+  html += '<p class="art-caveat">' + sum.removed + " removed, " + sum.replaced + " replaced, "
+        + sum.kept + " kept. " + esc(caveat) + "</p>";
+
+  var runs = collapseArtifacts(all.slice().sort(function (a, b) {
+    return (a.paragraph - b.paragraph) || (a.start - b.start);
+  }));
+  var changed = runs.filter(function (r) { return r.action !== "keep"; });
+  var kept = runs.filter(function (r) { return r.action === "keep"; });
+
+  if (changed.length) {
+    html += '<div class="art-sub">Removed</div>';
+    changed.forEach(function (r, idx) {
+      html += '<div class="art-row' + (r.confidence === "confirmed" ? "" : " info") + '">'
+        + '<span class="cp">' + cpHex(r.cp) + "</span>"
+        + "<span>" + esc(artRunLabel(r)) + "</span>"
+        + '<span class="why">' + (r.action === "replace" ? "replaced with an ordinary space" : "removed")
+        + " &middot; " + esc(r.confidence) + "</span>"
+        + (r.count > 1 ? ' <button class="more" data-art="' + idx + '">show ' + r.count + " offsets</button>" : "")
+        + '<span class="ctx">' + esc(r.context) + "</span></div>"
+        + '<div class="art-offsets hidden" id="artOff' + idx + '">' + r.offsets.join(", ") + "</div>";
+    });
+  }
+  if (kept.length) {
+    html += '<div class="art-sub">Kept, and why</div>';
+    kept.forEach(function (r) {
+      html += '<div class="art-row info">'
+        + '<span class="cp">' + cpHex(r.cp) + "</span>"
+        + "<span>" + esc(artRunLabel(r)) + "</span>"
+        + '<span class="why">kept: ' + esc(ART_KEEP_REASON[r.keptBecause] || "load-bearing") + "</span>"
+        + '<span class="ctx">' + esc(r.context) + "</span></div>";
+    });
+  }
+  return html + "</div>";
+}
+
+/* ---------- change highlighting ----------------------------------------- *
+   Highlights are derived by diffing each paragraph's original against its
+   output rather than from the change log. The log records what each rule did
+   but not where, and the rules run in sequence so any position recorded during
+   a pass is stale by the end of it. Diffing the finished text is independent of
+   the pipeline, and it also catches deletions, dash fixes and emoji removal,
+   which have no "after" string to search for.                              */
+
+var highlightChanges = true;
+var DIFF_CAP = 800;
+
+function diffTokenize(s) {
+  return String(s).match(/\s+|[^\s]+/g) || [];
+}
+
+/* Longest common subsequence over tokens, returned as a list of
+   { op: "keep" | "add" | "del", text: "..." } in output order. */
+function diffOps(aTok, bTok) {
+  var n = aTok.length, m = bTok.length;
+  if (n > DIFF_CAP || m > DIFF_CAP) return null;
+
+  var rows = new Array(n + 1);
+  for (var i = 0; i <= n; i++) rows[i] = new Int32Array(m + 1);
+  for (i = n - 1; i >= 0; i--) {
+    for (var j = m - 1; j >= 0; j--) {
+      rows[i][j] = aTok[i] === bTok[j]
+        ? rows[i + 1][j + 1] + 1
+        : Math.max(rows[i + 1][j], rows[i][j + 1]);
+    }
+  }
+  var ops = [];
+  i = 0; j = 0;
+  while (i < n && j < m) {
+    if (aTok[i] === bTok[j]) { ops.push({ op: "keep", text: bTok[j] }); i++; j++; }
+    else if (rows[i + 1][j] >= rows[i][j + 1]) { ops.push({ op: "del", text: aTok[i] }); i++; }
+    else { ops.push({ op: "add", text: bTok[j] }); j++; }
+  }
+  while (i < n) { ops.push({ op: "del", text: aTok[i] }); i++; }
+  while (j < m) { ops.push({ op: "add", text: bTok[j] }); j++; }
+  return ops;
+}
+
+/* Groups runs of add/del that sit next to each other so one swap reads as one
+   highlight instead of one per token. Whitespace-only edits are folded into the
+   surrounding text: they are real but not worth a mark of their own. */
+function annotateChanges(original, output) {
+  var ops = diffOps(diffTokenize(original), diffTokenize(output));
+  if (!ops) return { html: esc(output), count: 0 };
+
+  var html = "", count = 0, k = 0;
+  while (k < ops.length) {
+    if (ops[k].op === "keep") { html += esc(ops[k].text); k++; continue; }
+
+    var added = "", removed = "";
+    while (k < ops.length && ops[k].op !== "keep") {
+      if (ops[k].op === "add") added += ops[k].text; else removed += ops[k].text;
+      k++;
+    }
+    if (!added.trim() && !removed.trim()) { html += esc(added); continue; }
+
+    count++;
+    var lead = added.match(/^\s*/)[0], tail = added.match(/\s*$/)[0];
+    var core = added.slice(lead.length, added.length - tail.length);
+    html += esc(lead);
+    if (core) {
+      var title = removed.trim()
+        ? "was: " + removed.trim()
+        : "added";
+      html += '<mark class="chg" title="' + esc(title) + '">' + esc(core) + "</mark>";
+    } else {
+      html += '<span class="del" title="' + esc("removed: " + removed.trim()) + '"></span>';
+    }
+    html += esc(tail);
+  }
+  return { html: html, count: count };
+}
+
+function toggleHighlights() {
+  highlightChanges = document.getElementById("showHighlights").checked;
+  renderRight();
+}
+
+/* ---------- inline paragraph editing ------------------------------------ *
+   Click any paragraph on the right to edit it. The edit is committed to
+   lastResult.paragraphs[i].output, which is what Download and Copy read, so
+   what you see is what you get. Paragraph parity between the two panes is
+   preserved deliberately: internal blank lines are collapsed on commit,
+   because the scroll pairing, the flag offsets and the review baseline are all
+   indexed by paragraph.                                                     */
+
+var manualEdited = {};
+
+function autoGrow(ta) {
+  ta.style.height = "auto";
+  ta.style.height = (ta.scrollHeight + 2) + "px";
+}
+
+function beginParaEdit(el) {
+  if (!lastResult || (activeTab !== "result" && activeTab !== "flags")) return;
+  var i = parseInt(el.dataset.i, 10);
+  /* The drawer is docked over the bottom of this pane, so it has to go before
+     the box opens, or it covers the text being edited. Dropping the selection
+     also avoids re-opening it against offsets the edit is about to move. */
+  if (activeTab === "flags") { review.sel = null; review.opt = null; hideDrawer(); }
+  var ta = document.createElement("textarea");
+  ta.className = "para-edit";
+  ta.id = "paraEdit";
+  ta.value = lastResult.paragraphs[i].output;
+  ta.setAttribute("data-i", i);
+  el.parentNode.replaceChild(ta, el);
+  autoGrow(ta);
+  ta.focus();
+  ta.selectionStart = ta.selectionEnd = ta.value.length;
+  ta.addEventListener("input", function () { autoGrow(ta); });
+  ta.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") { e.preventDefault(); ta.value = lastResult.paragraphs[i].output; ta.blur(); }
+    else if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); ta.blur(); }
+  });
+  ta.addEventListener("blur", function () { commitParaEdit(ta); });
+  status("Editing paragraph " + (i + 1) + ". Click away or press Cmd+Enter to keep it, Esc to discard.");
+}
+
+function commitParaEdit(ta) {
+  var i = parseInt(ta.getAttribute("data-i"), 10);
+  var before = lastResult.paragraphs[i].output;
+  var next = ta.value.replace(/\r\n/g, "\n").replace(/\n[ \t]*\n+/g, "\n").replace(/[ \t]+$/gm, "");
+
+  if (!next.trim()) { status("A paragraph cannot be emptied, so that edit was discarded."); renderRight(); return; }
+  if (next === before) { renderRight(); return; }
+
+  lastResult.paragraphs[i].output = next;
+
+  /* A manual edit supersedes the accept/revert history for this paragraph:
+     those edits are recorded as from/to strings that may no longer exist. */
+  review.base[i] = next;
+  review.edits = review.edits.filter(function (e) { return e.paragraph !== i; });
+  Object.keys(review.reviewed).forEach(function (key) {
+    if (key.indexOf(i + "|") === 0) delete review.reviewed[key];
+  });
+  review.sel = null;
+  manualEdited[i] = true;
+
+  recompute();
+  status("Paragraph " + (i + 1) + " saved. Download and Copy now use your version.");
+}
+
+/* Re-derives everything downstream of the paragraph texts. Shared by the
+   review loop and by manual editing so the two can never disagree. */
+function recompute() {
+  var res = MyridiusEngine.reviewParas(lastResult.paragraphs, config);
+  lastResult.flags = res.flags;
+  lastResult.output = res.output;
+  lastResult.resemblance = res.resemblance;
+  lastResult.stats.after = res.after;
+  lastResult.stats.flagCount = res.flags.length;
+  lastResult.stats.wordsSaved = lastResult.stats.before.words - res.after.words;
+  document.getElementById("flagCount").textContent = res.resemblance.total.toFixed(1);
+  renderRight();
+  renderStats();
+}
+
+function manualEditCount() {
+  return Object.keys(manualEdited).length;
+}
+
+function renderRight() {
+  var body = document.getElementById("rightBody");
+  /* The rules pane is the one tab that works with nothing loaded: the author
+     writes rules before there is a document to apply them to. */
+  if (activeTab === "rules") { renderRules(body); return; }
+  if (!lastResult) return;
+  if (activeTab === "linkedin") { renderLinkedIn(body); return; }
+  if (activeTab === "result") {
+    var html = "", marked = 0;
+    lastResult.paragraphs.forEach(function (p, i) {
+      var inner, cls = "para r" + headingClass(p.output) + " editable";
+      if (manualEdited[i]) cls += " edited";
+      if (highlightChanges && !manualEdited[i]) {
+        var ann = annotateChanges(p.original, p.output);
+        inner = ann.html; marked += ann.count;
+      } else {
+        inner = esc(p.output);
+      }
+      html += '<div class="' + cls + '" data-i="' + i + '" title="Click to edit this paragraph">' + inner + "</div>";
+    });
+    body.innerHTML = html || '<div class="empty">Nothing to show.</div>';
+    var meta = lastResult.stats.after.words + " words";
+    if (highlightChanges && marked) meta += ' <span class="meta-sub">&middot; ' + marked + " highlighted</span>";
+    if (manualEditCount()) meta += ' <span class="meta-sub">&middot; ' + manualEditCount() + " edited by you</span>";
+    document.getElementById("outputMeta").innerHTML = meta;
+    attachParaEvents(body);
+    body.querySelectorAll(".para.r.editable").forEach(function (el) {
+      el.addEventListener("click", function () { beginParaEdit(el); });
+    });
+  } else if (activeTab === "changes") {
+    renderChanges(body);
+  } else {
+    renderResemblance(body);
+  }
+}
+
+function renderChanges(pane) {
+  var changes = lastResult.changes;
+  if (!changes.length) { pane.innerHTML = '<div class="empty">No automatic changes were needed.</div>'; return; }
+  var groups = {};
+  changes.forEach(function (c) { (groups[c.category] = groups[c.category] || []).push(c); });
+  var html = "";
+  Object.keys(groups).forEach(function (g) {
+    html += '<div class="group-title">' + esc(g) + " (" + groups[g].length + ")</div>";
+    groups[g].forEach(function (c) {
+      html += '<div class="item fix"><div class="head">' + esc(c.before) + " &rarr; " + esc(c.after) + "</div>"
+            + (c.context ? '<div class="ctx">' + esc(c.context) + "</div>" : "") + "</div>";
+    });
+  });
+  pane.innerHTML = html;
+}
+
+/* ================== resemblance review panel ================== */
+
+var review = { base: [], edits: [], reviewed: {}, sel: null, filter: {}, scope: "phrase" };
+
+function resetReview() {
+  manualEdited = {};
+  review = {
+    base: lastResult.paragraphs.map(function (p) { return p.output; }),
+    edits: [], reviewed: {}, sel: null, filter: {}, scope: "phrase", opt: null
+  };
+  hideDrawer();
+}
+
+function flagKey(f) {
+  return (f.paragraph === null || f.paragraph === undefined ? "doc" : f.paragraph)
+    + "|" + f.type + "|" + f.found + "|" + (f.start || 0);
+}
+function dimIndex() {
+  var m = {};
+  (lastResult.resemblance.dims || []).forEach(function (d) { m[d.key] = d; });
+  return m;
+}
+function dimColor(key) {
+  var d = dimIndex()[key];
+  return d ? d.color : "#64748b";
+}
+function visibleFlag(f) { return !review.filter[f.dim]; }
+function reviewList() {
+  return lastResult.flags.filter(function (f) {
+    return visibleFlag(f) && !review.reviewed[flagKey(f)];
+  });
+}
+function findFlag(key) {
+  for (var i = 0; i < lastResult.flags.length; i++) {
+    if (flagKey(lastResult.flags[i]) === key) return lastResult.flags[i];
+  }
+  return null;
+}
+
+function renderResemblance(pane) {
+  var r = lastResult.resemblance;
+  var dm = dimIndex();
+  var open = reviewList().length;
+  var html = "";
+
+  html += '<div class="res-score"><div class="res-top">'
+    + '<span class="res-num">' + r.total.toFixed(1) + "<span>/20</span></span>"
+    + '<span class="res-verdict">' + esc(r.verdict) + "</span>"
+    + '<span class="res-sub">' + open + " open &middot; " + review.edits.length + " rewritten &middot; "
+    + Object.keys(review.reviewed).length + ' reviewed</span></div><div class="res-dims">';
+  r.dims.forEach(function (d) {
+    html += '<div class="res-dim"><span>' + esc(d.name) + "</span>"
+      + '<span class="res-bar"><i style="width:' + (d.score / 4 * 100) + "%;background:" + d.color + '"></i></span>'
+      + "<b>" + d.score + "/4</b></div>";
+  });
+  html += "</div></div>";
+
+  html += '<p class="res-note">This measures how closely the text resembles the default register of model output. It cannot establish authorship: formal business writing and second language writing both score high without any model involved.'
+    + (r.words < 400 ? " At " + r.words + " words this sits under the 400 word mark where sentence length statistics settle, so the reading leans on phrase density rather than rhythm." : "")
+    + "</p>";
+
+  html += '<div class="res-filters">';
+  r.dims.forEach(function (d) {
+    html += '<button class="res-chip' + (review.filter[d.key] ? "" : " on") + '" data-dim="' + d.key + '">'
+      + '<i style="background:' + d.color + '"></i>' + esc(d.name) + " " + d.count + "</button>";
+  });
+  html += "</div>";
+
+  if (review.edits.length) {
+    html += '<div class="res-applied">' + review.edits.length + " rewrite" + (review.edits.length > 1 ? "s" : "") + " applied to the output. ";
+    review.edits.forEach(function (e, i) {
+      html += '<div style="margin-top:5px;">' + esc(e.from) + " &rarr; " + (e.to.trim() ? esc(e.to) : "<i>(removed)</i>")
+        + ' <button class="step" data-revert="' + i + '">Revert to original</button></div>';
+    });
+    html += "</div>";
+  }
+
+  var docFlags = lastResult.flags.filter(function (f) { return f.kind === "document" && visibleFlag(f); });
+  docFlags.forEach(function (f) {
+    var k = flagKey(f);
+    html += '<div class="res-doclevel" data-key="' + esc(k) + '"><div class="head">' + esc(f.type) + ": " + esc(f.found) + "</div>"
+      + '<div>' + esc(f.excerpt) + "</div>"
+      + '<div class="sug">' + esc(f.suggestion) + ".</div></div>";
+  });
+
+  html += '<div class="res-doc">';
+  lastResult.paragraphs.forEach(function (p, i) {
+    var inline = lastResult.flags.filter(function (f) {
+      return f.paragraph === i && (f.kind === "swap" || f.kind === "advice") && visibleFlag(f);
+    });
+    var spanNotes = lastResult.flags.filter(function (f) {
+      return f.paragraph === i && f.kind === "advice-span" && visibleFlag(f);
+    });
+    html += '<div class="para r' + headingClass(p.output) + ' editable'
+          + (manualEdited[i] ? " edited" : "") + '" data-i="' + i + '"'
+          + ' title="Click the text to edit this paragraph. Click a highlight to review it.">'
+          + annotate(p.output, inline, dm) + "</div>";
+    if (spanNotes.length) {
+      html += '<div style="margin:-4px 0 12px;display:flex;gap:6px;flex-wrap:wrap;">';
+      spanNotes.forEach(function (f) {
+        var k = flagKey(f);
+        html += '<button class="res-chip' + (review.sel === k ? " on" : "") + '" data-key="' + esc(k) + '">'
+          + '<i style="background:' + dimColor(f.dim) + '"></i>' + esc(f.type) + " &middot; " + esc(f.found) + "</button>";
+      });
+      html += "</div>";
+    }
+  });
+  html += "</div>";
+
+  /* Adjacent to the resemblance panel and visually separated from it, which
+     is the whole point: one thing we can prove, and separately, an estimate. */
+  html += renderArtifactsPanel();
+
+  if (!lastResult.flags.length) {
+    html += '<div class="empty">No resemblance markers left. Ship it.</div>';
+  }
+
+  pane.innerHTML = html;
+  var meta = lastResult.stats.after.words + " words";
+  if (manualEditCount()) meta += ' <span class="meta-sub">&middot; ' + manualEditCount() + " edited by you</span>";
+  document.getElementById("outputMeta").innerHTML = meta;
+  attachParaEvents(pane);
+  bindResemblanceEvents(pane);
+  /* Marks, paragraph chips and Revert all stopPropagation, so a click that
+     reaches the paragraph is a click on ordinary text and means "edit me". */
+  pane.querySelectorAll(".para.r.editable").forEach(function (el) {
+    el.addEventListener("click", function () { beginParaEdit(el); });
+  });
+  renderDrawer();
+}
+
+function annotate(text, flags, dm) {
+  var spans = flags.slice().sort(function (a, b) { return a.start - b.start; });
+  var out = "", pos = 0;
+  spans.forEach(function (f) {
+    if (f.start < pos) return;
+    out += esc(text.slice(pos, f.start));
+    var k = flagKey(f);
+    var cls = "rz" + (review.sel === k ? " sel" : "") + (review.reviewed[k] ? " rev" : "");
+    var color = dm[f.dim] ? dm[f.dim].color : "#64748b";
+    out += '<mark class="' + cls + '" data-key="' + esc(k) + '" style="--rz:' + color + '">'
+      + esc(text.slice(f.start, f.end)) + "</mark>";
+    pos = f.end;
+  });
+  out += esc(text.slice(pos));
+  return out;
+}
+
+function bindResemblanceEvents(pane) {
+  /* FR-U33: a collapsed run expands to its full offset list on request. The
+     evidence was never discarded, only folded. */
+  pane.querySelectorAll("button.more").forEach(function (b) {
+    b.addEventListener("click", function (ev) {
+      ev.stopPropagation();
+      var row = document.getElementById("artOff" + b.getAttribute("data-art"));
+      if (!row) return;
+      var open = row.classList.toggle("hidden");
+      b.textContent = open ? "show " + row.textContent.split(",").length + " offsets" : "hide offsets";
+    });
+  });
+  pane.querySelectorAll("[data-dim]").forEach(function (el) {
+    el.addEventListener("click", function () {
+      var k = el.getAttribute("data-dim");
+      review.filter[k] = !review.filter[k];
+      review.sel = null;
+      renderRight();
+    });
+  });
+  pane.querySelectorAll("[data-key]").forEach(function (el) {
+    el.addEventListener("click", function (ev) {
+      ev.stopPropagation();
+      selectFlag(el.getAttribute("data-key"));
+    });
+  });
+  pane.querySelectorAll("[data-revert]").forEach(function (el) {
+    el.addEventListener("click", function (ev) {
+      ev.stopPropagation();
+      revertEdit(parseInt(el.getAttribute("data-revert"), 10));
+    });
+  });
+}
+
+function selectFlag(key) {
+  review.sel = review.sel === key ? null : key;
+  review.opt = null;   /* a new flag starts with no option chosen */
+  renderRight();
+  revealSelection();
+}
+
+/* Bring the selected highlight into the strip of pane still visible above
+   the drawer. Never scrollIntoView: that would move the whole app. */
+function revealSelection() {
+  if (!review.sel) return;
+  var body = document.getElementById("rightBody");
+  if (!body) return;
+  var el = body.querySelector('[data-key="' + (window.CSS && CSS.escape ? CSS.escape(review.sel) : review.sel) + '"]');
+  if (!el) {
+    var all = body.querySelectorAll("[data-key]");
+    for (var i = 0; i < all.length; i++) {
+      if (all[i].getAttribute("data-key") === review.sel) { el = all[i]; break; }
+    }
+  }
+  if (!el) return;
+  var drawer = document.getElementById("resDrawer");
+  var drawerH = drawer && !drawer.classList.contains("hidden") ? drawer.offsetHeight : 0;
+  var band = Math.max(60, body.clientHeight - drawerH);
+  var top = el.getBoundingClientRect().top - body.getBoundingClientRect().top + body.scrollTop;
+  var target = top - Math.max(24, (band - el.offsetHeight) / 2);
+  var max = body.scrollHeight - body.clientHeight;
+  body.scrollTop = Math.min(Math.max(0, target), Math.max(0, max));
+}
+
+function stepFlag(dir) {
+  var list = reviewList();
+  if (!list.length) return;
+  var keys = list.map(flagKey);
+  var i = keys.indexOf(review.sel);
+  var n = i < 0 ? (dir > 0 ? 0 : keys.length - 1) : (i + dir + keys.length) % keys.length;
+  review.sel = keys[n];
+  renderRight();
+  revealSelection();
+}
+
+function hideDrawer() {
+  var d = document.getElementById("resDrawer");
+  if (d) { d.classList.add("hidden"); d.innerHTML = ""; }
+}
+
+function renderDrawer() {
+  var d = document.getElementById("resDrawer");
+  if (!d) return;
+  if (activeTab !== "flags" || !review.sel) { hideDrawer(); return; }
+  var f = findFlag(review.sel);
+  if (!f) { hideDrawer(); return; }
+  var dm = dimIndex();
+  var name = dm[f.dim] ? dm[f.dim].name : f.type;
+  var list = reviewList();
+  var pos = list.map(flagKey).indexOf(review.sel);
+  var canApply = f.kind === "swap" || f.kind === "advice" || f.kind === "advice-span";
+  var rng = editRange(f);
+  var spanText = rng ? lastResult.paragraphs[f.paragraph].output.slice(rng.start, rng.end) : "";
+  var prefill = (f.kind === "swap" && review.scope === "phrase") ? (f.replace || "") : spanText;
+  if (!rng) canApply = false;
+
+  var html = '<div class="res-d-head"><i style="background:' + dimColor(f.dim) + '"></i>' + esc(name)
+    + (f.type === name ? "" : " &middot; " + esc(f.type)) + '<span class="spacer"></span>'
+    + '<button id="resClose" title="Close">&times;</button></div>';
+  html += '<p class="res-quote">' + esc(f.found) + "</p>";
+  html += '<p class="res-why">' + esc(f.reason) + ". " + esc(f.suggestion) + ".</p>";
+  if (canApply) {
+    html += '<div class="res-scope">'
+      + '<button class="res-chip' + (review.scope === "phrase" ? " on" : "") + '" data-scope="phrase">Rewrite the phrase</button>'
+      + '<button class="res-chip' + (review.scope === "sentence" ? " on" : "") + '" data-scope="sentence">Rewrite the whole sentence</button>'
+      + '<span class="res-edit-label">' + (f.kind === "swap" && review.scope === "phrase"
+        ? "Suggested replacement, edit before accepting" : "Pick an option or write your own, then accept") + "</span></div>";
+    var opts = MyridiusEngine.suggestOptions(f, lastResult.paragraphs[f.paragraph].output);
+    if (opts.length) {
+      html += '<div class="res-opts"><span class="lbl">Suggested:</span>';
+      for (var oi = 0; oi < opts.length; oi++) {
+        var shown = opts[oi].text === ""
+          ? '<span class="kind">delete it</span>'
+          : esc(opts[oi].label.length > 46 ? opts[oi].label.slice(0, 46) + "\u2026" : opts[oi].label);
+        html += '<button class="res-opt' + (review.opt === oi ? " on" : "") + '" data-opt="' + oi
+              + '" title="' + esc(opts[oi].text || "(removes the words)") + '">' + shown + "</button>";
+      }
+      html += "</div>";
+    } else if (f.kind !== "swap") {
+      html += '<p class="res-none">No option can be derived from the text here, so this one is yours to write.</p>';
+    }
+    html += '<textarea class="res-edit" id="resEdit">' + esc(prefill) + "</textarea>";
+  }
+  html += '<div class="res-d-actions">';
+  if (canApply) html += '<button class="btn" id="resAccept">Accept changes</button>';
+  html += '<button class="btn secondary" id="resReviewed">Mark reviewed</button>'
+    + '<span class="pos">' + (pos >= 0 ? (pos + 1) + " of " + list.length : "reviewed") + "</span>"
+    + '<button class="step" id="resPrev">&larr; Previous</button>'
+    + '<button class="step" id="resNext">Next &rarr;</button></div>';
+  d.innerHTML = html;
+  d.classList.remove("hidden");
+
+  document.getElementById("resClose").addEventListener("click", function () { review.sel = null; renderRight(); });
+  document.getElementById("resPrev").addEventListener("click", function () { stepFlag(-1); });
+  document.getElementById("resNext").addEventListener("click", function () { stepFlag(1); });
+  document.getElementById("resReviewed").addEventListener("click", function () {
+    review.reviewed[review.sel] = true;
+    stepFlag(1);
+  });
+  d.querySelectorAll("[data-scope]").forEach(function (el) {
+    el.addEventListener("click", function () {
+      review.scope = el.getAttribute("data-scope");
+      renderDrawer();
+    });
+  });
+  d.querySelectorAll("[data-opt]").forEach(function (el) {
+    el.addEventListener("click", function () {
+      var oi = parseInt(el.getAttribute("data-opt"), 10);
+      var list = MyridiusEngine.suggestOptions(f, lastResult.paragraphs[f.paragraph].output);
+      var o = list[oi];
+      if (!o) return;
+      review.opt = oi;
+      /* A split rewrites the whole sentence, a word swap only the span. Switch
+         scope to match, then re-render so the edit box shows the right range.  */
+      if (o.scope !== review.scope && f.kind !== "advice-span") {
+        review.scope = o.scope;
+        renderDrawer();
+      }
+      var box = document.getElementById("resEdit");
+      if (box) { box.value = o.text; box.focus(); }
+      d.querySelectorAll("[data-opt]").forEach(function (b) {
+        b.classList.toggle("on", b === el);
+      });
+    });
+  });
+  var acc = document.getElementById("resAccept");
+  if (acc) acc.addEventListener("click", acceptSelected);
+}
+
+/* The sentence a flagged span sits inside. Word level flags are often too
+   narrow to rewrite grammatically, so the drawer can widen to this. */
+function sentenceRange(text, start, end) {
+  var a = 0, b = text.length;
+  var re = /[.!?]["')\]]?\s+/g, m;
+  while ((m = re.exec(text)) !== null) {
+    var cut = m.index + m[0].length;
+    if (cut <= start) a = cut;
+    else { b = m.index + 1; break; }
+  }
+  if (b < end) b = end;
+  return { start: a, end: b };
+}
+
+function editRange(f) {
+  if (f.paragraph === null || f.paragraph === undefined || typeof f.start !== "number") return null;
+  var text = lastResult.paragraphs[f.paragraph].output;
+  if (review.scope === "sentence" && f.kind !== "advice-span") return sentenceRange(text, f.start, f.end);
+  return { start: f.start, end: f.end };
+}
+
+function occurrenceIndex(text, sub, before) {
+  var n = 0, i = 0;
+  if (!sub) return 0;
+  while ((i = text.indexOf(sub, i)) !== -1 && i < before) { n++; i += sub.length; }
+  return n;
+}
+
+function replaceNth(text, from, to, nth) {
+  var i = -1, n = -1;
+  while (n < nth) {
+    i = text.indexOf(from, i + 1);
+    if (i === -1) return text;
+    n++;
+  }
+  var out = text.slice(0, i) + to + text.slice(i + from.length);
+  if (!to.trim()) {
+    out = out.replace(/ {2,}/g, " ").replace(/\s+([.,;:!?])/g, "$1").replace(/^\s+/, "");
+    out = out.charAt(0).toUpperCase() + out.slice(1);
+  }
+  return out;
+}
+
+function acceptSelected() {
+  var f = findFlag(review.sel);
+  if (!f || f.paragraph === null || f.paragraph === undefined) return;
+  var ta = document.getElementById("resEdit");
+  var to = ta ? ta.value : "";
+  var current = lastResult.paragraphs[f.paragraph].output;
+  var rng = editRange(f);
+  if (!rng) return;
+  var from = current.slice(rng.start, rng.end);
+  if (to === from) { review.reviewed[review.sel] = true; stepFlag(1); return; }
+  review.edits.push({
+    paragraph: f.paragraph, from: from, to: to,
+    nth: occurrenceIndex(current, from, rng.start), dim: f.dim, type: f.type
+  });
+  review.sel = null;
+  rebuild();
+  status("Rewrite applied to the output.");
+}
+
+function revertEdit(i) {
+  review.edits.splice(i, 1);
+  review.sel = null;
+  rebuild();
+  status("Reverted to the original wording.");
+}
+
+/* Rebuild every paragraph from the engine output, then re-apply the accepted
+   rewrites in order, then re-analyse so offsets, ease and the score all agree. */
+function rebuild() {
+  lastResult.paragraphs.forEach(function (p, i) { p.output = review.base[i]; });
+  review.edits.forEach(function (e) {
+    var p = lastResult.paragraphs[e.paragraph];
+    p.output = replaceNth(p.output, e.from, e.to, e.nth);
+  });
+  recompute();
+  revealSelection();
+}
+
+function renderStats() {
+  var s = lastResult.stats;
+  var r = lastResult.resemblance;
+  document.getElementById("miniStats").innerHTML =
+    "<b>" + s.before.words + " &rarr; " + s.after.words + "</b> words &middot; " +
+    "ease <b>" + s.before.score + " &rarr; " + s.after.score + "</b> &middot; " +
+    "<b>" + s.changeCount + "</b> fixes &middot; resemblance <b>" + r.total.toFixed(1) + "/20</b> " +
+    esc(r.verdict.toLowerCase()) +
+    (manualEditCount() ? " &middot; <b>" + manualEditCount() + "</b> edited by you" : "");
+}
+
+/* ------- edit original ------- */
+function editOriginal() {
+  var body = document.getElementById("leftBody");
+  body.classList.add("editing");
+  body.innerHTML = '<textarea id="inputText"></textarea>';
+  var ta = document.getElementById("inputText");
+  ta.value = rawInput;
+  ta.focus();
+  document.getElementById("editBtn").classList.add("hidden");
+  document.getElementById("inputMeta").textContent = "";
+  bindInputMeta();
+}
+
+function bindInputMeta() {
+  var ta = document.getElementById("inputText");
+  if (!ta) return;
+  ta.addEventListener("input", function () {
+    var w = (this.value.match(/\S+/g) || []).length;
+    document.getElementById("inputMeta").textContent = w ? w + " words" : "";
+  });
+}
+bindInputMeta();
+
+/* ------- paragraph scroll sync + hover pairing ------- */
+function attachParaEvents(container) {
+  container.querySelectorAll(".para").forEach(function (el) {
+    el.addEventListener("mouseenter", function () { pairHighlight(el.dataset.i, true); });
+    el.addEventListener("mouseleave", function () { pairHighlight(el.dataset.i, false); });
+  });
+}
+function pairHighlight(i, on) {
+  document.querySelectorAll('.para[data-i="' + i + '"]').forEach(function (el) {
+    el.classList.toggle("hl", on);
+  });
+}
+
+function syncFrom(srcId, dstId) {
+  var src = document.getElementById(srcId);
+  var dst = document.getElementById(dstId);
+  if (syncing || (activeTab !== "result" && activeTab !== "flags")) return;
+  if (document.getElementById("workspace").classList.contains("solo")) return;
+  var sParas = src.querySelectorAll(".para");
+  var dParas = dst.querySelectorAll(".para");
+  if (!sParas.length || !dParas.length) return;
+  syncing = true;
+  /* True offset inside the scrolling container, so a pane may carry chrome
+     (the resemblance score card, filters, document level cards) above its
+     first paragraph without throwing the pairing off by that height. */
+  function contentTop(container, el) {
+    return el.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop;
+  }
+  var sTop = src.scrollTop;
+  var i = 0;
+  while (i < sParas.length - 1 && contentTop(src, sParas[i + 1]) <= sTop) i++;
+  var p = sParas[i];
+  var pTop = contentTop(src, p);
+  var frac = Math.min(1, Math.max(0, (sTop - pTop) / Math.max(1, p.offsetHeight)));
+  var q = dParas[Math.min(i, dParas.length - 1)];
+  var target = contentTop(dst, q) + frac * q.offsetHeight;
+  var max = dst.scrollHeight - dst.clientHeight;
+  dst.scrollTop = Math.min(Math.max(0, target), Math.max(0, max));
+  requestAnimationFrame(function () { syncing = false; });
+}
+
+document.getElementById("leftBody").addEventListener("scroll", function () { syncFrom("leftBody", "rightBody"); });
+document.getElementById("rightBody").addEventListener("scroll", function () { syncFrom("rightBody", "leftBody"); });
+
+/* ------- show/hide original ------- */
+function toggleOriginal() {
+  var on = document.getElementById("showOriginal").checked;
+  document.getElementById("workspace").classList.toggle("solo", !on);
+}
+
+/* ------- upload ------- */
+function handleUpload(ev) {
+  var file = ev.target.files[0];
+  ev.target.value = "";
+  if (!file) return;
+  var name = file.name.toLowerCase();
+  status("Reading " + file.name + "…", true);
+
+  function done(text) {
+    rawInput = text;
+    var body = document.getElementById("leftBody");
+    body.classList.add("editing");
+    body.innerHTML = '<textarea id="inputText"></textarea>';
+    document.getElementById("inputText").value = text;
+    document.getElementById("editBtn").classList.add("hidden");
+    bindInputMeta();
+    status("Loaded " + file.name);
+    run();
+  }
+  function fail(e) { status("Could not read " + file.name + ": " + (e && e.message ? e.message : e), true); }
+
+  if (name.endsWith(".docx")) {
+    file.arrayBuffer().then(function (ab) { return MyridiusFileIO.fromDocx(new Uint8Array(ab)); }).then(done).catch(fail);
+  } else if (name.endsWith(".pdf")) {
+    file.arrayBuffer().then(function (ab) { return MyridiusFileIO.fromPdf(ab); }).then(done).catch(fail);
+  } else if (name.endsWith(".md") || name.endsWith(".markdown") || name.endsWith(".txt")) {
+    file.text().then(done).catch(fail);
+  } else if (name.endsWith(".doc")) {
+    fail(new Error("Old .doc format is not supported. Save it as .docx in Word and upload again."));
+  } else {
+    fail(new Error("Use .docx, .pdf, .md or .txt"));
+  }
+}
+
+/* ------- download ------- */
+function toggleMenu(ev) {
+  ev.stopPropagation();
+  document.getElementById("dlMenu").classList.toggle("open");
+}
+document.addEventListener("click", function () {
+  document.getElementById("dlMenu").classList.remove("open");
+});
+
+function saveBlob(data, type, filename) {
+  var blob = data instanceof Blob ? data : new Blob([data], { type: type });
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function download(fmt) {
+  if (!lastResult) return;
+  var text = lastResult.output;
+  if (fmt === "md") {
+    saveBlob(text, "text/markdown", "patralekhised-article.md");
+  } else if (fmt === "txt") {
+    saveBlob(MyridiusFileIO.toTxt(text), "text/plain", "patralekhised-article.txt");
+  } else if (fmt === "docx") {
+    saveBlob(MyridiusFileIO.toDocx(text), "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "patralekhised-article.docx");
+  } else if (fmt === "pdf") {
+    saveBlob(MyridiusFileIO.toPdf(text), "application/pdf", "patralekhised-article.pdf");
+  }
+  document.getElementById("dlMenu").classList.remove("open");
+}
+
+function copyResult() {
+  if (!lastResult) return;
+  var text = lastResult.output;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function () { status("Copied."); });
+  } else {
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+    status("Copied.");
+  }
+}
+
+/* ------- config rendering ------- */
+function pairsToLines(list) {
+  return list.map(function (r) {
+    return r.find + " => " + r.replace + (r.verbOnly ? " | verbOnly" : "");
+  }).join("\n");
+}
+function linesToPairs(text) {
+  var out = [];
+  text.split("\n").forEach(function (line) {
+    var m = line.split("=>");
+    if (m.length === 2 && m[0].trim() && m[1].trim() !== undefined) {
+      /* optional trailing flags: "find => replace | verbOnly".
+         Lines written before this field existed still parse. */
+      var right = m[1].split("|");
+      var rule = { find: m[0].trim(), replace: right[0].trim() };
+      for (var i = 1; i < right.length; i++) {
+        if (right[i].trim().toLowerCase() === "verbonly") rule.verbOnly = true;
+      }
+      out.push(rule);
+    }
+  });
+  return out;
+}
+function flagsToLines(list) {
+  return list.map(function (r) {
+    var line = r.find + " | " + r.reason + " | " + r.suggestion;
+    var hasOpts = (r.options && r.options.length) || typeof r.replace === "string";
+    if (r.dim || hasOpts) line += " | " + (r.dim || "");
+    /* field 5 holds one or more replacements, separated by semicolons. One
+       value behaves exactly as before, so older config files still load. */
+    if (r.options && r.options.length) line += " | " + r.options.join("; ");
+    else if (typeof r.replace === "string") line += " | " + r.replace;
+    return line;
+  }).join("\n");
+}
+function linesToFlags(text) {
+  var out = [];
+  text.split("\n").forEach(function (line) {
+    var p = line.split("|");
+    if (p[0] && p[0].trim()) {
+      var rule = { find: p[0].trim(), reason: (p[1] || "Blocked word").trim(), suggestion: (p[2] || "Rewrite this").trim() };
+      if (p[3] && p[3].trim()) rule.dim = p[3].trim();
+      if (p.length > 4) {
+        var raw = p.slice(4).join("|");
+        var opts = raw.split(";").map(function (x) { return x.trim(); });
+        if (opts.length > 1) { rule.options = opts; rule.replace = opts[0]; }
+        else rule.replace = raw.trim();
+      }
+      out.push(rule);
+    }
+  });
+  return out;
+}
+function renderDimConfig() {
+  var host = document.getElementById("cfgDims");
+  if (!host) return;
+  var dims = config.dimensions || MyridiusEngine.defaultDimensions;
+  host.innerHTML = dims.map(function (d, i) {
+    return '<label class="toggle" style="margin:0 14px 0 0;">'
+      + '<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:' + d.color + ';"></span>'
+      + esc(d.name) + ' <input type="number" min="0" max="5" step="0.5" data-dimw="' + i + '" value="' + d.weight + '"></label>';
+  }).join("");
+}
+
+function renderConfig() {
+  document.getElementById("setContractions").checked = config.settings.expandContractions;
+  document.getElementById("setEmojis").checked = config.settings.removeEmojis;
+  document.getElementById("setDashes").checked = config.settings.fixDashes;
+  document.getElementById("setPassive").checked = config.settings.flagPassiveVoice;
+  document.getElementById("setSemicolons").checked = config.settings.flagSemicolons;
+  document.getElementById("setMaxWords").value = config.settings.maxSentenceWords;
+  /* Missing keys fall back to the engine defaults, never to undefined, so a
+     config exported before this feature still loads (FR-U28). */
+  var artDefaults = MyridiusEngine.defaultArtifactSettings;
+  document.getElementById("setArtifactClean").checked =
+    config.settings.artifactClean === undefined ? artDefaults.artifactClean : config.settings.artifactClean;
+  document.getElementById("setArtifactSpaces").checked =
+    config.settings.artifactNormalizeSpaces === undefined ? artDefaults.artifactNormalizeSpaces : config.settings.artifactNormalizeSpaces;
+  document.getElementById("setArtifactBidi").checked =
+    config.settings.artifactStripBidiMarks === undefined ? artDefaults.artifactStripBidiMarks : config.settings.artifactStripBidiMarks;
+  document.getElementById("setArtifactConfusables").checked =
+    config.settings.artifactFoldConfusables === undefined ? artDefaults.artifactFoldConfusables : config.settings.artifactFoldConfusables;
+  document.getElementById("setArtifactScanCode").checked =
+    config.settings.artifactScanCode === undefined ? artDefaults.artifactScanCode : config.settings.artifactScanCode;
+  document.getElementById("cfgProtected").value = config.protectedTerms.join("\n");
+  document.getElementById("cfgSimple").value = pairsToLines(config.simpleSwaps);
+  document.getElementById("cfgHype").value = pairsToLines(config.hypeSwaps);
+  document.getElementById("cfgFiller").value = pairsToLines(config.fillerPhrases);
+  document.getElementById("cfgStartDeletes").value = config.sentenceStartDeletes.join("\n");
+  document.getElementById("cfgMidDeletes").value = config.midSentenceDeletes.join("\n");
+  document.getElementById("cfgFlagWords").value = flagsToLines(config.flagWords);
+  renderDimConfig();
+}
+
+function applyConfig() {
+  config.settings.expandContractions = document.getElementById("setContractions").checked;
+  config.settings.removeEmojis = document.getElementById("setEmojis").checked;
+  config.settings.fixDashes = document.getElementById("setDashes").checked;
+  config.settings.flagPassiveVoice = document.getElementById("setPassive").checked;
+  config.settings.flagSemicolons = document.getElementById("setSemicolons").checked;
+  config.settings.maxSentenceWords = parseInt(document.getElementById("setMaxWords").value, 10) || 28;
+  config.settings.artifactClean = document.getElementById("setArtifactClean").checked;
+  config.settings.artifactNormalizeSpaces = document.getElementById("setArtifactSpaces").checked;
+  config.settings.artifactStripBidiMarks = document.getElementById("setArtifactBidi").checked;
+  config.settings.artifactFoldConfusables = document.getElementById("setArtifactConfusables").checked;
+  config.settings.artifactScanCode = document.getElementById("setArtifactScanCode").checked;
+  config.protectedTerms = document.getElementById("cfgProtected").value.split("\n").map(function (s) { return s.trim(); }).filter(Boolean);
+  config.simpleSwaps = linesToPairs(document.getElementById("cfgSimple").value);
+  config.hypeSwaps = linesToPairs(document.getElementById("cfgHype").value);
+  config.fillerPhrases = linesToPairs(document.getElementById("cfgFiller").value);
+  config.sentenceStartDeletes = document.getElementById("cfgStartDeletes").value.split("\n").map(function (s) { return s.trim(); }).filter(Boolean);
+  config.midSentenceDeletes = document.getElementById("cfgMidDeletes").value.split("\n").map(function (s) { return s.trim(); }).filter(Boolean);
+  config.flagWords = linesToFlags(document.getElementById("cfgFlagWords").value);
+  var dims = config.dimensions || MyridiusEngine.defaultDimensions.slice();
+  document.querySelectorAll("[data-dimw]").forEach(function (el) {
+    var i = parseInt(el.getAttribute("data-dimw"), 10);
+    if (dims[i]) dims[i].weight = parseFloat(el.value) || 0;
+  });
+  config.dimensions = dims;
+  if (lastResult) rebuild();
+  cfgNote("Applied. Rules are active for the next run.");
+}
+
+function cfgNote(msg) {
+  var el = document.getElementById("cfgMsg");
+  el.textContent = msg;
+  setTimeout(function () { el.textContent = ""; }, 3000);
+}
+
+function exportConfig() {
+  saveBlob(JSON.stringify(config, null, 2), "application/json", "myridius-style-config.json");
+  cfgNote("Exported.");
+}
+
+function importConfig(ev) {
+  var file = ev.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function () {
+    try {
+      var loaded = JSON.parse(reader.result);
+      if (!loaded.settings || !loaded.simpleSwaps) throw new Error("bad shape");
+      config = loaded;
+      renderConfig();
+      cfgNote("Imported " + file.name + ".");
+    } catch (e) {
+      cfgNote("Could not read that file. Is it a Patralekhiser config export?");
+    }
+  };
+  reader.readAsText(file);
+  ev.target.value = "";
+}
+
+function resetConfig() {
+  config = JSON.parse(JSON.stringify(MyridiusEngine.defaultConfig));
+  renderConfig();
+  cfgNote("Back to defaults.");
+}
+</script>
+</body>
+</html>

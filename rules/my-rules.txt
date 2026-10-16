@@ -1,0 +1,37 @@
+# My rules.
+#
+# This file wins over everything the tool decides, including its own
+# dictionaries. It is applied last, so it also catches words those
+# dictionaries introduced.
+#
+# One rule per line. Lines starting with # are notes.
+#
+#   never: Excellent -> Good     ban it, use this instead
+#   never: delve                 ban it with no substitute: it gets flagged
+#                                for you rather than guessed at
+#   always: over two decades     keep this wording, whatever the rules say
+#   protect: Patralekh           never touch it at all
+#
+# Edit this in the My rules tab inside the app. Save to file to keep a copy.
+
+# Names and publications that must never be rewritten.
+protect: Patralekh
+protect: Satyam Patralekh
+protect: Finextra
+protect: BankThink
+protect: The Financial Brand
+
+# Your writing rule 6: experience is "over two decades", never a number.
+always: over two decades
+
+# Words the built-in dictionaries would change, but that you actually write.
+# Measured from your own articles: you use each of these at least twice.
+always: approximately
+always: currently
+
+# Start banning things here. A few to consider, commented out until you
+# decide. Uncomment the ones you want.
+# never: Excellent -> Strong
+# never: delve
+# never: leverage -> use
+# never: seamless -> smooth

@@ -444,6 +444,12 @@
 var MyridiusEngine = (function () {
   "use strict";
 
+  /* The override layer. Inlined ahead of this file in the browser build, so
+     the global is already there; required under Node. Absent is allowed:
+     without it the engine simply has no user rules. */
+  var RULES = (typeof MyridiusRules !== "undefined") ? MyridiusRules
+            : (typeof require !== "undefined" ? require("./rules.js") : null);
+
   /* ------------------------------------------------------------------ */
   /* Default configuration: the Myridius style profile encoded as rules  */
   /* ------------------------------------------------------------------ */
@@ -754,7 +760,11 @@ var MyridiusEngine = (function () {
     if (source.toUpperCase() === source && source.length > 2) {
       return replacement.toUpperCase();
     }
-    if (source.charAt(0) === source.charAt(0).toUpperCase()) {
+    /* A digit or symbol has no case, so "20 years" must not be read as
+       capitalised and come back as "Over two decades" mid-sentence. Only a
+       letter can tell us the source was capitalised. */
+    var first = source.charAt(0);
+    if (/[a-z]/i.test(first) && first === first.toUpperCase()) {
       return replacement.charAt(0).toUpperCase() + replacement.slice(1);
     }
     return replacement;
@@ -1021,6 +1031,44 @@ var MyridiusEngine = (function () {
      destroying Devanagari. This function owns visible emoji; the artifact
      pass owns invisible carriers; neither claims a codepoint alone that the
      other would claim (FR-U24a). */
+  /* Any swap can break the article in front of it: "an excellent plan"
+     becomes "an Strong plan", "a utilization" becomes "a use". The engine
+     changes words without looking at their neighbours, so this repairs the
+     one neighbour that is purely mechanical.
+
+     Spelling decides nothing here, sound does: "an hour" and "a user" are
+     both correct and both contradict the letter. The exception lists are
+     the words that actually appear in business prose; anything outside them
+     falls back to the vowel-letter test, which is right far more often than
+     it is wrong. A wrong article is visible and a reader forgives it; the
+     alternative is leaving every swap to produce one. */
+  var AN_BEFORE_CONSONANT = /^(?:hour|hours|hourly|honest|honestly|honesty|honour|honours|honor|honors|honorary|honourable|honorable|heir|heirs|heiress)$/i;
+  var A_BEFORE_VOWEL = /^(?:u[bcdfghjklmnpqrstvwxyz]?[aeiou]|uni|use|usu|usa|ubiq|euro|eu[ln]|one|once)/i;
+  /* Two or more capitals and no lowercase: SLA, FAQ, API, MOU. A word like
+     "Apple" is not one, and neither is "US-based" past the hyphen. */
+  var INITIALISM = /^[A-Z]{2,}(?:['-]?[A-Z0-9]*)?$/;
+
+  function fixArticles(text) {
+    /* Emphasis markers and an opening quote can sit between the article and
+       the word it belongs to, and the word is what decides the article. */
+    return text.replace(/\b([Aa]n?)(\s+[*_`"'\u201c\u2018(\[]*)([A-Za-z][\w'-]*)/g, function (m, art, gap, word) {
+      var startsVowel = /^[aeiou]/i.test(word);
+      var wantAn;
+      if (startsVowel) wantAn = !A_BEFORE_VOWEL.test(word);
+      else if (INITIALISM.test(word)) {
+        /* An initialism is read letter by letter, so the sound decides, not
+           the letter: "an SLA", "an FAQ", "an MOU", "an HR review". */
+        wantAn = /^[FHLMNRSX]/.test(word);
+      }
+      else wantAn = AN_BEFORE_CONSONANT.test(word);
+      var isAn = art.length === 2;
+      if (wantAn === isAn) return m;
+      var fixed = wantAn ? "an" : "a";
+      if (art.charAt(0) === "A") fixed = fixed.charAt(0).toUpperCase() + fixed.slice(1);
+      return fixed + gap + word;
+    });
+  }
+
   function removeEmojis(text, changes) {
     var cps = [];
     var offs = [];
@@ -2362,7 +2410,18 @@ var MyridiusEngine = (function () {
       });
     }
 
-    var p = protect(art.text, config.protectedTerms);
+    /* The author's protect: terms join the configured ones, so a rule in
+       their own file can shield a word from every built-in pass. */
+    var terms = (config.protectedTerms || []).slice();
+    if (config.userRules) {
+      /* Both verbs shield a span from every built-in pass, and both have to
+         do it HERE rather than in the override layer below, because a swap
+         that has already fired cannot be un-fired. protect: is for names,
+         always: is for phrasing the author wants kept. Same mechanism. */
+      (config.userRules.protect || []).forEach(function (r) { terms.push(r.find); });
+      (config.userRules.always || []).forEach(function (r) { terms.push(r.find); });
+    }
+    var p = protect(art.text, terms);
     var text = p.text;
 
     if (settings.removeEmojis) text = removeEmojis(text, changes);
@@ -2384,7 +2443,23 @@ var MyridiusEngine = (function () {
     for (var c = 0; c < changes.length; c++) {
       changes[c].context = restore(changes[c].context || "", p.vault);
     }
-    return { output: text, changes: changes, artifacts: artifacts };
+
+    /* The author's own rules run LAST, after restore, so they outrank every
+       dictionary above AND catch words those dictionaries introduced. A ban
+       with no replacement is flagged rather than guessed at: the tool does
+       not know what the author meant, and inventing a substitute for a word
+       somebody deliberately banned is the same silent meaning-change this
+       engine refuses to make everywhere else. */
+    var ruleFlags = [];
+    if (config.userRules && RULES) {
+      text = RULES.apply(text, config.userRules, changes, ruleFlags);
+    }
+
+    /* Article repair is the genuine last step, because the author's own
+       rules are the last thing that can change a word, and changing a word
+       is what breaks the article in front of it. */
+    text = fixArticles(text);
+    return { output: text, changes: changes, artifacts: artifacts, ruleFlags: ruleFlags };
   }
 
   /* Collect flags for human review on (usually already transformed) text. */
@@ -2428,6 +2503,7 @@ var MyridiusEngine = (function () {
     var pairs = [];
     var changes = [];
     var artifacts = [];
+    var ruleFlags = [];
     for (var i = 0; i < originals.length; i++) {
       var t = transform(originals[i], config);
       for (var c = 0; c < t.changes.length; c++) {
@@ -2440,12 +2516,19 @@ var MyridiusEngine = (function () {
         t.artifacts[a].paragraph = i;
         artifacts.push(t.artifacts[a]);
       }
+      /* A ban the author gave no substitute for is a flag, not a change, so
+         it has to travel with the other flags or nobody ever sees it. */
+      for (var rf = 0; rf < (t.ruleFlags || []).length; rf++) {
+        t.ruleFlags[rf].paragraph = i;
+        ruleFlags.push(t.ruleFlags[rf]);
+      }
       pairs.push({ original: originals[i], output: t.output });
     }
     /* reviewParas replaces analyze(joined) here: it is offset aware, so the UI
        can highlight a flag in place, and it carries the resemblance score.
        Artifacts stay on their own key and reach none of it (FR-U1). */
     var review = reviewParas(pairs, config);
+    review.flags = ruleFlags.concat(review.flags);
     var before = fleschScore(normalized);
     return {
       paragraphs: pairs,

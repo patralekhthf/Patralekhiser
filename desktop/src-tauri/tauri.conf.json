@@ -1,0 +1,36 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Svara",
+  "version": "1.0.0",
+  "identifier": "com.patralekh.svara",
+  "build": {
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Svara",
+        "width": 1280,
+        "height": 860,
+        "minWidth": 900,
+        "minHeight": 600,
+        "resizable": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["dmg", "nsis"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.png"
+    ],
+    "shortDescription": "Rewrites a document into plain language and gives you a LinkedIn version.",
+    "longDescription": "Opens a Word, PDF, Markdown or text file, rewrites it into plainer language, removes invisible characters, applies your own rules, and gives you a Word document plus a LinkedIn post you can copy. Everything runs on your machine. No account, no server, no AI model, nothing leaves the computer."
+  }
+}

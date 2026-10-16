@@ -602,6 +602,169 @@ check("a config exported before this feature still loads (FR-U28)", (function ()
   return r.output === "We use it." && r.artifactSummary.total === 1;
 })());
 
+/* ==================================================================== */
+/* User rules: the override layer                                        */
+/* ==================================================================== */
+
+var rulesMod = require("../src/rules.js");
+var linkedin = require("../src/linkedin.js");
+
+function withRules(src) {
+  var cfg = JSON.parse(JSON.stringify(engine.defaultConfig));
+  cfg.userRules = rulesMod.parse(src);
+  return cfg;
+}
+
+check("a rule with a replacement wins over the built-in dictionaries", (function () {
+  var cfg = withRules("never: use -> apply");
+  return engine.transform("We utilize the platform.", cfg).output === "We apply the platform.";
+})());
+
+check("a rule catches a word the built-in rules introduced", (function () {
+  /* The hype swap turns "empower" into "help"; the author banned "help". */
+  var cfg = withRules("never: help -> assist");
+  return engine.transform("This will empower teams.", cfg).output === "This will assist teams.";
+})());
+
+check("a ban with no replacement is flagged, never guessed at", (function () {
+  var cfg = withRules("never: solution");
+  var d = engine.processDoc("It is a robust solution.", cfg);
+  var f = d.flags.filter(function (x) { return x.type === "Your rule"; });
+  return d.output.indexOf("solution") !== -1 && f.length === 1 && f[0].found === "solution";
+})());
+
+check("always: shields a word from the built-in dictionaries", (function () {
+  var cfg = withRules("always: utilize");
+  return engine.transform("We utilize the platform.", cfg).output === "We utilize the platform.";
+})());
+
+check("always: outranks the author's own ban", (function () {
+  var cfg = withRules("never: utilize -> use\nalways: utilize");
+  return engine.transform("We utilize it.", cfg).output === "We utilize it.";
+})());
+
+check("protect: shields a term from every pass", (function () {
+  var cfg = withRules("protect: Utilize Corp");
+  return engine.transform("Utilize Corp will utilize it.", cfg).output === "Utilize Corp will use it.";
+})());
+
+check("a rule keeps the casing it replaced", (function () {
+  var cfg = withRules("never: excellent -> strong");
+  var out = engine.transform("Excellent work. excellent work. EXCELLENT work.", cfg).output;
+  return out === "Strong work. strong work. STRONG work.";
+})());
+
+check("rules are counted and bad lines are reported, not fatal", (function () {
+  var r = rulesMod.parse("never: A -> B\nnonsense line\nnever: C\nalways: D\nprotect: E\nnever: F ->");
+  return r.never.length === 2 && r.always.length === 1 && r.protect.length === 1 &&
+    r.errors.length === 2 && r.errors[0].line === 2 && r.errors[1].line === 6;
+})());
+
+check("a built-in rule that produces a banned word is reported as a conflict", (function () {
+  var r = rulesMod.parse("never: help -> assist");
+  var c = rulesMod.conflicts(r, engine.defaultConfig);
+  return c.length > 0 && /produces/.test(c[0].message);
+})());
+
+check("rules round-trip through serialize and parse", (function () {
+  var src = "never: A -> B\nnever: C\nalways: D\nprotect: E";
+  var once = rulesMod.parse(src);
+  var twice = rulesMod.parse(rulesMod.serialize(once));
+  return JSON.stringify(twice.never.map(function (r) { return [r.find, r.replace]; })) ===
+         JSON.stringify(once.never.map(function (r) { return [r.find, r.replace]; })) &&
+         twice.always.length === 1 && twice.protect.length === 1;
+})());
+
+check("no rules means no change at all", (function () {
+  var withOut = engine.transform(input, engine.defaultConfig).output;
+  var withEmpty = engine.transform(input, withRules("# just a comment")).output;
+  return withOut === withEmpty;
+})());
+
+/* ---- a / an repair -------------------------------------------------- */
+[
+  ["It is an excellent idea.", "never: excellent -> strong", "It is a strong idea."],
+  ["We need a utilization plan.", "", "We need a use plan."],
+  ["It took an hour.", "", "It took an hour."],
+  ["She is a user of the app.", "", "She is a user of the app."],
+  ["an honest answer", "", "an honest answer"],
+  ["a unique approach", "", "a unique approach"],
+  ["a SLA review", "", "an SLA review"],
+  ["a MOU draft", "", "an MOU draft"],
+  ["a CRM system", "", "a CRM system"],
+  ["An excellent idea.", "never: excellent -> strong", "A strong idea."]
+].forEach(function (t) {
+  check("article repair: " + JSON.stringify(t[0]) + " -> " + JSON.stringify(t[2]),
+    engine.transform(t[0], t[1] ? withRules(t[1]) : engine.defaultConfig).output === t[2]);
+});
+
+check("article repair sees through emphasis markers and brackets", (function () {
+  var cfg = withRules("never: excellent -> strong");
+  return engine.transform("It is an **excellent** solution.", cfg).output === "It is a **strong** solution." &&
+         engine.transform("an (excellent) plan", cfg).output === "a (strong) plan";
+})());
+
+check("a swap no longer leaves a broken article behind", (function () {
+  /* The defect this pass exists for: any swap can orphan the article in
+     front of it, and the engine changes words without seeing neighbours. */
+  return engine.transform("It is an utilization issue.").output === "It is a use issue.";
+})());
+
+/* ==================================================================== */
+/* LinkedIn styling                                                      */
+/* ==================================================================== */
+
+check("bold markers become styled characters", (function () {
+  var out = linkedin.render("**Hello** world");
+  return out.indexOf("Hello") === -1 && linkedin.toPlain(out) === "Hello world";
+})());
+
+check("a heading becomes a styled lead-in", (function () {
+  return linkedin.toPlain(linkedin.render("# My Title")) === "My Title";
+})());
+
+check("list items become bullets", (function () {
+  return linkedin.render("- one\n- two") === "• one\n• two";
+})());
+
+check("URLs, hashtags, mentions and emails are never converted", (function () {
+  var src = "**https://example.com/x** and **#AI** and **@satyam** and **a@b.com**";
+  var out = linkedin.render(src);
+  return out.indexOf("https://example.com/x") !== -1 && out.indexOf("#AI") !== -1 &&
+         out.indexOf("@satyam") !== -1 && out.indexOf("a@b.com") !== -1;
+})());
+
+check("plain mode strips the markers without styling", (function () {
+  return linkedin.render("**Hello** *there*", { plain: true }) === "Hello there";
+})());
+
+check("styled text round-trips back to plain", (function () {
+  var src = "# Title\n\n**Bold** and *italic* and ***both***.\n\n- point";
+  return linkedin.toPlain(linkedin.render(src)) === linkedin.render(src, { plain: true });
+})());
+
+check("characters are counted by code point, not UTF-16 unit", (function () {
+  /* Every styled letter is an astral code point. Counting .length would
+     overstate the post by one each and send the author trimming text that
+     actually fits. */
+  var styled = linkedin.render("**abc**");
+  return styled.length === 6 && linkedin.stats(styled).chars === 3;
+})());
+
+check("the see-more fold and the limit are reported", (function () {
+  var long = "";
+  for (var i = 0; i < 400; i++) long += "word ";
+  var st = linkedin.stats(linkedin.render(long));
+  return st.hidden > 0 && st.preview.length <= linkedin.fold && st.limit === 3000;
+})());
+
+check("digits style in bold but are left alone in italic", (function () {
+  /* There is no sans-serif italic digit in Unicode, so faking one from
+     another range would change the typeface mid-word. */
+  return linkedin.toPlain(linkedin.render("**2026**")) === "2026" &&
+         linkedin.render("*2026*") === "2026";
+})());
+
 if (process.argv.indexOf("--show") !== -1) {
   console.log("\n--- OUTPUT ---\n" + out);
   console.log("\n--- FLAGS ---");
