@@ -23,7 +23,10 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["dmg", "nsis"],
+    "targets": [
+      "dmg",
+      "nsis"
+    ],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -31,6 +34,9 @@
       "icons/icon.png"
     ],
     "shortDescription": "Rewrites a document into plain language and gives you a LinkedIn version.",
-    "longDescription": "Opens a Word, PDF, Markdown or text file, rewrites it into plainer language, removes invisible characters, applies your own rules, and gives you a Word document plus a LinkedIn post you can copy. Everything runs on your machine. No account, no server, no AI model, nothing leaves the computer."
+    "longDescription": "Opens a Word, PDF, Markdown or text file, rewrites it into plainer language, removes invisible characters, applies your own rules, and gives you a Word document plus a LinkedIn post you can copy. Everything runs on your machine. No account, no server, no AI model, nothing leaves the computer.",
+    "macOS": {
+      "minimumSystemVersion": "13.3"
+    }
   }
 }
