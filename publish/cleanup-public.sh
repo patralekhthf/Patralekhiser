@@ -44,7 +44,7 @@ for f in Patralekhiser-v*.html; do
 done
 git add README.md
 if ! git diff --cached --quiet; then
-  git -c user.name="Satyam Patralekh" -c user.email="patralekh.satyam@myridius.com" \
+  git -c user.name="Satyam Patralekh" -c user.email="patralekh@gmail.com" \
       commit -q -m "Keep only index.html in the repo listing
 
 The versioned build belongs on the release, where it downloads as a file.

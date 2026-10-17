@@ -43,7 +43,7 @@ for stray in Patralekhiser-v*.html; do
   [ -e "$stray" ] && git rm -q --ignore-unmatch "$stray" 2>/dev/null && rm -f "$stray"
 done
 git add index.html README.md .nojekyll
-git -c user.name="Satyam Patralekh" -c user.email="patralekh.satyam@myridius.com" \
+git -c user.name="Satyam Patralekh" -c user.email="patralekh@gmail.com" \
     commit -q -m "Patralekhiser $TAG" || echo "   (nothing new to commit)"
 
 echo "==> creating the public repo if it does not exist"
