@@ -10,3 +10,23 @@ repo.bundle
 # private notes, never published
 NOTES.local.md
 dist/*.dmg
+
+# Client and work data. This repository is public, so anything exported from
+# a customer system is a disclosure if it is ever staged. Patterns rather
+# than filenames, because the next export will have a different date in it.
+#
+# The file that prompted this: an LMCU Jira export carrying a client's
+# project history, ticket contents and real names. It was sitting untracked
+# in the working directory with nothing stopping `git add -A` from
+# publishing it.
+*jira*.json
+*-raw-*.json
+lmcu-*
+*.export.json
+
+# Spreadsheets and archives are almost never source in this project, and are
+# the usual shape of data that arrived from somewhere else.
+*.csv
+*.xlsx
+*.zip
+!publish/*.zip
