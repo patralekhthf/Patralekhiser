@@ -1,15 +1,15 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Svara",
+  "productName": "myWords",
   "version": "1.0.0",
-  "identifier": "com.patralekh.svara",
+  "identifier": "com.patralekh.mywords",
   "build": {
     "frontendDist": "../dist"
   },
   "app": {
     "windows": [
       {
-        "title": "Svara",
+        "title": "myWords",
         "width": 1280,
         "height": 860,
         "minWidth": 900,
@@ -38,5 +38,6 @@
     "macOS": {
       "minimumSystemVersion": "13.3"
     }
-  }
+  },
+  "mainBinaryName": "mywords"
 }

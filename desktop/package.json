@@ -1,8 +1,8 @@
 {
-  "name": "svara",
+  "name": "mywords",
   "version": "1.0.0",
   "private": true,
-  "description": "Svara desktop packaging. The app itself is built by node src/build.js in the repo root; this only wraps it.",
+  "description": "myWords desktop packaging. The app itself is built by node src/build.js in the repo root; this only wraps it.",
   "scripts": {
     "sync": "node sync.js",
     "dev": "npm run sync && tauri dev",

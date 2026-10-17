@@ -5,11 +5,11 @@ var fs = require("fs");
 var path = require("path");
 
 var root = path.join(__dirname, "..");
-var src = path.join(root, "app", "svara.html");
+var src = path.join(root, "app", "mywords.html");
 var out = path.join(__dirname, "dist", "index.html");
 
 if (!fs.existsSync(src)) {
-  console.error("app/svara.html is missing. Run `node src/build.js` in the repo root first.");
+  console.error("app/mywords.html is missing. Run `node src/build.js` in the repo root first.");
   process.exit(1);
 }
 fs.mkdirSync(path.dirname(out), { recursive: true });
@@ -27,4 +27,4 @@ if (remote.length) {
   console.error("Remote reference found in the bundle:\n  " + remote.join("\n  "));
   process.exit(1);
 }
-console.log("Synced app/svara.html -> dist/index.html (" + Math.round(html.length / 1024) + " KB)");
+console.log("Synced app/mywords.html -> dist/index.html (" + Math.round(html.length / 1024) + " KB)");

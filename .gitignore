@@ -9,3 +9,4 @@ repo.bundle
 
 # private notes, never published
 NOTES.local.md
+dist/*.dmg

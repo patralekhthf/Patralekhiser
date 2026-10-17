@@ -1,5 +1,5 @@
 [package]
-name = "svara"
+name = "mywords"
 version = "1.0.0"
 description = "Rewrites a document into plain language and gives you a LinkedIn version."
 edition = "2021"

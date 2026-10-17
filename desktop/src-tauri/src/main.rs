@@ -1,4 +1,4 @@
-// Svara desktop shell.
+// myWords desktop shell.
 //
 // Deliberately empty of logic. The entire application is the single HTML file
 // in ../dist, which also runs in a plain browser. Keeping the Rust side at
@@ -9,5 +9,5 @@
 fn main() {
     tauri::Builder::default()
         .run(tauri::generate_context!())
-        .expect("error while running Svara");
+        .expect("error while running myWords");
 }
