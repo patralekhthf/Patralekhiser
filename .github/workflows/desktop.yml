@@ -1,14 +1,14 @@
-# Builds the myWords installers for macOS and Windows.
+# Builds the Swara installers for macOS and Windows.
 #
 # A Mac cannot cross-compile a Windows installer and a Windows machine cannot
 # produce a signed .dmg, so both are built on their own runner. Triggered by
-# hand, and on a tag starting with mywords-v.
-name: myWords desktop
+# hand, and on a tag starting with swara-v.
+name: Swara desktop
 
 on:
   workflow_dispatch:
   push:
-    tags: ["mywords-v*"]
+    tags: ["swara-v*"]
 
 jobs:
   build:
@@ -59,7 +59,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: mywords-${{ matrix.label }}
+          name: swara-${{ matrix.label }}
           path: |
             desktop/src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg
             desktop/src-tauri/target/${{ matrix.target }}/release/bundle/nsis/*.exe

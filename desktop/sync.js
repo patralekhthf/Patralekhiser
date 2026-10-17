@@ -5,11 +5,11 @@ var fs = require("fs");
 var path = require("path");
 
 var root = path.join(__dirname, "..");
-var src = path.join(root, "app", "mywords.html");
+var src = path.join(root, "app", "swara.html");
 var out = path.join(__dirname, "dist", "index.html");
 
 if (!fs.existsSync(src)) {
-  console.error("app/mywords.html is missing. Run `node src/build.js` in the repo root first.");
+  console.error("app/swara.html is missing. Run `node src/build.js` in the repo root first.");
   process.exit(1);
 }
 fs.mkdirSync(path.dirname(out), { recursive: true });
@@ -44,5 +44,16 @@ if (csp && inlineHandlers > 0) {
   process.exit(1);
 }
 
-console.log("Synced app/mywords.html -> dist/index.html (" + Math.round(html.length / 1024) + " KB)" +
+/* Tauri passes productName into bundle_dmg.sh unquoted, so a name holding a
+   space-dash-space is split and the tail is read as a flag. It fails on
+   every platform, not just this machine. See src-tauri/README.md. */
+var product = conf.productName || "";
+if (/\s-\s/.test(product) || /^-|\s-$/.test(product)) {
+  console.error('productName "' + product + '" contains a dash surrounded by spaces.');
+  console.error("Tauri passes it unquoted to bundle_dmg.sh, so the dmg step will fail.");
+  console.error("Put the full name in app.windows[].title instead.");
+  process.exit(1);
+}
+
+console.log("Synced app/swara.html -> dist/index.html (" + Math.round(html.length / 1024) + " KB)" +
   (inlineHandlers ? ", " + inlineHandlers + " inline handlers, no CSP" : ""));

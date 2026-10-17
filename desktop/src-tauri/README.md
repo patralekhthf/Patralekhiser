@@ -51,3 +51,26 @@ Until one of those happens, no CSP is the honest setting. The application
 loads no remote content, makes no network request except the optional
 pdf.js fetch, has no Tauri commands exposed, and is a single HTML file
 anybody can read.
+
+# Why productName is "Swara" and not "Swara - myVoice"
+
+The product is called Swara - myVoice. The bundle is called Swara, and the
+difference is forced rather than chosen.
+
+Tauri passes productName into its bundle_dmg.sh unquoted. With the full name
+the command it builds reads:
+
+    bundle_dmg.sh --volname Swara - myVoice --icon Swara - myVoice.app ...
+
+so the shell splits on the spaces and "- myVoice" is read as a flag. The dmg
+step fails, and it would fail the same way on every CI runner, not just here.
+
+So the single word is used everywhere a shell or a filename is involved:
+the .app bundle, the dmg, the volume name, the binary, the crate, the npm
+package, and the bundle identifier com.patralekh.swara. The full name is
+used everywhere a person actually reads it: the window title, and the app's
+own interface.
+
+If the full name is ever wanted on the bundle too, the fix is upstream in
+Tauri's bundler, not a local workaround. Do not put a dash surrounded by
+spaces back into productName.

@@ -20,7 +20,7 @@ var parts = {
 var apps = [
   { template: "template.html",       out: "index.html", name: "Patralekhiser",
     required: ["/*__ENGINE__*/", "/*__FILEIO__*/"] },
-  { template: "template-voice.html", out: "mywords.html", name: "myWords",
+  { template: "template-voice.html", out: "swara.html", name: "Swara - myVoice",
     required: ["/*__RULES__*/", "/*__LINKEDIN__*/", "/*__ENGINE__*/", "/*__FILEIO__*/"] }
 ];
 

@@ -8,7 +8,7 @@
 # long way: make an empty image, mount it, copy the app in, add the link to
 # /Applications that makes the drag-to-install window work, then compress.
 #
-# Use it when `npx tauri build` produces myWords.app but dies on the dmg.
+# Use it when `npx tauri build` produces Swara.app but dies on the dmg.
 # On a normal machine and in CI, `npx tauri build` alone is enough and this
 # script is not needed.
 #
@@ -16,14 +16,14 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-APP="$HERE/src-tauri/target/release/bundle/macos/myWords.app"
+APP="$HERE/src-tauri/target/release/bundle/macos/Swara.app"
 OUT="${1:-$HERE/../dist}"
 VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Contents/Info.plist")"
 ARCH="$(uname -m)"
 [ "$ARCH" = "arm64" ] && ARCH="aarch64"
-DMG="$OUT/myWords_${VERSION}_${ARCH}.dmg"
+DMG="$OUT/Swara_${VERSION}_${ARCH}.dmg"
 
-[ -d "$APP" ] || { echo "myWords.app not found. Run: npx tauri build" >&2; exit 1; }
+[ -d "$APP" ] || { echo "Swara.app not found. Run: npx tauri build" >&2; exit 1; }
 mkdir -p "$OUT"
 
 WORK="$(mktemp -d)"
@@ -36,12 +36,12 @@ trap cleanup EXIT
 # Size the image from the app plus headroom, so it never runs out mid-copy.
 SIZE_MB=$(( $(du -sm "$APP" | cut -f1) + 12 ))
 
-hdiutil create -size "${SIZE_MB}m" -fs HFS+ -volname myWords -layout SPUD "$WORK/rw.dmg" >/dev/null
+hdiutil create -size "${SIZE_MB}m" -fs HFS+ -volname Swara -layout SPUD "$WORK/rw.dmg" >/dev/null
 ATTACH="$(hdiutil attach "$WORK/rw.dmg" -nobrowse | tail -1)"
 DEV="$(echo "$ATTACH" | awk '{print $1}')"
 MNT="$(echo "$ATTACH" | sed 's|.*\(/Volumes/.*\)|\1|')"
 
-ditto "$APP" "$MNT/myWords.app"
+ditto "$APP" "$MNT/Swara.app"
 ln -sf /Applications "$MNT/Applications"
 
 hdiutil detach "$DEV" -quiet
