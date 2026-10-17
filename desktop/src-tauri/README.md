@@ -18,3 +18,36 @@ before committing, since zip reading is load-bearing."
 
 If the floor ever needs to come down, the fix is to vendor a pure-JS inflate
 rather than to lower this number.
+
+# Why there is no Content-Security-Policy
+
+There was one. It broke every button in the app, and it took a bug report to
+find out, so the reasoning is recorded here rather than left as a blank field
+somebody helpfully fills in again.
+
+Tauri injects a nonce into the CSP it serves: the binary carries
+`__TAURI_SCRIPT_NONCE__` and substitutes a fresh value per load. The CSP
+specification says that when a nonce source is present in `script-src`, the
+`'unsafe-inline'` keyword is **ignored**. This application's interface is
+built from inline `onclick` attributes, which are inline script. So setting
+any `csp` value at all silently disabled the entire user interface while the
+window still opened, rendered correctly, and looked completely normal.
+
+The same policy also blocked `https://cdnjs.cloudflare.com`, which is where
+`fileio.js` lazy-loads pdf.js from when somebody opens a PDF, so PDF import
+was broken by the same line.
+
+Two ways to get a CSP back, in order of preference:
+
+1. Vendor pdf.js locally and replace every inline handler with
+   `addEventListener`. Then a strict CSP costs nothing and the offline
+   promise becomes unconditional. Vendoring pdf.js is already a tracked
+   next action for its own reasons.
+2. Keep inline handlers and set `dangerousDisableAssetCspModification` so
+   Tauri does not add the nonce. This works and is worse: the name is
+   accurate, and it leaves a policy that looks stricter than it is.
+
+Until one of those happens, no CSP is the honest setting. The application
+loads no remote content, makes no network request except the optional
+pdf.js fetch, has no Tauri commands exposed, and is a single HTML file
+anybody can read.

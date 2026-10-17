@@ -27,4 +27,22 @@ if (remote.length) {
   console.error("Remote reference found in the bundle:\n  " + remote.join("\n  "));
   process.exit(1);
 }
-console.log("Synced app/mywords.html -> dist/index.html (" + Math.round(html.length / 1024) + " KB)");
+/* A CSP and inline event handlers cannot coexist in a Tauri app. Tauri adds
+   a nonce to script-src, and the CSP spec says a nonce makes 'unsafe-inline'
+   be ignored, so every onclick in the page stops firing. The window still
+   opens and still looks right, which is what makes it expensive to find:
+   it cost a bug report last time. Fail the build instead. */
+var conf = JSON.parse(fs.readFileSync(path.join(__dirname, "src-tauri", "tauri.conf.json"), "utf8"));
+var csp = conf.app && conf.app.security ? conf.app.security.csp : null;
+var inlineHandlers = (html.match(/\son[a-z]+\s*=\s*"/gi) || []).length;
+if (csp && inlineHandlers > 0) {
+  console.error("tauri.conf.json sets a Content-Security-Policy and the page uses " +
+    inlineHandlers + " inline event handlers.");
+  console.error("Tauri adds a nonce to script-src, which makes 'unsafe-inline' be ignored,");
+  console.error("so none of those handlers will fire and every button will be dead.");
+  console.error("See desktop/src-tauri/README.md. Remove the csp, or remove the handlers.");
+  process.exit(1);
+}
+
+console.log("Synced app/mywords.html -> dist/index.html (" + Math.round(html.length / 1024) + " KB)" +
+  (inlineHandlers ? ", " + inlineHandlers + " inline handlers, no CSP" : ""));
